@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.*
+*.db
+__pycache__/
+.pytest_cache/
+.venv/
+app/android/
+.DS_Store
