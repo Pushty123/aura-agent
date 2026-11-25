@@ -10,13 +10,24 @@ import { addDays } from './dates';
 export function generateDemoData(endDate: string, days = 30, seed = 7): DayRecord[] {
   const rand = rng(seed);
   const out: DayRecord[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const date = addDays(endDate, -i);
-    const lateScreenMin = Math.round(rand() < 0.45 ? 60 + rand() * 90 : rand() * 30);
-    const sleepHours = Math.max(4.5, Math.min(9, 7.7 - 0.012 * lateScreenMin + (rand() - 0.5) * 0.8));
-    const steps = Math.round(4500 + rand() * 6500);
-    const screenMinutes = Math.round(200 + rand() * 220 + lateScreenMin * 0.5);
-    const mood = Math.max(1, Math.min(5, Math.round(3 + (sleepHours - 7) * 0.8 + (rand() - 0.5)))) as DayRecord['mood'];
+  const startDate = addDays(endDate, 1 - days);
+  const lateNightCount = Math.min(9, Math.max(0, Math.round(days * 0.3)));
+  const lateNightIndexes = new Set(
+    Array.from({ length: lateNightCount }, (_, index) =>
+      Math.floor(((index + 0.5) * days) / lateNightCount),
+    ),
+  );
+
+  for (let i = 0; i < days; i++) {
+    const date = addDays(startDate, i);
+    const isWeekend = [0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay());
+    const isLateNight = lateNightIndexes.has(i);
+    const lateScreenMin = Math.round(isLateNight ? 105 + rand() * 45 : 10 + rand() * 40);
+    const baselineSleep = 7.4 + (isWeekend ? 0.3 : 0) + (rand() - 0.5) * 0.3;
+    const sleepHours = baselineSleep - (isLateNight ? 0.75 + rand() * 0.5 : 0);
+    const steps = Math.round((isWeekend ? 3500 : 5500) + rand() * (isWeekend ? 4000 : 4500));
+    const screenMinutes = Math.round((isWeekend ? 200 : 160) + rand() * (isWeekend ? 170 : 140) + lateScreenMin);
+    const mood = Math.max(1, Math.min(5, Math.round(3 + (sleepHours - 7) * 0.8 + (rand() - 0.5) * 2))) as DayRecord['mood'];
     out.push({
       date,
       sleepHours: Math.round(sleepHours * 100) / 100,
@@ -26,7 +37,7 @@ export function generateDemoData(endDate: string, days = 30, seed = 7): DayRecor
       mood,
       waterGlasses: Math.round(3 + rand() * 5),
       caffeineCups: Math.round(rand() * 3),
-      workout: rand() < 0.35,
+      workout: rand() < (isWeekend ? 0.25 : 0.4),
       source: 'demo',
     });
   }
