@@ -1,5 +1,6 @@
 import type { DayRecord, Insight } from '../types';
 import { mean, median, permutationP, robustZ, spearman } from './stats';
+import { addDays } from '../lib/dates';
 
 /** Minimum days of data before a pattern insight is shown. */
 export const MIN_DAYS = 14;
@@ -99,6 +100,49 @@ export function sleepDebt(days: DayRecord[], targetHours = 7.5): Insight {
     confidence: last7.length >= 7 ? 'medium' : 'low',
     suggestion: inDebt ? 'Move bedtime 20–30 minutes earlier for the next 3 nights.' : undefined,
     score: inDebt ? Math.min(100, debtMin / 4) + Math.abs(z) : 3,
+  };
+}
+
+/**
+ * Detector 3 – caffeine vs the NEXT night's sleep.
+ * A day's caffeine can only affect the sleep that follows it, so each day is paired
+ * with the sleep recorded on the following date.
+ */
+export function caffeineSleep(days: DayRecord[]): Insight {
+  const base = { id: 'caffeine-sleep', title: 'Caffeine vs sleep' };
+  const byDate = new Map(days.map((d) => [d.date, d]));
+  const pairs: { cups: number; sleep: number }[] = [];
+  for (const d of days) {
+    const next = byDate.get(addDays(d.date, 1));
+    if (d.caffeineCups !== undefined && next?.sleepHours !== undefined) {
+      pairs.push({ cups: d.caffeineCups, sleep: next.sleepHours });
+    }
+  }
+  if (pairs.length < MIN_DAYS) {
+    return { ...base, detail: `Not enough data yet: ${pairs.length} of ${MIN_DAYS} day-and-night pairs needed.`, confidence: 'low', score: 0, notEnoughData: true };
+  }
+  const threshold = 3; // cups in a day that counts as "heavy"
+  const heavy = pairs.filter((x) => x.cups >= threshold);
+  const light = pairs.filter((x) => x.cups < threshold);
+  if (heavy.length < 3 || light.length < 3) {
+    return { ...base, detail: 'Not enough variety yet: need at least 3 heavy and 3 light caffeine days.', confidence: 'low', score: 0, notEnoughData: true };
+  }
+  const cups = pairs.map((x) => x.cups);
+  const sleep = pairs.map((x) => x.sleep);
+  const effectMin = (mean(heavy.map((x) => x.sleep)) - mean(light.map((x) => x.sleep))) * 60;
+  const rho = spearman(cups, sleep);
+  const p = permutationP(cups, sleep);
+  const worse = effectMin < 0 && p < 0.05;
+  return {
+    ...base,
+    title: worse ? 'Caffeine is shortening your sleep' : base.title,
+    detail: worse
+      ? `After days with ${threshold}+ cups of tea or coffee you slept ${fmtMin(effectMin)} less than after lighter days.`
+      : 'No clear link between caffeine and your sleep in this period.',
+    evidence: { n: pairs.length, effect: Math.round(effectMin), unit: 'min of sleep', rho: Math.round(rho * 100) / 100, p: Math.round(p * 1000) / 1000 },
+    confidence: confidenceFrom(p, pairs.length),
+    suggestion: worse ? 'Try keeping to 2 cups, and none after 3 pm, for a week and compare.' : undefined,
+    score: worse ? Math.abs(rho) * (1 - p) * 100 : 5,
   };
 }
 

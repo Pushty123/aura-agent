@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateDemoData } from '../src/lib/demoData';
-import { lateScreenSleep, sleepDebt } from '../src/insights/detectors';
+import { caffeineSleep, lateScreenSleep, sleepDebt } from '../src/insights/detectors';
+import { addDays } from '../src/lib/dates';
 import { runInsights } from '../src/insights/engine';
 import { balanceScore } from '../src/insights/balance';
 import { mad, median, permutationP, robustZ, spearman } from '../src/insights/stats';
@@ -66,5 +67,51 @@ describe('balance score', () => {
   });
   it('scores an empty day low rather than crashing', () => {
     expect(balanceScore({ date: '2026-11-24', source: 'manual' }, []).score).toBe(0);
+  });
+});
+
+describe('caffeine detector', () => {
+  const make = (n: number, sleepFor: (cupsPrevDay: number, i: number) => number): DayRecord[] => {
+    const start = '2026-10-01';
+    const cups = Array.from({ length: n }, (_, i) => (i * 7) % 5); // 0..4 repeating, varied
+    return Array.from({ length: n }, (_, i) => ({
+      date: addDays(start, i),
+      caffeineCups: cups[i],
+      sleepHours: i === 0 ? 7 : sleepFor(cups[i - 1], i),
+      source: 'manual' as const,
+    }));
+  };
+
+  it('finds shorter sleep after heavy-caffeine days', () => {
+    const days = make(28, (c, i) => 8 - c * 0.35 + ((i * 13) % 5) * 0.02);
+    const r = caffeineSleep(days);
+    expect(r.notEnoughData).toBeUndefined();
+    expect(r.evidence!.effect).toBeLessThan(0);
+    expect(r.title).toMatch(/shortening/);
+    expect(r.suggestion).toBeTruthy();
+  });
+
+  it('pairs caffeine with the NEXT night, not the same date', () => {
+    // sleep depends on the SAME day's cups only -> next-night pairing must find no link
+    const start = '2026-10-01';
+    const cups = Array.from({ length: 28 }, (_, i) => (i * 7) % 5);
+    const days: DayRecord[] = cups.map((c, i) => ({ date: addDays(start, i), caffeineCups: c, sleepHours: 8 - c * 0.4, source: 'manual' as const }));
+    expect(caffeineSleep(days).title).not.toMatch(/shortening/);
+  });
+
+  it('says no clear link when sleep ignores caffeine', () => {
+    const days = make(28, (_c, i) => 7 + ((i * 11) % 4) * 0.1);
+    expect(caffeineSleep(days).detail).toMatch(/No clear link/);
+  });
+
+  it('says "not enough data" with a short history or missing nights', () => {
+    expect(caffeineSleep(make(10, () => 7)).notEnoughData).toBe(true);
+    const gappy = make(28, () => 7).filter((_, i) => i % 2 === 0); // no consecutive dates
+    expect(caffeineSleep(gappy).notEnoughData).toBe(true);
+  });
+
+  it('is included in the ranked insights', () => {
+    const days = make(28, (c, i) => 8 - c * 0.35 + ((i * 13) % 5) * 0.02);
+    expect(runInsights(days).some((i) => i.id === 'caffeine-sleep')).toBe(true);
   });
 });
