@@ -34,7 +34,10 @@ function isValidIsoDate(date: string): boolean {
 }
 
 function unknownCommand(): Command {
-  return { type: 'unknown', summary: 'Sorry, I can only set alarms and add calendar events for now. Try "set an alarm for 6:30 am".' };
+  return {
+    type: 'unknown',
+    summary: 'Sorry, I did not understand that. I can set alarms and add calendar events for now. Try "set an alarm for 6:30 am".',
+  };
 }
 
 export function parseCommand(input: string, todayIso: string): Command {
@@ -48,7 +51,13 @@ export function parseCommand(input: string, todayIso: string): Command {
   if (/\b(alarm|wake me)\b/.test(lower)) {
     const t = parseTime(lower);
     if (t) {
-      return { type: 'alarm', ...t, label: 'AURA', summary: `Set an alarm for ${two(t.hour)}:${two(t.minute)}` };
+      const label = 'AURA';
+      return {
+        type: 'alarm',
+        ...t,
+        label,
+        summary: `Set an alarm titled "${label}" for ${two(t.hour)}:${two(t.minute)}.`,
+      };
     }
   }
 
@@ -63,7 +72,13 @@ export function parseCommand(input: string, todayIso: string): Command {
           .replace(/\d{1,2}(:\d{2})?\s*(am|pm)?/gi, ' ')
           .replace(/\s+/g, ' ')
           .trim() || 'AURA event';
-      return { type: 'event', title, date, ...t, summary: `Add "${title}" on ${date} at ${two(t.hour)}:${two(t.minute)}` };
+      return {
+        type: 'event',
+        title,
+        date,
+        ...t,
+        summary: `Add calendar event "${title}" on ${date} at ${two(t.hour)}:${two(t.minute)}.`,
+      };
     }
   }
 

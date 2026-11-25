@@ -23,6 +23,20 @@ describe('food parsing', () => {
 });
 
 describe('command parsing', () => {
+  it('creates a confirmation description with the alarm title and time', () => {
+    expect(parseCommand('set an alarm for 6:30 am', '2026-11-24')).toMatchObject({
+      type: 'alarm',
+      summary: 'Set an alarm titled "AURA" for 06:30.',
+    });
+  });
+
+  it('creates a confirmation description with the event title, date, and time', () => {
+    expect(parseCommand('add event study group tomorrow 5 pm', '2026-11-24')).toMatchObject({
+      type: 'event',
+      summary: 'Add calendar event "study group" on 2026-11-25 at 17:00.',
+    });
+  });
+
   it('parses alarms', () => {
     expect(parseCommand('set an alarm for 6:30 am', '2026-11-24')).toMatchObject({ type: 'alarm', hour: 6, minute: 30 });
     expect(parseCommand('wake me at 7 pm', '2026-11-24')).toMatchObject({ type: 'alarm', hour: 19, minute: 0 });
@@ -85,5 +99,6 @@ describe('command parsing', () => {
     }
 
     expect(parseCommand('schedule a meeting tomorrow at 3', 'not-a-date').type).toBe('unknown');
+    expect(parseCommand('delete all my data', '2026-11-24').summary).toContain('did not understand');
   });
 });
