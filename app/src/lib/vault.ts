@@ -44,17 +44,44 @@ export async function createVault(passphrase: string): Promise<void> {
   await audit('vault.create', 'Vault created');
 }
 
+const FREE_ATTEMPTS = 5;
+const MAX_DELAY_MS = 5 * 60 * 1000;
+
+type Throttle = { fails: number; until: number };
+
+async function getThrottle(): Promise<Throttle> {
+  const row = await db.meta.get('throttle');
+  return row ? (JSON.parse(row.value) as Throttle) : { fails: 0, until: 0 };
+}
+
+/** After 5 wrong guesses in a row, wait 5s, 10s, 20s ... up to 5 minutes. */
+export async function unlockWaitSeconds(): Promise<number> {
+  const t = await getThrottle();
+  return Math.max(0, Math.ceil((t.until - Date.now()) / 1000));
+}
+
 export async function unlock(passphrase: string): Promise<boolean> {
   const salt = await db.meta.get('salt');
   const check = await db.meta.get('check');
   if (!salt || !check) return false;
+  const wait = await unlockWaitSeconds();
+  if (wait > 0) throw new Error(`Too many wrong attempts. Try again in ${wait} seconds.`);
   const key = await deriveVaultKey(passphrase, fromB64(salt.value));
+  let ok = false;
   try {
-    const text = await open<string>(key, 'check', 'check', JSON.parse(check.value));
-    if (text !== CHECK_TEXT) return false;
+    ok = (await open<string>(key, 'check', 'check', JSON.parse(check.value))) === CHECK_TEXT;
   } catch {
+    ok = false;
+  }
+  if (!ok) {
+    const t = await getThrottle();
+    const fails = t.fails + 1;
+    const delay = fails >= FREE_ATTEMPTS ? Math.min(5000 * 2 ** (fails - FREE_ATTEMPTS), MAX_DELAY_MS) : 0;
+    await db.meta.put({ key: 'throttle', value: JSON.stringify({ fails, until: delay ? Date.now() + delay : 0 }) });
+    await audit('vault.unlock-failed', `Wrong passphrase (attempt ${fails})`);
     return false;
   }
+  await db.meta.delete('throttle');
   vaultKey = key;
   await audit('vault.unlock', 'Vault unlocked');
   return true;
@@ -139,12 +166,20 @@ export async function setConsent(source: DataSource, on: boolean): Promise<void>
 }
 
 // ---- tamper-evident audit log (hash chain) ----
-export async function audit(action: string, detail: string): Promise<void> {
-  const last = await db.audit.orderBy('id').last();
-  const prev = last?.hash ?? 'genesis';
-  const ts = Date.now();
-  const hash = await sha256Hex(`${prev}|${ts}|${action}|${detail}`);
-  await db.audit.add({ ts, action, detail, prev, hash });
+// Entries are written one at a time so two writes at the same moment cannot
+// both link to the same previous entry and fork the hash chain.
+let auditQueue: Promise<void> = Promise.resolve();
+
+export function audit(action: string, detail: string): Promise<void> {
+  const run = auditQueue.then(async () => {
+    const last = await db.audit.orderBy('id').last();
+    const prev = last?.hash ?? 'genesis';
+    const ts = Date.now();
+    const hash = await sha256Hex(`${prev}|${ts}|${action}|${detail}`);
+    await db.audit.add({ ts, action, detail, prev, hash });
+  });
+  auditQueue = run.catch(() => undefined);
+  return run;
 }
 
 export async function getAudit(): Promise<AuditRow[]> {
