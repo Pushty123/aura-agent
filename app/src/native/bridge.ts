@@ -235,3 +235,35 @@ export async function biometricDisable(): Promise<void> {
     // Nothing stored.
   }
 }
+
+/**
+ * Replace all AURA reminders on the phone with this set of daily repeating
+ * notifications. Returns how many were scheduled.
+ */
+export async function scheduleReminders(
+  items: { id: number; title: string; body: string; hour: number; minute: number }[],
+): Promise<{ ok: boolean; count: number; message: string }> {
+  if (!isNative()) return { ok: false, count: 0, message: 'Reminders on your screen work in the Android app.' };
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications');
+    const pending = await LocalNotifications.getPending();
+    const ours = pending.notifications.filter((n) => (n.extra as { aura?: boolean } | undefined)?.aura);
+    if (ours.length) await LocalNotifications.cancel({ notifications: ours.map((n) => ({ id: n.id })) });
+    if (!items.length) return { ok: true, count: 0, message: 'All reminders are off.' };
+    const perm = await LocalNotifications.requestPermissions();
+    if (perm.display !== 'granted')
+      return { ok: false, count: 0, message: 'Allow notifications for AURA in phone Settings → Apps → AURA → Notifications.' };
+    await LocalNotifications.schedule({
+      notifications: items.map((n) => ({
+        id: n.id,
+        title: n.title,
+        body: n.body,
+        schedule: { on: { hour: n.hour, minute: n.minute }, allowWhileIdle: true },
+        extra: { aura: true },
+      })),
+    });
+    return { ok: true, count: items.length, message: `${items.length} reminder time${items.length === 1 ? '' : 's'} set on this phone.` };
+  } catch {
+    return { ok: false, count: 0, message: 'Could not set reminders on this phone.' };
+  }
+}

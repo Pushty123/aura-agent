@@ -178,7 +178,7 @@ export function App() {
       {tab === 'dashboard' && <Dashboard days={days} onChange={refresh} onNavigate={setTab} />}
       {tab === 'checkin' && <CheckIn days={days} onChange={refresh} />}
       {tab === 'food' && <Food />}
-      {tab === 'goals' && <Goals days={days} />}
+      {tab === 'goals' && <Goals days={days} onChange={refresh} />}
       {tab === 'exercise' && <Exercise />}
       {tab === 'phone' && <PhoneData days={days} onChange={refresh} />}
       {tab === 'ask' && <Ask days={days} />}
