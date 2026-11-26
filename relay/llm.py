@@ -93,7 +93,7 @@ def call_provider(system: str, messages: list[dict]) -> tuple[str, str]:
                 r.raise_for_status()
                 return "".join(b.get("text", "") for b in r.json()["content"]).strip(), model
             if provider == "gemini":
-                model = model or "gemini-2.0-flash"
+                model = model or "gemini-2.5-flash-lite"
                 r = http.post(
                     f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
                     headers={"x-goog-api-key": key},

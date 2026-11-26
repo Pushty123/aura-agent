@@ -44,7 +44,7 @@ The app never holds a model key. Set it once on the server:
 ```
 set AURA_LLM_PROVIDER=gemini        # or anthropic, or openai (any OpenAI-compatible API such as Groq)
 set AURA_LLM_KEY=your-key-here
-set AURA_LLM_MODEL=gemini-2.0-flash # optional for gemini/anthropic; required for openai
+set AURA_LLM_MODEL=gemini-2.5-flash-lite # optional; gemini-3.5-flash-lite also works
 uvicorn main:app --host 0.0.0.0 --port 8787
 ```
 - For `openai`-style providers also set `AURA_LLM_BASE_URL` (for example `https://api.groq.com/openai/v1`).
@@ -53,3 +53,5 @@ uvicorn main:app --host 0.0.0.0 --port 8787
   blood group, photos or raw records. The server removes emails and phone numbers again, adds the safety prompt
   itself and limits each account to 30 requests an hour (`AURA_LLM_PER_HOUR`).
 - If the server has no key, the user is offline, or smart replies are off, Ask AURA falls back to built-in answers.
+- Free Gemini tier note: Google's pricing page says free-tier requests may be used to improve its products. Only the
+  summary is sent, but for the demo use DEMO data, and use a paid or business tier for real users.
