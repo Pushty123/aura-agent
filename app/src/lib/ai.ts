@@ -33,7 +33,12 @@ const avg = (xs: (number | undefined)[]): number | null => {
 
 const ageBand = (age: number) => (age < 20 ? 'teens' : `${Math.floor(age / 10) * 10}s`);
 
-export function buildContext(days: DayRecord[], profile?: Profile | null, workouts: Workout[] = []): string {
+export function buildContext(
+  days: DayRecord[],
+  profile?: Profile | null,
+  workouts: Workout[] = [],
+  symptoms: { label: string; n: number }[] = [],
+): string {
   const week = days.slice(-7);
   const lines: string[] = [];
 
@@ -74,6 +79,11 @@ export function buildContext(days: DayRecord[], profile?: Profile | null, workou
     const byType = new Map<string, number>();
     for (const w of recentWorkouts) byType.set(w.exercise, (byType.get(w.exercise) ?? 0) + w.reps);
     lines.push(`Recent camera workouts (reps): ${[...byType].map(([k, v]) => `${k} ${v}`).join(', ')}`);
+  }
+
+  if (symptoms.length) {
+    // Counts only: no notes, no dates. Period data is never included.
+    lines.push(`Health log, last 30 days: ${symptoms.slice(0, 6).map((x) => `${x.label} x${x.n}`).join(', ')}`);
   }
 
   if (profile && !validateProfile(profile)) {

@@ -10,6 +10,7 @@ import { Ask } from './pages/Ask';
 import { VaultPage } from './pages/VaultPage';
 import { About } from './pages/About';
 import { Profile } from './pages/Profile';
+import { Health } from './pages/Health';
 import { Exercise } from './pages/Exercise';
 import { PhoneData } from './pages/PhoneData';
 import { AppUsage } from './pages/AppUsage';
@@ -182,6 +183,7 @@ export function App() {
       {tab === 'food' && <Food />}
       {tab === 'goals' && <Goals days={days} onChange={refresh} />}
       {tab === 'exercise' && <Exercise />}
+      {tab === 'health' && <Health days={days} />}
       {tab === 'phone' && <PhoneData days={days} onChange={refresh} />}
       {tab === 'apps' && <AppUsage />}
       {tab === 'me' && (

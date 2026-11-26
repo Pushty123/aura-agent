@@ -1,3 +1,4 @@
+import { loadHealth, recentCounts } from '../health/symptoms';
 import { useEffect, useMemo, useState } from 'react';
 import type { DayRecord } from '../types';
 import { runInsights } from '../insights/engine';
@@ -25,6 +26,7 @@ interface Message {
  * require a Confirm tap.
  */
 export function Ask({ days }: { days: DayRecord[] }) {
+  const [symptoms, setSymptoms] = useState<{ label: string; n: number }[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [cmdText, setCmdText] = useState('');
   const [pending, setPending] = useState<Command | null>(null);
@@ -44,11 +46,12 @@ export function Ask({ days }: { days: DayRecord[] }) {
       setLoggedIn(!!(await getSession()));
       setProfile((await loadProfile()) ?? null);
       setWorkouts(await loadWorkouts());
+      setSymptoms(recentCounts(await loadHealth(), today()));
       setServerReady(await smartStatus());
     })();
   }, []);
 
-  const context = useMemo(() => buildContext(days, profile, workouts), [days, profile, workouts]);
+  const context = useMemo(() => buildContext(days, profile, workouts, symptoms), [days, profile, workouts, symptoms]);
   const smartActive = smartOn && serverReady && loggedIn;
 
   const questions = useMemo(

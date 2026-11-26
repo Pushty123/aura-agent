@@ -943,3 +943,17 @@ p {
 .list-row:hover { background: var(--aura-surface-2); }
 .list-emoji { font-size: 1.25rem; width: 28px; text-align: center; }
 .list-text { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
+
+/* Period calendar */
+.cycle-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cycle-head { text-align: center; }
+.cycle-day { aspect-ratio: 1; border-radius: 50%; border: 1px solid transparent; background: var(--aura-surface-2); color: var(--aura-text); font-size: 0.8rem; cursor: pointer; padding: 0; }
+.cycle-day.period { background: #e11d48; color: #fff; }
+.cycle-day.predicted { background: transparent; border: 2px dashed #e11d48; }
+.cycle-day.fertile { background: rgba(45, 212, 191, 0.22); }
+.cycle-day.today { font-weight: 800; text-decoration: underline; }
+.cycle-day.picked { outline: 2px solid var(--aura-primary, #7c5cff); outline-offset: 1px; }
+.cycle-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.cycle-dot.period { background: #e11d48; }
+.cycle-dot.predicted { border: 2px dashed #e11d48; }
+.cycle-dot.fertile { background: rgba(45, 212, 191, 0.5); }

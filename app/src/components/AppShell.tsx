@@ -20,6 +20,7 @@ export type AppTab =
   | 'goals'
   | 'ask'
   | 'exercise'
+  | 'health'
   | 'phone'
   | 'apps'
   | 'vault'
@@ -40,7 +41,7 @@ interface Group {
 /** Five bottom tabs, like most well-known apps. Related screens live inside a tab. */
 export const GROUPS: Group[] = [
   { id: 'today', label: 'Today', icon: TodayIcon, tabs: ['dashboard'] },
-  { id: 'track', label: 'Track', icon: CheckInIcon, tabs: ['checkin', 'food', 'exercise'] },
+  { id: 'track', label: 'Track', icon: CheckInIcon, tabs: ['checkin', 'food', 'exercise', 'health'] },
   { id: 'goals', label: 'Goals', icon: GoalsIcon, tabs: ['goals'] },
   { id: 'ask', label: 'Ask', icon: AskIcon, tabs: ['ask'] },
   { id: 'me', label: 'Me', icon: ProfileIcon, tabs: ['me', 'profile', 'phone', 'apps', 'vault', 'about'] },
@@ -51,6 +52,7 @@ const TITLES: Record<AppTab, string> = {
   checkin: 'Track',
   food: 'Track',
   exercise: 'Track',
+  health: 'Track',
   goals: 'Goals',
   ask: 'Ask AURA',
   me: 'Me',
@@ -65,6 +67,7 @@ const TRACK_TABS: { id: AppTab; label: string }[] = [
   { id: 'checkin', label: 'Check-in' },
   { id: 'food', label: 'Food' },
   { id: 'exercise', label: 'Exercise' },
+  { id: 'health', label: 'Health' },
 ];
 
 export const groupOf = (tab: AppTab): Group => GROUPS.find((g) => g.tabs.includes(tab)) ?? GROUPS[0];
