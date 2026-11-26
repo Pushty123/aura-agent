@@ -23,7 +23,17 @@ ID_RE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 app = FastAPI(title="AURA relay and accounts", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:4173", "capacitor://localhost", "http://localhost", "https://localhost"],
+    # The app (Android), local dev servers, the shared GitHub Pages link, plus any extra
+    # origins in AURA_CORS_ORIGINS (comma-separated), e.g. a tunnel address.
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "capacitor://localhost",
+        "http://localhost",
+        "https://localhost",
+        "https://pushty123.github.io",
+        *[o.strip() for o in os.environ.get("AURA_CORS_ORIGINS", "").split(",") if o.strip()],
+    ],
     allow_methods=["GET", "PUT", "POST", "DELETE"],
     allow_headers=["*"],
 )

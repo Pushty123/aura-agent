@@ -87,11 +87,23 @@ export function Account({ theme, onToggleTheme, onDone }: Props) {
         await finish(s.email);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      const m = err instanceof Error ? err.message : 'Something went wrong.';
+      setError(
+        m.startsWith('Could not reach')
+          ? `${m} If you are testing from a shared link, tap "Try without an account" below. Everything works except AI chat and the ElevenLabs voice.`
+          : m,
+      );
     } finally {
       setBusy(false);
     }
   }
+
+  // Opened from a shared web link while the server address still points to this computer.
+  const sharedLink =
+    typeof window !== 'undefined' &&
+    !['localhost', '127.0.0.1'].includes(window.location.hostname) &&
+    !window.location.protocol.startsWith('capacitor') &&
+    /localhost|127\.0\.0\.1/.test(server);
 
   const title = mode === 'signup' ? 'Create your account' : mode === 'verify' ? 'Verify your email' : 'Welcome back';
 
@@ -115,6 +127,14 @@ export function Account({ theme, onToggleTheme, onDone }: Props) {
         </div>
 
         <h2 style={{ margin: 0 }}>{title}</h2>
+
+        {sharedLink && mode !== 'verify' && (
+          <div className="status-banner" role="note">
+            <strong>Testing from the shared link?</strong> Type any email and an 8+ character password, then tap
+            <strong> Try without an account</strong>. Your data stays in this browser. Log in only works when the team
+            shares its server address (tap <em>Server address</em> below).
+          </div>
+        )}
 
         {mode !== 'verify' && (
           <>
@@ -236,7 +256,7 @@ export function Account({ theme, onToggleTheme, onDone }: Props) {
           </button>
         )}
 
-        {mode === 'signup' && (
+        {mode !== 'verify' && (
           <button type="button" className="btn ghost" disabled={busy || !pass} onClick={() => void tryLocal()}>
             Try without an account (this device only)
           </button>
