@@ -16,6 +16,10 @@ export interface DayRecord {
   waterGlasses?: number;
   caffeineCups?: number;
   workout?: boolean;
+  /** Average heart rate for the day (bpm), from a band via Health Connect. */
+  avgHeartRate?: number;
+  /** Minutes of recorded exercise sessions. */
+  exerciseMinutes?: number;
   source: DataSource;
 }
 

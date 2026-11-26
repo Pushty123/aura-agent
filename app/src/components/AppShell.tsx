@@ -10,12 +10,13 @@ import {
   InfoIcon,
   LockIcon,
   MoonIcon,
+  PhoneIcon,
   ProfileIcon,
   SunIcon,
   TodayIcon,
 } from './Icons';
 
-export type AppTab = 'dashboard' | 'checkin' | 'food' | 'goals' | 'ask' | 'exercise' | 'vault' | 'profile' | 'about';
+export type AppTab = 'dashboard' | 'checkin' | 'food' | 'goals' | 'ask' | 'exercise' | 'phone' | 'vault' | 'profile' | 'about';
 export type ThemeMode = 'dark' | 'light';
 
 interface NavItem {
@@ -32,6 +33,7 @@ const PRIMARY_NAV: NavItem[] = [
   { id: 'food', label: 'Food', subtitle: 'Approximate daily nutrition log', icon: FoodIcon },
   { id: 'exercise', label: 'Exercise', subtitle: 'Count reps with your camera, on this phone', icon: ExerciseIcon },
   { id: 'ask', label: 'Ask AURA', subtitle: 'Evidence-backed answers & confirmed actions', icon: AskIcon },
+  { id: 'phone', label: 'Phone data', subtitle: 'Screen time and fitness band data, synced to this phone', icon: PhoneIcon },
   { id: 'vault', label: 'My Data', subtitle: 'Consent, network ledger, CSV import & vault', icon: DataIcon },
 ];
 

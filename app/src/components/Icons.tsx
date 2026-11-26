@@ -167,3 +167,12 @@ export function ExerciseIcon(props: IconProps) {
     </IconBase>
   );
 }
+
+export function PhoneIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
+      <path d="M11 18.5h2" />
+    </IconBase>
+  );
+}

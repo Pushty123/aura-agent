@@ -11,6 +11,8 @@ import { VaultPage } from './pages/VaultPage';
 import { About } from './pages/About';
 import { Profile } from './pages/Profile';
 import { Exercise } from './pages/Exercise';
+import { PhoneData } from './pages/PhoneData';
+import { syncPhoneData } from './sync/phoneSync';
 import { loadDays } from './lib/store';
 import { startAutoLock } from './lib/autolock';
 import { AppShell, type AppTab, type ThemeMode } from './components/AppShell';
@@ -74,6 +76,28 @@ export function App() {
     });
   }, [unlocked]);
 
+  // Keep phone and band data fresh: sync when the vault opens and whenever the app
+  // comes back to the screen (at most every 10 minutes). Only runs if the person
+  // has allowed device data; it never opens permission screens by itself.
+  useEffect(() => {
+    if (!unlocked) return;
+    let last = 0;
+    const run = async () => {
+      if (Date.now() - last < 10 * 60 * 1000) return;
+      last = Date.now();
+      try {
+        const r = await syncPhoneData({ interactive: false });
+        if (r.screen.state === 'synced' || r.health.state === 'synced') await refresh();
+      } catch {
+        // Background sync must never break the app.
+      }
+    };
+    void run();
+    const onVis = () => document.visibilityState === 'visible' && void run();
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [unlocked, refresh]);
+
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   }, []);
@@ -134,6 +158,7 @@ export function App() {
       {tab === 'food' && <Food />}
       {tab === 'goals' && <Goals days={days} />}
       {tab === 'exercise' && <Exercise />}
+      {tab === 'phone' && <PhoneData days={days} onChange={refresh} />}
       {tab === 'ask' && <Ask days={days} />}
       {tab === 'vault' && (
         <VaultPage

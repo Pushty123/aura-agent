@@ -18,9 +18,10 @@ import { InsightCard } from '../components/InsightCard';
 import { MetricCard } from '../components/MetricCard';
 import { generateDemoData } from '../lib/demoData';
 import { today } from '../lib/dates';
-import { patchDay, saveDay } from '../lib/store';
+import { saveDay } from '../lib/store';
 import { setConsent } from '../lib/vault';
-import { getUsage, notify } from '../native/bridge';
+import { notify } from '../native/bridge';
+import { syncPhoneData } from '../sync/phoneSync';
 import type { AppTab } from '../components/AppShell';
 
 const MOOD_LABELS: Record<NonNullable<DayRecord['mood']>, string> = {
@@ -80,21 +81,16 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   async function readPhone() {
     setBusy(true);
     try {
-      const r = await getUsage(7);
-      if (!r.ok) {
-        setMsg(r.message);
-        return;
-      }
-      await setConsent('device', true);
-      for (const u of r.days) {
-        await patchDay(
-          u.date,
-          { screenMinutes: u.screenMinutes, lateScreenMin: u.lateScreenMin, source: 'device' },
-          'device',
-        );
-      }
+      const r = await syncPhoneData({ interactive: true });
       await onChange();
-      setMsg(`Read ${r.days.length} days of screen time from this phone.`);
+      const parts: string[] = [];
+      if (r.screen.state === 'synced') parts.push(`${r.screen.days} days of screen time`);
+      if (r.health.state === 'synced') parts.push(`${r.health.days} days of band and health data`);
+      setMsg(
+        parts.length
+          ? `Read ${parts.join(' and ')} from this phone.`
+          : r.screen.message || r.health.message || 'Open the Phone data tab to allow a source.',
+      );
     } finally {
       setBusy(false);
     }
