@@ -2,6 +2,9 @@ import arjunStanding from '../assets/characters/arjun-standing.webp';
 import ananyaStanding from '../assets/characters/ananya-standing.webp';
 import kabirStanding from '../assets/characters/kabir-standing.webp';
 import meeraStanding from '../assets/characters/meera-standing.webp';
+import priyaStanding from '../assets/characters/priya-standing.webp';
+import kamalaStanding from '../assets/characters/kamala-standing.webp';
+import rameshStanding from '../assets/characters/ramesh-standing.webp';
 
 /**
  * AURA's fixed full-body characters (original AI-generated designs owned by
@@ -25,6 +28,9 @@ export const CHARACTERS: Character[] = [
   { id: 'arjun', name: 'Arjun', tagline: 'Easy-going and active', poses: { standing: arjunStanding }, faceY: 0.11 },
   { id: 'meera', name: 'Meera', tagline: 'Stylish and focused', poses: { standing: meeraStanding }, faceY: 0.13 },
   { id: 'kabir', name: 'Kabir', tagline: 'Cool and confident', poses: { standing: kabirStanding }, faceY: 0.1 },
+  { id: 'priya', name: 'Priya', tagline: 'Warm and organised', poses: { standing: priyaStanding }, faceY: 0.11 },
+  { id: 'kamala', name: 'Kamala', tagline: 'Gentle and wise', poses: { standing: kamalaStanding }, faceY: 0.1 },
+  { id: 'ramesh', name: 'Ramesh', tagline: 'Steady and cheerful', poses: { standing: rameshStanding }, faceY: 0.09 },
 ];
 
 export function characterById(id: string): Character | undefined {
