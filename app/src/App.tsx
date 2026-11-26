@@ -7,26 +7,39 @@ import { Food } from './pages/Food';
 import { Goals } from './pages/Goals';
 import { Ask } from './pages/Ask';
 import { VaultPage } from './pages/VaultPage';
+import { About } from './pages/About';
 import { loadDays } from './lib/store';
+import { AppShell, type AppTab, type ThemeMode } from './components/AppShell';
 import type { DayRecord } from './types';
 
-type Tab = 'dashboard' | 'checkin' | 'food' | 'goals' | 'ask' | 'vault';
+const THEME_STORAGE_KEY = 'aura-theme';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'dashboard', label: 'Today' },
-  { id: 'checkin', label: 'Check-in' },
-  { id: 'food', label: 'Food' },
-  { id: 'goals', label: 'Goals' },
-  { id: 'ask', label: 'Ask AURA' },
-  { id: 'vault', label: 'My Data' },
-];
+function readInitialTheme(): ThemeMode {
+  try {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch {
+    // Ignore storage access errors
+  }
+  return 'dark';
+}
 
 export function App() {
   const [ready, setReady] = useState(false);
   const [exists, setExists] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
-  const [tab, setTab] = useState<Tab>('dashboard');
+  const [tab, setTab] = useState<AppTab>('dashboard');
   const [days, setDays] = useState<DayRecord[]>([]);
+  const [theme, setTheme] = useState<ThemeMode>(readInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // Ignore storage access errors
+    }
+  }, [theme]);
 
   useEffect(() => {
     vaultExists().then((e) => {
@@ -44,12 +57,24 @@ export function App() {
     if (unlocked) void refresh();
   }, [unlocked, refresh]);
 
-  if (!ready) return <div className="center">Loading…</div>;
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
+  if (!ready) {
+    return (
+      <div className="unlock-screen">
+        <p className="muted">Loading AURA…</p>
+      </div>
+    );
+  }
 
   if (!unlocked) {
     return (
       <Unlock
         exists={exists}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onDone={() => {
           setExists(true);
           setUnlocked(true);
@@ -61,47 +86,34 @@ export function App() {
   const hasDemo = days.some((d) => d.source === 'demo');
 
   return (
-    <div className="app">
-      <header className="top">
-        <div className="brand">
-          <span className="logo">AURA</span>
-          <span className="tag">Your data. Your intelligence.</span>
-        </div>
-        <button
-          className="ghost"
-          onClick={() => {
-            lock();
+    <AppShell
+      tab={tab}
+      onTabChange={setTab}
+      theme={theme}
+      onToggleTheme={toggleTheme}
+      onLock={() => {
+        lock();
+        setUnlocked(false);
+      }}
+      hasDemo={hasDemo}
+    >
+      {tab === 'dashboard' && <Dashboard days={days} onChange={refresh} onNavigate={setTab} />}
+      {tab === 'checkin' && <CheckIn days={days} onChange={refresh} />}
+      {tab === 'food' && <Food />}
+      {tab === 'goals' && <Goals days={days} />}
+      {tab === 'ask' && <Ask days={days} />}
+      {tab === 'vault' && (
+        <VaultPage
+          onChange={refresh}
+          onDeleted={() => {
+            setExists(false);
             setUnlocked(false);
+            setDays([]);
+            setTab('dashboard');
           }}
-        >
-          Lock
-        </button>
-      </header>
-      {hasDemo && <div className="demo-banner">Demo data is switched on: the numbers below are sample data, not a real person.</div>}
-      <main>
-        {tab === 'dashboard' && <Dashboard days={days} onChange={refresh} />}
-        {tab === 'checkin' && <CheckIn days={days} onChange={refresh} />}
-        {tab === 'food' && <Food />}
-        {tab === 'goals' && <Goals days={days} />}
-        {tab === 'ask' && <Ask days={days} />}
-        {tab === 'vault' && (
-          <VaultPage
-            onChange={refresh}
-            onDeleted={() => {
-              setExists(false);
-              setUnlocked(false);
-              setDays([]);
-            }}
-          />
-        )}
-      </main>
-      <nav className="tabs">
-        {TABS.map((t) => (
-          <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
-            {t.label}
-          </button>
-        ))}
-      </nav>
-    </div>
+        />
+      )}
+      {tab === 'about' && <About />}
+    </AppShell>
   );
 }
