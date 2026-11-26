@@ -482,6 +482,152 @@
   color: var(--ds-primary);
 }
 
+.routine-page {
+  gap: 20px;
+}
+
+.routine-summary h2,
+.routine-water-card h2,
+.routine-card h3 {
+  margin: 0;
+  color: var(--ds-text);
+}
+
+.routine-summary {
+  --ds-accent: var(--ds-balance);
+  --ds-accent-soft: color-mix(in srgb, var(--ds-balance) 13%, var(--ds-card));
+}
+
+.routine-water-card {
+  --ds-accent: var(--ds-water);
+  --ds-accent-soft: color-mix(in srgb, var(--ds-water) 13%, var(--ds-card));
+}
+
+.routine-streak {
+  color: var(--ds-primary);
+  font-size: 0.9rem;
+}
+
+.routine-list {
+  display: grid;
+  gap: 12px;
+}
+
+.routine-card,
+.routine-water-card {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-card);
+  box-shadow: var(--ds-shadow-card);
+  color: var(--ds-text);
+}
+
+.routine-card .ds-icon-tile,
+.routine-water-card > .ds-icon-tile {
+  width: 46px;
+  height: 46px;
+}
+
+.routine-card-content,
+.routine-water-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.routine-card-heading {
+  min-width: 0;
+}
+
+.routine-card-heading h3 {
+  overflow-wrap: anywhere;
+  font-size: 0.98rem;
+}
+
+.routine-card-heading p,
+.routine-water-content p {
+  margin: 4px 0 0;
+}
+
+.routine-status {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border: 1px solid var(--ds-border);
+  border-radius: 999px;
+  color: var(--ds-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.routine-status.done {
+  border-color: color-mix(in srgb, var(--ds-primary) 38%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-primary) 12%, var(--ds-card));
+  color: var(--ds-primary);
+}
+
+.routine-status.not-now {
+  color: var(--ds-muted);
+}
+
+.routine-status.no-response {
+  font-weight: 550;
+}
+
+.routine-days,
+.routine-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: 14px;
+}
+
+.routine-days legend,
+.routine-icons legend {
+  padding: 0 5px;
+}
+
+.routine-days label,
+.routine-icon-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+}
+
+.routine-icon-choice {
+  padding: 4px 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+}
+
+.routine-icon-choice .ds-icon-tile {
+  width: 34px;
+  height: 34px;
+}
+
+.routine-water-card {
+  align-items: flex-start;
+  margin: 8px 0;
+}
+
+.routine-water-card .ds-range-bar {
+  width: 100%;
+}
+
+.routine-page .input {
+  min-width: 130px;
+}
+
 .ds-bottom-tab:focus-visible,
 .ds-settings-button:focus-visible,
 .ds-theme-toggle:focus-visible {

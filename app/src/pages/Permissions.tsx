@@ -32,8 +32,15 @@ export function PermissionsPage({ onChanged }: { onChanged: () => Promise<void> 
       setPermissions(saved);
       await onChanged();
       if (permission === 'notifications') {
-        if (enabled) await applyReminders(await loadReminders());
-        else await clearAuraNotifications();
+        if (enabled) {
+          const result = await applyReminders(await loadReminders());
+          if (!result.ok) {
+            setStatus({ ok: false, text: result.message });
+            return;
+          }
+        } else {
+          await clearAuraNotifications();
+        }
       }
       if (permission === 'steps') await setPhoneStepsEnabled(enabled);
       if (permission === 'usage')

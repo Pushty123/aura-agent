@@ -1,8 +1,13 @@
-import { scheduleReminders } from '../native/bridge';
+import { scheduleReminders, type AuraNotification } from '../native/bridge';
 import { getRecord, putRecord } from '../lib/vault';
 import type { DayRecord } from '../types';
 import { mean } from '../insights/stats';
 import { today as todayISO } from '../lib/dates';
+import { notificationId } from './notificationIds';
+import { loadRoutineItems, routineNotificationItems } from './routine';
+import { loadWaterSettings, waterNotificationItems } from './water';
+
+export { notificationId } from './notificationIds';
 
 /**
  * Reminders that repeat every day, scheduled by the phone itself (no server).
@@ -52,13 +57,6 @@ export function slotsFor(r: Reminder): Slot[] {
     out.push({ hour: Math.floor(m / 60), minute: m % 60 });
   }
   return out;
-}
-
-/** Stable positive 31-bit notification id per reminder and slot. */
-export function notificationId(reminderId: string, slot: number): number {
-  let h = 2166136261;
-  for (const c of `${reminderId}#${slot}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
-  return (h >>> 1) % 2_000_000_000 + 1000;
 }
 
 const blank = (over: Partial<Reminder>): Reminder => ({
@@ -127,8 +125,16 @@ export async function saveReminders(list: Reminder[]): Promise<void> {
 /** Save and (re)schedule every enabled reminder on the phone. */
 export async function applyReminders(list: Reminder[]) {
   await saveReminders(list);
-  const items = list
+  const reminders: AuraNotification[] = list
     .filter((r) => r.enabled && (!r.until || r.until >= todayISO()))
-    .flatMap((r) => slotsFor(r).map((s, i) => ({ id: notificationId(r.id, i), title: r.title, body: r.body || r.title, ...s })));
-  return scheduleReminders(items);
+    .flatMap((r) => slotsFor(r).map((slot, i) => ({
+      id: notificationId(`reminder:${r.id}`, i),
+      title: r.title,
+      body: r.body || r.title,
+      schedule: { on: { hour: slot.hour, minute: slot.minute }, allowWhileIdle: true },
+      extra: { aura: true, kind: 'reminder', reminderId: r.id },
+    })));
+  const routines = routineNotificationItems(await loadRoutineItems());
+  const water = waterNotificationItems(await loadWaterSettings());
+  return scheduleReminders([...reminders, ...routines, ...water]);
 }

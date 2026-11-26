@@ -5,6 +5,7 @@ import { today } from '../lib/dates';
 import { loadFood, patchDay } from '../lib/store';
 import { loadWorkouts } from '../exercise/workouts';
 import { isNative } from '../native/bridge';
+import { addWaterGlass } from '../reminders/water';
 import { PlanCard } from './PlanCard';
 import {
   buildDayValues,
@@ -152,7 +153,7 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
   }
 
   async function plusWater() {
-    await patchDay(date, { waterGlasses: (todayRec?.waterGlasses ?? 0) + 1 });
+    await patchDay(date, addWaterGlass(todayRec));
     await onChange?.();
   }
 

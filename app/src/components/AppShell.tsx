@@ -20,6 +20,7 @@ export type AppTab =
   | 'dashboard'
   | 'report'
   | 'checkin'
+  | 'routine'
   | 'food'
   | 'goals'
   | 'ask'
@@ -46,7 +47,7 @@ interface Group {
 /** Five bottom tabs for daily use. Everything else lives in the left menu (☰). */
 export const GROUPS: Group[] = [
   { id: 'today', label: 'Home', icon: TodayIcon, tabs: ['dashboard'] },
-  { id: 'track', label: 'Track', icon: CheckInIcon, tabs: ['checkin', 'food', 'exercise', 'health'] },
+  { id: 'track', label: 'Track', icon: CheckInIcon, tabs: ['checkin', 'food', 'exercise', 'health', 'routine'] },
   { id: 'report', label: 'Report', icon: ReportIcon, tabs: ['report'] },
   { id: 'goals', label: 'Goals', icon: GoalsIcon, tabs: ['goals'] },
   { id: 'ask', label: 'Ask', icon: AskIcon, tabs: ['ask'] },
@@ -70,6 +71,7 @@ const TITLES: Record<AppTab, string> = {
   dashboard: 'Today',
   report: 'Weekly report',
   checkin: 'Track',
+  routine: 'Routine',
   food: 'Track',
   exercise: 'Track',
   health: 'Track',
@@ -90,6 +92,7 @@ const SUB_TABS: Partial<Record<GroupId, { id: AppTab; label: string }[]>> = {
     { id: 'food', label: 'Food' },
     { id: 'exercise', label: 'Exercise' },
     { id: 'health', label: 'Health' },
+    { id: 'routine', label: 'Routine' },
   ],
   usage: [
     { id: 'apps', label: 'Apps & limits' },
@@ -182,7 +185,7 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
                 <MenuIcon size={22} />
               </button>
             )}
-            {tab !== 'dashboard' && <h1 className="aura-page-title">{TITLES[tab]}</h1>}
+            {tab !== 'dashboard' && tab !== 'routine' && <h1 className="aura-page-title">{TITLES[tab]}</h1>}
           </div>
           <div className="aura-topbar-actions">
             <button type="button" className="btn ghost icon-only" onClick={() => setMenuOpen(true)} aria-label="Open menu and profile" title="Menu" style={{ padding: 2 }}>

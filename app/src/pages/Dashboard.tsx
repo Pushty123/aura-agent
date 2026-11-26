@@ -20,6 +20,8 @@ import { MetricCard, ScreenHeader } from '../components/design-system';
 import { DEFAULT_PERMISSIONS, getPermissions, type Permissions } from '../lib/permissions';
 import { loadWorkouts, type Workout } from '../exercise/workouts';
 import { todayMetrics } from '../home/todayMetrics';
+import { WaterCard } from '../components/WaterCard';
+import { addWaterGlass } from '../reminders/water';
 
 function greetingForNow(name?: string): string {
   const hour = new Date().getHours();
@@ -68,7 +70,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   const metricsSection = (
     <>
       <div className="ds-metric-grid ds-today-grid">
-        {metrics.map((metric) => <MetricCard key={metric.kind} {...metric} />)}
+        {metrics.filter((metric) => metric.kind !== 'water').map((metric) => <MetricCard key={metric.kind} {...metric} />)}
       </div>
       {(permissions ?? DEFAULT_PERMISSIONS).heartRate && <p className="ds-wellness-note">wellness info, not medical advice</p>}
     </>
@@ -114,12 +116,31 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
     }
   }
 
+  async function addWater() {
+    try {
+      const current = days.find((d) => d.date === today());
+      await patchDay(today(), addWaterGlass(current));
+      await onChange();
+      setMsg('A glass of water added to today.');
+    } catch (error) {
+      setMsg(error instanceof Error ? error.message : 'Could not save your water entry.');
+    }
+  }
+
+  const waterCard = (
+    <WaterCard
+      day={todayRecord}
+      onAddGlass={() => void addWater()}
+      onManage={() => onNavigate?.('routine')}
+    />
+  );
 
   if (!latest) {
     return (
       <section className="ds-demo-page aura-today-page stack-lg">
         {screenHeader}
         {metricsSection}
+        {waterCard}
         <div className="card stack-md">
           <div>
             <h2>{greeting}</h2>
@@ -175,16 +196,11 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
     setSpeaking(false);
   }
 
-  async function addWater() {
-    await patchDay(today(), { waterGlasses: ((days.find((d) => d.date === today())?.waterGlasses) ?? 0) + 1 });
-    await onChange();
-    setMsg('💧 +1 glass of water logged.');
-  }
-
   return (
     <section className="ds-demo-page aura-today-page stack-lg">
       {screenHeader}
       {metricsSection}
+      {waterCard}
 
       <div className="card thought-card stack-sm">
         <div className="row between center-v">

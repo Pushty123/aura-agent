@@ -1,4 +1,6 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import type { PluginListenerHandle } from '@capacitor/core';
+import type { LocalNotificationSchema } from '@capacitor/local-notifications';
 import type { Command } from '../commands/parse';
 import { hasPermission, type PermissionKey } from '../lib/permissions';
 
@@ -97,6 +99,35 @@ export const isNative = (): boolean => Capacitor.isNativePlatform();
 export type NativeResult = { ok: true; message: string } | { ok: false; message: string };
 
 export type Failure = { ok: false; reason: 'web' | 'permission' | 'unavailable' | 'error'; message: string };
+
+export interface AuraNotification extends Omit<LocalNotificationSchema, 'id' | 'title' | 'body'> {
+  id: number;
+  title: string;
+  body: string;
+  schedule: NonNullable<LocalNotificationSchema['schedule']>;
+  extra: { aura: true; kind?: string; [key: string]: unknown };
+}
+
+export async function addNotificationActionListener(
+  listener: (event: { actionId: string; notification: LocalNotificationSchema }) => void,
+): Promise<PluginListenerHandle> {
+  const { LocalNotifications } = await import('@capacitor/local-notifications');
+  return LocalNotifications.addListener('localNotificationActionPerformed', listener);
+}
+
+function nextWebNotificationDate(schedule: NonNullable<LocalNotificationSchema['schedule']>, now = new Date()): Date {
+  if (schedule.at) return schedule.at;
+  const on = schedule.on;
+  if (!on) throw new Error('A browser reminder needs a specific next notification time.');
+  const hasWeekday = on.weekday !== undefined;
+  const targetWeekday = hasWeekday ? on.weekday! - 1 : now.getDay();
+  const daysUntil = (targetWeekday - now.getDay() + 7) % 7;
+  const date = new Date(now);
+  date.setDate(now.getDate() + daysUntil);
+  date.setHours(on.hour ?? 0, on.minute ?? 0, on.second ?? 0, 0);
+  if (date.getTime() <= now.getTime()) date.setDate(date.getDate() + (hasWeekday ? 7 : 1));
+  return date;
+}
 
 export async function getUsageState(): Promise<UsageState> {
   if (!isNative()) return 'web';
@@ -336,34 +367,72 @@ export async function biometricDisable(): Promise<void> {
  * notifications. Returns how many were scheduled.
  */
 export async function scheduleReminders(
-  items: { id: number; title: string; body: string; hour: number; minute: number }[],
+  items: AuraNotification[],
 ): Promise<{ ok: boolean; count: number; message: string }> {
   if (!(await hasPermission('notifications'))) {
     await clearAuraNotifications();
     return { ok: false, count: 0, message: 'Enable Notifications in Settings → Permissions first.' };
   }
-  if (!isNative()) return { ok: false, count: 0, message: 'Reminders on your screen work in the Android app.' };
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
     const pending = await LocalNotifications.getPending();
     const ours = pending.notifications.filter((n) => (n.extra as { aura?: boolean } | undefined)?.aura);
     if (ours.length) await LocalNotifications.cancel({ notifications: ours.map((n) => ({ id: n.id })) });
     if (!items.length) return { ok: true, count: 0, message: 'All reminders are off.' };
-    const perm = await LocalNotifications.requestPermissions();
-    if (perm.display !== 'granted')
-      return { ok: false, count: 0, message: 'Allow notifications for AURA in phone Settings → Apps → AURA → Notifications.' };
-    await LocalNotifications.schedule({
-      notifications: items.map((n) => ({
-        id: n.id,
-        title: n.title,
-        body: n.body,
-        schedule: { on: { hour: n.hour, minute: n.minute }, allowWhileIdle: true },
-        extra: { aura: true },
-      })),
-    });
-    return { ok: true, count: items.length, message: `${items.length} reminder time${items.length === 1 ? '' : 's'} set on this phone.` };
-  } catch {
-    return { ok: false, count: 0, message: 'Could not set reminders on this phone.' };
+    let permission = await LocalNotifications.checkPermissions();
+    if (permission.display === 'prompt') permission = await LocalNotifications.requestPermissions();
+    if (permission.display !== 'granted') {
+      return {
+        ok: false,
+        count: 0,
+        message: isNative()
+          ? 'Allow notifications for AURA in phone Settings → Apps → AURA → Notifications.'
+          : 'Allow notifications for this site in your browser settings, then try again.',
+      };
+    }
+
+    if (isNative()) {
+      await LocalNotifications.registerActionTypes({
+        types: [
+          {
+            id: 'routine-response',
+            actions: [
+              { id: 'routine-not-now', title: 'Not now' },
+              { id: 'routine-done', title: 'Done' },
+            ],
+          },
+          {
+            id: 'water-response',
+            actions: [
+              { id: 'water-not-now', title: 'Not now' },
+              { id: 'water-drank', title: 'Drank water' },
+            ],
+          },
+        ],
+      });
+    }
+
+    const notifications = isNative()
+      ? items
+      : items.map((item) => ({
+          ...item,
+          schedule: { at: nextWebNotificationDate(item.schedule) },
+          actionTypeId: undefined,
+        }));
+    await LocalNotifications.schedule({ notifications });
+    return {
+      ok: true,
+      count: items.length,
+      message: isNative()
+        ? `${items.length} reminder time${items.length === 1 ? '' : 's'} set on this phone.`
+        : `${items.length} next reminder time${items.length === 1 ? '' : 's'} set. Keep this browser tab open; browser action buttons are not supported.`,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      count: 0,
+      message: error instanceof Error ? `Could not set reminders: ${error.message}` : 'Could not set reminders on this device.',
+    };
   }
 }
 
@@ -399,10 +468,9 @@ export async function setPhoneStepsEnabled(enabled: boolean): Promise<void> {
 }
 
 export async function clearAuraNotifications(): Promise<void> {
-  if (!isNative()) return;
   const { LocalNotifications } = await import('@capacitor/local-notifications');
   const pending = await LocalNotifications.getPending();
   const ours = pending.notifications.filter((n) => (n.extra as { aura?: boolean } | undefined)?.aura);
   if (ours.length) await LocalNotifications.cancel({ notifications: ours.map((n) => ({ id: n.id })) });
-  await Native.setAppLimits({ limits: [] });
+  if (isNative()) await Native.setAppLimits({ limits: [] });
 }
