@@ -23,10 +23,11 @@ function IconBase({ size = 18, children, ...props }: IconProps) {
 
 export function AuraLogoIcon(props: IconProps) {
   return (
-    <IconBase {...props}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7a5 5 0 0 1 5 5" />
-      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+    <IconBase viewBox="0 0 128 128" strokeWidth={10} {...props}>
+      <circle cx="64" cy="64" r="42" stroke="var(--aura-border)" strokeOpacity="0.4" strokeWidth="8" />
+      <path d="M 64 22 A 42 42 0 1 1 25.4 80.5" stroke="var(--aura-primary)" strokeWidth="11" strokeLinecap="round" />
+      <circle cx="64" cy="64" r="14" fill="var(--aura-primary)" fillOpacity="0.2" stroke="none" />
+      <circle cx="64" cy="64" r="7.5" fill="var(--aura-primary)" stroke="none" />
     </IconBase>
   );
 }

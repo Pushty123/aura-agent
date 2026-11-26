@@ -127,4 +127,40 @@ edit(
   'AndroidManifest.xml (permissions, Health Connect)',
 );
 
+// 4. App icon from the design hand-off (src/assets/brand/android)
+const brand = join(root, 'src', 'assets', 'brand', 'android');
+const res = join(android, 'app', 'src', 'main', 'res');
+if (existsSync(join(brand, 'ic_launcher_foreground.png')) && existsSync(res)) {
+  const nodpi = join(res, 'drawable-nodpi');
+  mkdirSync(nodpi, { recursive: true });
+  for (const [from, to] of [
+    ['ic_launcher_foreground.png', 'aura_ic_foreground.png'],
+    ['ic_launcher_background.png', 'aura_ic_background.png'],
+    ['ic_launcher_monochrome.png', 'aura_ic_monochrome.png'],
+  ])
+    if (existsSync(join(brand, from))) copyFileSync(join(brand, from), join(nodpi, to));
+  for (const d of ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']) {
+    const src = join(brand, `mipmap-${d}`, 'ic_launcher.png');
+    const dir = join(res, `mipmap-${d}`);
+    if (existsSync(src) && existsSync(dir)) {
+      copyFileSync(src, join(dir, 'ic_launcher.png'));
+      copyFileSync(src, join(dir, 'ic_launcher_round.png'));
+    }
+  }
+  const any = join(res, 'mipmap-anydpi-v26');
+  mkdirSync(any, { recursive: true });
+  const adaptive = `<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/aura_ic_background" />
+    <foreground android:drawable="@drawable/aura_ic_foreground" />
+    <monochrome android:drawable="@drawable/aura_ic_monochrome" />
+</adaptive-icon>
+`;
+  for (const name of ['ic_launcher.xml', 'ic_launcher_round.xml']) {
+    const f = join(any, name);
+    if (!existsSync(f) || read(f) !== adaptive) writeFileSync(f, adaptive);
+  }
+  log.push('installed the AURA app icon');
+}
+
 console.log(log.length ? log.map((l) => `- ${l}`).join('\n') : 'Android project already up to date.');

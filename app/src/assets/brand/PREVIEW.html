@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AURA Brand Asset Preview Sheet</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #070F0D;
+      color: #F4F5F7;
+    }
+    h1 { margin: 0 0 6px; font-size: 1.5rem; }
+    h2 { margin: 28px 0 12px; font-size: 1.1rem; color: #35CFC8; }
+    p.muted { color: #A8AFBD; font-size: 0.88rem; margin: 0 0 16px; }
+    .grid { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+    .panel {
+      border-radius: 16px;
+      padding: 18px;
+      border: 1px solid #454B5C;
+      background: #1F212C;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+    .panel.light {
+      background: #F3F6F8;
+      color: #0F172A;
+      border-color: #DCE3EC;
+    }
+    .label { font-size: 0.78rem; color: #A8AFBD; }
+    .panel.light .label { color: #526075; }
+    .avatar-crop {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid #35CFC8;
+    }
+    .safe-box {
+      position: relative;
+      width: 128px;
+      height: 128px;
+    }
+    .safe-guide {
+      position: absolute;
+      inset: 10%;
+      border: 1.5px dashed #35CFC8;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>AURA — Brand Asset Preview Sheet</h1>
+  <p class="muted">Original SVG/PNG assets derived from the AURA palette (#070F0D, #1F212C, #323848, #35CFC8, #438CCB, #8974E8).</p>
+
+  <h2>1. Logo Mark &amp; Lockup (Dark &amp; Light)</h2>
+  <div class="grid">
+    <div class="panel">
+      <img src="./aura-mark.svg" width="96" height="96" alt="AURA mark dark" />
+      <span class="label">aura-mark.svg</span>
+    </div>
+    <div class="panel light">
+      <img src="./aura-mark-light.svg" width="96" height="96" alt="AURA mark light" />
+      <span class="label">aura-mark-light.svg</span>
+    </div>
+    <div class="panel">
+      <img src="./aura-mark-mono.svg" width="96" height="96" alt="AURA mark mono" />
+      <span class="label">aura-mark-mono.svg</span>
+    </div>
+    <div class="panel">
+      <img src="./aura-lockup.svg" height="96" alt="AURA lockup" />
+      <span class="label">aura-lockup.svg</span>
+    </div>
+  </div>
+
+  <h2>2. Favicons &amp; App Icons (Real Sizes + Safe Zone)</h2>
+  <div class="grid">
+    <div class="panel">
+      <img src="../../../public/favicon-16.png" width="16" height="16" alt="16px favicon" />
+      <span class="label">16×16</span>
+    </div>
+    <div class="panel light">
+      <img src="../../../public/favicon-16.png" width="16" height="16" alt="16px favicon on light" />
+      <span class="label">16×16 (light)</span>
+    </div>
+    <div class="panel">
+      <img src="../../../public/favicon-32.png" width="32" height="32" alt="32px favicon" />
+      <span class="label">32×32</span>
+    </div>
+    <div class="panel">
+      <img src="../../../public/favicon.svg" width="48" height="48" alt="48px svg favicon" />
+      <span class="label">favicon.svg (48px)</span>
+    </div>
+    <div class="panel">
+      <img src="../../../public/apple-touch-icon.png" width="90" height="90" alt="Apple touch icon" />
+      <span class="label">apple-touch-icon (180px)</span>
+    </div>
+    <div class="panel">
+      <img src="../../../public/icon-192.png" width="96" height="96" alt="PWA 192" />
+      <span class="label">icon-192.png</span>
+    </div>
+    <div class="panel">
+      <div class="safe-box">
+        <img src="../../../public/icon-maskable-512.png" width="128" height="128" alt="Maskable 512" />
+        <div class="safe-guide" title="80% safe zone"></div>
+      </div>
+      <span class="label">maskable-512 (80% guide)</span>
+    </div>
+    <div class="panel">
+      <img src="./android/ic_launcher_foreground.png" width="96" height="96" alt="Android adaptive foreground" />
+      <span class="label">Android foreground</span>
+    </div>
+    <div class="panel">
+      <img src="./android/ic_launcher_monochrome.png" width="96" height="96" alt="Android monochrome" />
+      <span class="label">Android monochrome</span>
+    </div>
+  </div>
+
+  <h2>3. Profile Avatars (8 Abstract Variants — Circular Crop)</h2>
+  <div class="grid">
+    <div class="panel"><div class="avatar-crop"><img src="./avatars/avatar-0.svg" width="72" height="72" alt="Avatar 0" /></div><span class="label">Variant 0</span></div>
+    <div class="panel"><div class="avatar-crop"><img src="./avatars/avatar-1.svg" width="72" height="72" alt="Avatar 1" /></div><span class="label">Variant 1</span></div>
+    <div class="panel"><div class="avatar-crop"><img src="./avatars/avatar-2.svg" width="72" height="72" alt="Avatar 2" /></div><span class="label">Variant 2</span></div>
+    <div class="panel"><div class="avatar-crop"><img src="./avatars/avatar-3.svg" width="72" height="72" alt="Avatar 3" /></div><span class="label">Variant 3</span></div>
+    <div class="panel"><div class="avatar-crop"><img src="./avatars/avatar-4.svg" width="72" height="72" alt="Avatar 4" /></div><span class="label">Variant 4</span></div>
+    <div class="panel"><div class="avatar-crop"><img src="./avatars/avatar-5.svg" width="72" height="72" alt="Avatar 5" /></div><span class="label">Variant 5</span></div>
+    <div class="panel"><div class="avatar-crop"><img src="./avatars/avatar-6.svg" width="72" height="72" alt="Avatar 6" /></div><span class="label">Variant 6</span></div>
+    <div class="panel"><div class="avatar-crop"><img src="./avatars/avatar-7.svg" width="72" height="72" alt="Avatar 7" /></div><span class="label">Variant 7</span></div>
+  </div>
+
+  <h2>4. Home-Screen Widget Mockups (Normal / Empty / Locked / Demo)</h2>
+  <div class="grid">
+    <div class="panel"><img src="./widgets/widget-small-dark.svg" width="180" alt="Small dark" /><span class="label">Small Dark (Sample)</span></div>
+    <div class="panel light"><img src="./widgets/widget-small-light.svg" width="180" alt="Small light" /><span class="label">Small Light (Sample)</span></div>
+    <div class="panel"><img src="./widgets/widget-small-empty-dark.svg" width="180" alt="Small empty" /><span class="label">Small Empty</span></div>
+    <div class="panel"><img src="./widgets/widget-small-locked-dark.svg" width="180" alt="Small locked" /><span class="label">Small Locked</span></div>
+  </div>
+  <div class="grid" style="margin-top: 18px;">
+    <div class="panel"><img src="./widgets/widget-medium-dark.svg" width="360" alt="Medium dark" /><span class="label">Medium Dark (Demo)</span></div>
+    <div class="panel light"><img src="./widgets/widget-medium-light.svg" width="360" alt="Medium light" /><span class="label">Medium Light (Demo)</span></div>
+    <div class="panel"><img src="./widgets/widget-medium-empty-dark.svg" width="360" alt="Medium empty" /><span class="label">Medium Empty</span></div>
+    <div class="panel"><img src="./widgets/widget-medium-locked-dark.svg" width="360" alt="Medium locked" /><span class="label">Medium Locked</span></div>
+  </div>
+</body>
+</html>

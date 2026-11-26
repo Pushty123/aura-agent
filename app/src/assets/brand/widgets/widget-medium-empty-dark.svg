@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 220" fill="none">
+  <rect width="460" height="220" rx="28" fill="#1F212C" stroke="#454B5C" stroke-width="2"/>
+  <circle cx="102" cy="110" r="50" stroke="#454B5C" stroke-width="9" stroke-dasharray="9 9"/>
+  <text x="102" y="116" text-anchor="middle" fill="#A8AFBD" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700">—</text>
+
+  <text x="184" y="52" fill="#A8AFBD" font-family="system-ui, -apple-system, sans-serif" font-size="11.5" font-weight="700" letter-spacing="1.2">AURA</text>
+  <text x="184" y="96" fill="#F4F5F7" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700">Not enough data yet</text>
+  <text x="184" y="120" fill="#A8AFBD" font-family="system-ui, -apple-system, sans-serif" font-size="12.5">Log a check-in to start building your Balance</text>
+
+  <rect x="184" y="148" width="112" height="34" rx="10" fill="#323848" stroke="#454B5C"/>
+  <text x="240" y="169" text-anchor="middle" fill="#F4F5F7" font-family="system-ui, -apple-system, sans-serif" font-size="12.5" font-weight="600">Open AURA</text>
+</svg>

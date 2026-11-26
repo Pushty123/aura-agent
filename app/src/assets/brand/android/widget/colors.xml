@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Proposal for Backend A, not wired -->
+<resources>
+  <color name="aura_bg">#070F0D</color>
+  <color name="aura_shell">#1F212C</color>
+  <color name="aura_surface">#323848</color>
+  <color name="aura_primary">#35CFC8</color>
+  <color name="aura_blue">#438CCB</color>
+  <color name="aura_purple">#8974E8</color>
+  <color name="aura_coral">#F04460</color>
+  <color name="aura_text">#F4F5F7</color>
+  <color name="aura_muted">#A8AFBD</color>
+  <color name="aura_border">#454B5C</color>
+</resources>

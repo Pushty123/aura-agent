@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Proposal for Backend A, not wired (2x2 Small Widget) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/widget_root_small"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:orientation="vertical"
+  android:gravity="center"
+  android:padding="14dp"
+  android:background="@drawable/widget_card_bg">
+
+  <TextView
+    android:id="@+id/widget_brand"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="AURA"
+    android:textColor="@color/aura_muted"
+    android:textSize="10sp"
+    android:textStyle="bold"
+    android:letterSpacing="0.1" />
+
+  <FrameLayout
+    android:layout_width="88dp"
+    android:layout_height="88dp"
+    android:layout_marginTop="6dp">
+    <ImageView
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:src="@drawable/widget_ring_track"
+      android:contentDescription="@null" />
+    <ImageView
+      android:id="@+id/widget_ring_arc"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:src="@drawable/widget_ring_arc"
+      android:contentDescription="@null" />
+    <TextView
+      android:id="@+id/widget_score"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_gravity="center"
+      android:text="—"
+      android:textColor="@color/aura_text"
+      android:textSize="22sp"
+      android:textStyle="bold" />
+  </FrameLayout>
+
+  <TextView
+    android:id="@+id/widget_label"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="6dp"
+    android:text="Balance"
+    android:textColor="@color/aura_muted"
+    android:textSize="12sp" />
+</LinearLayout>

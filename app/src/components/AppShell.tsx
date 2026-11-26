@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Avatar } from './Avatar';
 import {
   AskIcon,
   AuraLogoIcon,
@@ -105,6 +106,13 @@ export function AppShell({
         </nav>
 
         <div className="aura-sidebar-footer">
+          <div className="row center-v gap-sm" style={{ padding: '6px 10px 10px' }}>
+            <Avatar variant={0} size={30} name="AURA" alt="AURA local profile avatar" />
+            <div style={{ minWidth: 0 }}>
+              <div className="small" style={{ fontWeight: 600 }}>Local Vault</div>
+              <div className="xs muted">Encrypted on device</div>
+            </div>
+          </div>
           <button
             type="button"
             className={`aura-nav-btn ${tab === 'profile' ? 'active' : ''}`}

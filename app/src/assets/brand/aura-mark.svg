@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <radialGradient id="aura-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#35CFC8" stop-opacity="0.28"/>
+      <stop offset="55%" stop-color="#438CCB" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#070F0D" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="aura-ring-grad" x1="18" y1="18" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#35CFC8"/>
+      <stop offset="68%" stop-color="#438CCB"/>
+      <stop offset="100%" stop-color="#8974E8"/>
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="50" fill="url(#aura-glow)"/>
+  <circle cx="64" cy="64" r="42" stroke="#454B5C" stroke-opacity="0.35" stroke-width="8"/>
+  <path
+    d="M 64 22 A 42 42 0 1 1 25.4 80.5"
+    stroke="url(#aura-ring-grad)"
+    stroke-width="10"
+    stroke-linecap="round"
+  />
+  <circle cx="64" cy="64" r="14" fill="#35CFC8" fill-opacity="0.18"/>
+  <circle cx="64" cy="64" r="7.5" fill="#35CFC8"/>
+</svg>
