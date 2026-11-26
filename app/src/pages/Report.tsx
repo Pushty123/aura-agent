@@ -109,9 +109,27 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
       : bw.best
         ? `Best day: ${bw.best.date}`
         : 'Consistent wellness tracking';
+    const last7 = days.slice(-7);
+    const weekScores = last7.map((d, i, arr) =>
+      balanceScore(d, days.slice(0, days.length - arr.length + i)).score,
+    );
+    const meanOf = (vals: (number | undefined)[]) => {
+      const nums = vals.filter((v): v is number => typeof v === 'number');
+      return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
+    };
+    const avgScreenMin = meanOf(last7.map((d) => d.screenMinutes));
+    const goalsMet = goals.filter(({ met, of }) => met >= of && of > 0).length;
     await downloadSummaryCard(
       buildPrivacySafeSummary({
         score: balance?.score ?? null,
+        statusLabel: mood.label,
+        weekScores,
+        avgSleepHours: meanOf(last7.map((d) => d.sleepHours)),
+        avgSteps: meanOf(last7.map((d) => d.steps)),
+        avgScreenHours: avgScreenMin !== null ? avgScreenMin / 60 : null,
+        avgMood: meanOf(last7.map((d) => d.mood)),
+        goalsMet,
+        goalsTotal: goals.length,
         streakLabel: topStreak?.def.label,
         streakDays: topStreak?.current,
         topWin,
