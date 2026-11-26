@@ -1,3 +1,4 @@
+import { db } from './db';
 import type { DayRecord, FoodEntry } from '../types';
 import { getAll, putRecord } from './vault';
 
@@ -21,6 +22,10 @@ export async function patchDay(date: string, patch: Partial<DayRecord>, source: 
 
 export async function loadFood(): Promise<FoodEntry[]> {
   return getAll<FoodEntry>('food');
+}
+
+export async function deleteFood(id: string): Promise<void> {
+  await db.records.delete(`food:${id}`);
 }
 
 export async function saveFood(entry: FoodEntry): Promise<void> {

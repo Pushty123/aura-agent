@@ -30,6 +30,9 @@ export interface FoodEntry {
   kcal: number;
   proteinG: number;
   unmatched: string[];
+  /** Optional meal photo (small JPEG data URL, stored encrypted). */
+  photo?: string;
+  meal?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
 }
 
 export interface Evidence {

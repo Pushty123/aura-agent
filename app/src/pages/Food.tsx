@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { parseFood, foodTip } from '../food/parse';
-import { loadFood, saveFood } from '../lib/store';
+import { deleteFood, loadFood, saveFood } from '../lib/store';
+import { downscale, getPhoto } from '../lib/camera';
 import { today } from '../lib/dates';
 import { computeTargets, loadProfile, validateProfile, type Targets } from '../profile/profile';
 import type { FoodEntry } from '../types';
@@ -11,6 +12,20 @@ export function Food() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [target, setTarget] = useState<Targets | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [meal, setMeal] = useState<NonNullable<FoodEntry['meal']>>(() => {
+    const h = new Date().getHours();
+    return h < 11 ? 'breakfast' : h < 16 ? 'lunch' : h < 21 ? 'dinner' : 'snack';
+  });
+
+  async function addPhoto(source: 'camera' | 'gallery') {
+    try {
+      const img = await getPhoto(source);
+      if (img) setPhoto(await downscale(img, 480, 0.8));
+    } catch (e) {
+      setStatus({ kind: 'error', text: e instanceof Error ? e.message : 'Could not get the photo.' });
+    }
+  }
   const date = today();
 
   const refresh = async () => setEntries((await loadFood()).filter((e) => e.date === date));
@@ -29,7 +44,7 @@ export function Food() {
     e.preventDefault();
     setStatus(null);
     const r = parseFood(text);
-    if (!r.items.length) {
+    if (!r.items.length && !photo) {
       setStatus({
         kind: 'error',
         text: 'No known foods matched that entry. Try something like "2 rotis and dal, 1 banana".',
@@ -41,14 +56,22 @@ export function Food() {
       await saveFood({
         id: `${Date.now()}`,
         date,
-        text: text.trim(),
+        text: text.trim() || `${meal[0].toUpperCase()}${meal.slice(1)} (photo)`,
         kcal: r.kcal,
         proteinG: r.proteinG,
         unmatched: r.unmatched,
+        meal,
+        ...(photo ? { photo } : {}),
       });
       setText('');
+      setPhoto(null);
       await refresh();
-      setStatus({ kind: 'ok', text: `Added (~${r.kcal} kcal, ~${r.proteinG} g protein).` });
+      setStatus({
+        kind: 'ok',
+        text: r.items.length
+          ? `Added (~${r.kcal} kcal, ~${r.proteinG} g protein).`
+          : 'Photo saved. Type what you ate to also get a calorie estimate.',
+      });
     } catch (err) {
       setStatus({
         kind: 'error',
@@ -66,8 +89,22 @@ export function Food() {
           <div>
             <h2>Log a meal or snack</h2>
             <p className="xs muted">
-              Type natural phrases like "2 rotis and dal, 1 banana" or "2 eggs and toast".
+              Type what you ate, add a photo, or both. Photos stay encrypted on this device.
             </p>
+          </div>
+
+          <div className="row gap wrap">
+            {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`btn sm ${meal === m ? 'primary' : 'ghost'}`}
+                aria-pressed={meal === m}
+                onClick={() => setMeal(m)}
+              >
+                {m === 'breakfast' ? '🌅' : m === 'lunch' ? '🍛' : m === 'dinner' ? '🍽️' : '🍎'} {m[0].toUpperCase() + m.slice(1)}
+              </button>
+            ))}
           </div>
 
           <textarea
@@ -78,6 +115,23 @@ export function Food() {
             rows={3}
             aria-label="Food entry"
           />
+
+          <div className="row gap wrap center-v">
+            <button type="button" className="btn sm" onClick={() => void addPhoto('camera')}>
+              📷 Take photo
+            </button>
+            <button type="button" className="btn sm ghost" onClick={() => void addPhoto('gallery')}>
+              🖼️ Choose photo
+            </button>
+            {photo && (
+              <div className="row gap center-v">
+                <img src={photo} alt="Meal to add" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 10 }} />
+                <button type="button" className="btn sm ghost" onClick={() => setPhoto(null)}>
+                  Remove photo
+                </button>
+              </div>
+            )}
+          </div>
 
           {preview && (
             <div className="card-subtle stack-sm">
@@ -96,7 +150,7 @@ export function Food() {
           )}
 
           <div className="row between wrap">
-            <button type="submit" className="btn primary" disabled={busy || !text.trim()}>
+            <button type="submit" className="btn primary" disabled={busy || (!text.trim() && !photo)}>
               {busy ? 'Adding…' : 'Add to today'}
             </button>
             <span className="xs muted">Date: {date}</span>
@@ -136,11 +190,25 @@ export function Food() {
           ) : (
             <ul className="audit-list">
               {entries.map((entry) => (
-                <li key={entry.id} className="audit-item">
-                  <span>{entry.text}</span>
-                  <span className="muted" style={{ whiteSpace: 'nowrap' }}>
-                    ~{entry.kcal} kcal · {entry.proteinG} g
+                <li key={entry.id} className="audit-item" style={{ alignItems: 'center', gap: 10 }}>
+                  {entry.photo && (
+                    <img src={entry.photo} alt="" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 10, flex: '0 0 auto' }} />
+                  )}
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    {entry.meal && <span className="xs muted" style={{ display: 'block', textTransform: 'capitalize' }}>{entry.meal}</span>}
+                    {entry.text}
                   </span>
+                  <span className="muted" style={{ whiteSpace: 'nowrap' }}>
+                    {entry.kcal ? `~${entry.kcal} kcal · ${entry.proteinG} g` : 'No estimate'}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn sm ghost"
+                    aria-label={`Remove ${entry.text}`}
+                    onClick={() => void deleteFood(entry.id).then(refresh)}
+                  >
+                    ✕
+                  </button>
                 </li>
               ))}
             </ul>

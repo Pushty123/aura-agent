@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { DayRecord } from '../types';
 import { median } from '../insights/stats';
 import { today } from '../lib/dates';
-import { patchDay } from '../lib/store';
+import { loadFood, patchDay } from '../lib/store';
+import { loadWorkouts } from '../exercise/workouts';
 import { isNative } from '../native/bridge';
 import {
+  buildDayValues,
   deleteGoal,
   loadGoals,
   METRICS,
@@ -14,6 +16,7 @@ import {
   streakFor,
   toggleHabit,
   validateGoal,
+  weekProgress,
   type Direction,
   type Goal,
   type GoalMetric,
@@ -32,8 +35,10 @@ import {
 const fmt = (g: Goal, v: number | null) => {
   if (v === null) return 'Not logged';
   if (g.metric === 'sleepHours') return `${v} h`;
+  if (g.metric === 'mood') return `${v} / 5`;
   return `${v.toLocaleString()} ${METRICS[g.metric].unit}`;
 };
+const ICONS = ['🎯', '💧', '🚶', '😴', '🧘', '🥗', '💪', '📵', '☕', '📚', '💊', '🙂'];
 const hhmm = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 
 /** Goals you set yourself, goals suggested from your own baseline, and on-screen reminders. */
@@ -41,6 +46,15 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
   const date = today();
   const todayRec = days.find((d) => d.date === date);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [food, setFood] = useState<{ date: string; kcal: number; proteinG: number }[]>([]);
+  const [workouts, setWorkouts] = useState<{ date: string; reps: number }[]>([]);
+  const values = useMemo(() => buildDayValues(days, food, workouts), [days, food, workouts]);
+  const valueList = useMemo(() => [...values.values()], [values]);
+  const [gIcon, setGIcon] = useState('🎯');
+  const [gDays, setGDays] = useState('7');
+  const [gRemind, setGRemind] = useState('');
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState('');
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -58,6 +72,8 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
   const refresh = useCallback(async () => {
     setGoals(await loadGoals());
     setReminders(await loadReminders());
+    setFood(await loadFood());
+    setWorkouts(await loadWorkouts());
   }, []);
   useEffect(() => {
     void refresh();
@@ -90,13 +106,41 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
 
   async function addGoal(e: React.FormEvent) {
     e.preventDefault();
-    const g = newGoal(gTitle || METRICS[gMetric].label, gMetric, Number(gTarget), gDir);
+    const g = {
+      ...newGoal(gTitle || METRICS[gMetric].label, gMetric, Number(gTarget), gDir),
+      icon: gIcon,
+      daysPerWeek: gDays === '7' ? undefined : Number(gDays),
+      reminderTime: gRemind || undefined,
+    };
     const err = validateGoal(g);
     if (err) return setMsg({ ok: false, text: err });
     await saveGoal(g);
+    if (g.reminderTime) {
+      await updateReminders([
+        ...reminders,
+        newReminder({ id: `goal-${g.id}`, title: g.title, body: `Goal check: ${g.title}`, time: g.reminderTime }),
+      ]);
+    }
     setShowAdd(false);
     setGTitle('');
-    setMsg({ ok: true, text: `Goal "${g.title}" added.` });
+    setGRemind('');
+    setGDays('7');
+    setMsg({ ok: true, text: `Goal "${g.title}" added${g.reminderTime ? ` with a reminder at ${g.reminderTime}` : ''}.` });
+    await refresh();
+  }
+
+  async function removeGoal(g: Goal) {
+    await deleteGoal(g.id);
+    if (reminders.some((r) => r.id === `goal-${g.id}`)) await updateReminders(reminders.filter((r) => r.id !== `goal-${g.id}`));
+    await refresh();
+  }
+
+  async function saveTarget(g: Goal) {
+    const next = { ...g, target: Number(editTarget) };
+    const err = validateGoal(next);
+    if (err) return setMsg({ ok: false, text: err });
+    await saveGoal(next);
+    setEditing(null);
     await refresh();
   }
 
@@ -194,6 +238,40 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
                 </span>
               </div>
             )}
+            <div className="stack-sm">
+              <span className="small" style={{ fontWeight: 600 }}>Icon</span>
+              <div className="row gap wrap">
+                {ICONS.map((ic) => (
+                  <button
+                    key={ic}
+                    type="button"
+                    className={`btn sm ${gIcon === ic ? 'primary' : 'ghost'}`}
+                    onClick={() => setGIcon(ic)}
+                    aria-pressed={gIcon === ic}
+                    aria-label={`Icon ${ic}`}
+                  >
+                    {ic}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="row gap wrap">
+              <label className="stack-sm" style={{ flex: 1, minWidth: 140 }}>
+                <span className="small" style={{ fontWeight: 600 }}>How often</span>
+                <select className="input" value={gDays} onChange={(e) => setGDays(e.target.value)}>
+                  <option value="7">Every day</option>
+                  {[6, 5, 4, 3, 2, 1].map((n) => (
+                    <option key={n} value={n}>
+                      {n} day{n === 1 ? '' : 's'} a week
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="stack-sm" style={{ flex: 1, minWidth: 140 }}>
+                <span className="small" style={{ fontWeight: 600 }}>Remind me at (optional)</span>
+                <input className="input" type="time" value={gRemind} onChange={(e) => setGRemind(e.target.value)} />
+              </label>
+            </div>
             <button type="submit" className="btn primary">
               Save goal
             </button>
@@ -206,26 +284,52 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
 
         <div className="grid-2">
           {goals.map((g) => {
-            const p = progressFor(g, todayRec, date);
-            const streak = streakFor(g, days, date);
+            const p = progressFor(g, values.get(date), date);
+            const streak = streakFor(g, valueList, date);
+            const week = weekProgress(g, values, date);
             return (
               <article key={g.id} className="card-subtle stack-sm">
                 <div className="row between">
-                  <strong>{g.title}</strong>
-                  <span className={`pill ${p.met ? 'ok' : 'primary'}`}>{p.met ? 'Done' : `${p.pct}%`}</span>
+                  <strong>
+                    {g.icon ?? '🎯'} {g.title}
+                  </strong>
+                  <span className={`pill ${p.met ? 'ok' : 'primary'}`}>{p.met ? '🎉 Done' : `${p.pct}%`}</span>
                 </div>
                 <p className="xs muted">
                   {g.metric === 'habit'
                     ? 'Tick it off each day'
                     : `${g.direction === 'atLeast' ? 'At least' : 'At most'} ${fmt(g, g.target)} a day`}
+                  {g.daysPerWeek ? ` · ${g.daysPerWeek} days a week` : ''}
+                  {g.reminderTime ? ` · ⏰ ${g.reminderTime}` : ''}
                 </p>
                 <div className="bar" role="progressbar" aria-valuenow={p.pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${g.title} progress`}>
                   <div style={{ width: `${p.pct}%`, background: p.met ? 'var(--aura-primary)' : 'var(--aura-blue)' }} />
                 </div>
                 <div className="row between wrap small">
                   <span>Today: <strong>{g.metric === 'habit' ? (p.met ? 'Done' : 'Not yet') : fmt(g, p.value)}</strong></span>
-                  <span className="pill">Streak: {streak} day{streak === 1 ? '' : 's'}{streak >= 3 ? ' 🏅' : ''}</span>
+                  {g.daysPerWeek ? (
+                    <span className={`pill ${week.met >= week.of ? 'ok' : ''}`}>
+                      This week: {week.met}/{week.of}
+                    </span>
+                  ) : (
+                    <span className="pill">Streak: {streak} day{streak === 1 ? '' : 's'}{streak >= 3 ? ' 🏅' : ''}</span>
+                  )}
                 </div>
+                {editing === g.id && (
+                  <div className="row gap">
+                    <input
+                      className="input"
+                      type="number"
+                      inputMode="decimal"
+                      value={editTarget}
+                      onChange={(e) => setEditTarget(e.target.value)}
+                      aria-label="New target"
+                    />
+                    <button type="button" className="btn sm primary" onClick={() => void saveTarget(g)}>
+                      Save
+                    </button>
+                  </div>
+                )}
                 <div className="row gap wrap">
                   {g.metric === 'habit' && (
                     <button type="button" className="btn sm" onClick={() => void toggleHabit(g, date).then(refresh)}>
@@ -237,7 +341,19 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
                       + 1 glass
                     </button>
                   )}
-                  <button type="button" className="btn sm ghost" onClick={() => void deleteGoal(g.id).then(refresh)}>
+                  {g.metric !== 'habit' && (
+                    <button
+                      type="button"
+                      className="btn sm ghost"
+                      onClick={() => {
+                        setEditing(editing === g.id ? null : g.id);
+                        setEditTarget(String(g.target));
+                      }}
+                    >
+                      Edit target
+                    </button>
+                  )}
+                  <button type="button" className="btn sm ghost" onClick={() => void removeGoal(g)}>
                     Remove
                   </button>
                 </div>

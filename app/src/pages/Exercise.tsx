@@ -4,6 +4,7 @@ import { createPose } from '../exercise/pose';
 import { EXERCISES, POSE_LINES, RepCounter, type ExerciseId } from '../exercise/reps';
 import { loadWorkouts, saveWorkout, type Workout } from '../exercise/workouts';
 import { today } from '../lib/dates';
+import { Capacitor } from '@capacitor/core';
 
 type Phase = 'idle' | 'loading' | 'running';
 
@@ -83,7 +84,18 @@ export function Exercise() {
     setSeconds(0);
     setPhase('loading');
     try {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error('This device does not support the camera in the app.');
+      if (Capacitor.isNativePlatform()) {
+        // Ask Android for camera access first; the in-app camera view needs it.
+        const { Camera } = await import('@capacitor/camera');
+        const perm = await Camera.requestPermissions({ permissions: ['camera'] });
+        if (perm.camera !== 'granted' && perm.camera !== 'limited') throw new Error('Permission denied');
+      }
+      if (!navigator.mediaDevices?.getUserMedia)
+        throw new Error(
+          window.isSecureContext
+            ? 'This browser does not allow the camera here. Try Chrome.'
+            : 'The camera only works on a secure (https) page or in the Android app.',
+        );
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } },
         audio: false,
