@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+<defs>
+    <radialGradient id="bg-04-zen-bun" cx="38%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#323848"/>
+      <stop offset="60%" stop-color="#1F212C"/>
+      <stop offset="100%" stop-color="#070F0D"/>
+    </radialGradient>
+    <radialGradient id="skin-04-zen-bun" cx="36%" cy="28%" r="70%">
+      <stop offset="0%" stop-color="#9B6544"/>
+      <stop offset="78%" stop-color="#9B6544"/>
+      <stop offset="100%" stop-color="#76472B"/>
+    </radialGradient>
+    <linearGradient id="rim-04-zen-bun" x1="75%" y1="15%" x2="100%" y2="85%">
+      <stop offset="0%" stop-color="#35CFC8" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#438CCB" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="hair-04-zen-bun" x1="25%" y1="15%" x2="80%" y2="90%">
+      <stop offset="0%" stop-color="#1B181C"/>
+      <stop offset="100%" stop-color="#070F0D" stop-opacity="0.88"/>
+    </linearGradient>
+  </defs>
+    <rect width="256" height="256" fill="url(#bg-04-zen-bun)"/>
+    <circle cx="128" cy="128" r="104" stroke="#35CFC8" stroke-opacity="0.24" stroke-width="10"/>
+    <circle cx="128" cy="128" r="98" stroke="#35CFC8" stroke-opacity="0.85" stroke-width="3.5"/>
+  
+    <path d="M 62 238 C 64 194, 92 178, 128 178 C 164 178, 192 194, 194 238 Z" fill="#262B38"/>
+    <path d="M 96 182 Q 128 202 160 182" stroke="#8974E8" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <rect x="112" y="160" width="32" height="28" rx="14" fill="#76472B"/>
+    <ellipse cx="128" cy="170" rx="16" ry="7" fill="#070F0D" fill-opacity="0.25"/>
+  
+    <circle cx="80" cy="128" r="11" fill="#76472B"/>
+    <circle cx="176" cy="128" r="11" fill="#76472B"/>
+  
+    <rect x="82" y="72" width="92" height="102" rx="45" fill="url(#skin-04-zen-bun)"/>
+    <rect x="82" y="72" width="92" height="102" rx="45" fill="url(#rim-04-zen-bun)"/>
+    <ellipse cx="106" cy="96" rx="14" ry="8" fill="#FFFFFF" fill-opacity="0.12" transform="rotate(-20 106 96)"/>
+    <ellipse cx="98" cy="140" rx="9" ry="5" fill="#F04460" fill-opacity="0.16"/>
+    <ellipse cx="158" cy="140" rx="9" ry="5" fill="#F04460" fill-opacity="0.16"/>
+  
+      <path d="M 101 124 Q 109 130 117 124" stroke="#17171E" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <path d="M 139 124 Q 147 130 155 124" stroke="#17171E" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <path d="M 99 112 Q 109 109 119 112" stroke="#17171E" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+      <path d="M 137 112 Q 147 109 157 112" stroke="#17171E" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+    <path d="M 125 135 Q 128 139 131 135" stroke="#76472B" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M 120 150 Q 128 153 136 150" stroke="#17171E" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+        <circle cx="128" cy="54" r="20" fill="#1B181C"/>
+        <path d="M 82 104 C 84 68, 172 68, 174 104 C 150 88, 106 88, 82 104 Z" fill="#1B181C"/>
+        <path d="M 112 68 Q 128 74 144 68" stroke="#8974E8" stroke-width="4" stroke-linecap="round" fill="none"/>
+      
+</svg>

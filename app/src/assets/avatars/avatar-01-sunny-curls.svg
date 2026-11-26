@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+<defs>
+    <radialGradient id="bg-01-sunny-curls" cx="38%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#323848"/>
+      <stop offset="60%" stop-color="#1F212C"/>
+      <stop offset="100%" stop-color="#070F0D"/>
+    </radialGradient>
+    <radialGradient id="skin-01-sunny-curls" cx="36%" cy="28%" r="70%">
+      <stop offset="0%" stop-color="#6F422B"/>
+      <stop offset="78%" stop-color="#6F422B"/>
+      <stop offset="100%" stop-color="#4E2B1A"/>
+    </radialGradient>
+    <linearGradient id="rim-01-sunny-curls" x1="75%" y1="15%" x2="100%" y2="85%">
+      <stop offset="0%" stop-color="#35CFC8" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#438CCB" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="hair-01-sunny-curls" x1="25%" y1="15%" x2="80%" y2="90%">
+      <stop offset="0%" stop-color="#1D181A"/>
+      <stop offset="100%" stop-color="#070F0D" stop-opacity="0.88"/>
+    </linearGradient>
+  </defs>
+    <rect width="256" height="256" fill="url(#bg-01-sunny-curls)"/>
+    <circle cx="128" cy="128" r="104" stroke="#35CFC8" stroke-opacity="0.24" stroke-width="10"/>
+    <circle cx="128" cy="128" r="98" stroke="#35CFC8" stroke-opacity="0.85" stroke-width="3.5"/>
+  <circle cx="78" cy="96" r="28" fill="#1D181A"/><circle cx="178" cy="96" r="28" fill="#1D181A"/>
+    <path d="M 62 238 C 64 194, 92 178, 128 178 C 164 178, 192 194, 194 238 Z" fill="#323848"/>
+    <path d="M 96 182 Q 128 202 160 182" stroke="#35CFC8" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <rect x="112" y="160" width="32" height="28" rx="14" fill="#4E2B1A"/>
+    <ellipse cx="128" cy="170" rx="16" ry="7" fill="#070F0D" fill-opacity="0.25"/>
+  
+    <circle cx="80" cy="128" r="11" fill="#4E2B1A"/>
+    <circle cx="176" cy="128" r="11" fill="#4E2B1A"/>
+  
+    <rect x="82" y="72" width="92" height="102" rx="45" fill="url(#skin-01-sunny-curls)"/>
+    <rect x="82" y="72" width="92" height="102" rx="45" fill="url(#rim-01-sunny-curls)"/>
+    <ellipse cx="106" cy="96" rx="14" ry="8" fill="#FFFFFF" fill-opacity="0.12" transform="rotate(-20 106 96)"/>
+    <ellipse cx="98" cy="140" rx="9" ry="5" fill="#F04460" fill-opacity="0.16"/>
+    <ellipse cx="158" cy="140" rx="9" ry="5" fill="#F04460" fill-opacity="0.16"/>
+  
+      <circle cx="109" cy="124" r="6.2" fill="#17171E"/>
+      <circle cx="147" cy="124" r="6.2" fill="#17171E"/>
+      <circle cx="107" cy="122" r="2" fill="#FFFFFF"/>
+      <circle cx="145" cy="122" r="2" fill="#FFFFFF"/>
+      <path d="M 99 111 Q 109 107 119 111" stroke="#17171E" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <path d="M 137 111 Q 147 107 157 111" stroke="#17171E" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M 125 135 Q 128 139 131 135" stroke="#4E2B1A" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M 118 148 Q 128 156 138 148" stroke="#17171E" stroke-width="3.6" stroke-linecap="round" fill="none"/><path d="M 82 104 C 82 66, 174 66, 174 104 C 156 88, 100 88, 82 104 Z" fill="#1D181A"/>
+      <circle cx="77" cy="140" r="6" stroke="#35CFC8" stroke-width="2.6" fill="none"/>
+      <circle cx="179" cy="140" r="6" stroke="#35CFC8" stroke-width="2.6" fill="none"/>
+    
+</svg>

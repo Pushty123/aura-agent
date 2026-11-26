@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AURA Human Avatar Library Preview</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #070F0D;
+      color: #F4F5F7;
+    }
+    h1 { margin: 0 0 6px; font-size: 1.5rem; }
+    h2 { margin: 28px 0 12px; font-size: 1.1rem; color: #35CFC8; }
+    p.muted { color: #A8AFBD; font-size: 0.88rem; margin: 0 0 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .card {
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid #454B5C;
+      background: #1F212C;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+    .card.light {
+      background: #F3F6F8;
+      color: #0F172A;
+      border-color: #DCE3EC;
+    }
+    .sizes { display: flex; align-items: flex-end; gap: 10px; }
+    .crop { border-radius: 50%; display: block; border: 1.5px solid #35CFC8; }
+    .label { font-size: 0.82rem; font-weight: 600; }
+    .sub { font-size: 0.72rem; color: #A8AFBD; }
+    .card.light .sub { color: #526075; }
+  </style>
+</head>
+<body>
+  <h1>AURA — Soft-3D Human Avatar Library (12 Presets)</h1>
+  <p class="muted">Circle-crop test at 32px, 64px, and 128px on dark (#1F212C) and light (#F3F6F8) surfaces.</p>
+
+  <h2>Dark Surface (#1F212C)</h2>
+  <div id="dark-grid" class="grid"></div>
+
+  <h2>Light Surface (#F3F6F8)</h2>
+  <div id="light-grid" class="grid"></div>
+
+  <script>
+    const ids = [
+      '01-sunny-curls', '02-calm-wave', '03-cozy-beanie', '04-zen-bun',
+      '05-bright-hijab', '06-sleek-bob', '07-halo-crop', '08-soft-braids',
+      '09-breezy-part', '10-peace-turban', '11-silver-glow', '12-midnight-locs'
+    ];
+    function renderGrid(el, isLight) {
+      el.innerHTML = ids.map(id => `
+        <div class="card ${isLight ? 'light' : ''}">
+          <div class="sizes">
+            <img class="crop" src="./avatar-${id}.svg" width="32" height="32" alt="${id} 32px" />
+            <img class="crop" src="./avatar-${id}.svg" width="64" height="64" alt="${id} 64px" />
+            <img class="crop" src="./avatar-${id}.svg" width="128" height="128" alt="${id} 128px" />
+          </div>
+          <div class="label">${id}</div>
+          <div class="sub">32 · 64 · 128 px</div>
+        </div>
+      `).join('');
+    }
+    renderGrid(document.getElementById('dark-grid'), false);
+    renderGrid(document.getElementById('light-grid'), true);
+  </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+<defs>
+    <radialGradient id="bg-02-calm-wave" cx="38%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#323848"/>
+      <stop offset="60%" stop-color="#1F212C"/>
+      <stop offset="100%" stop-color="#070F0D"/>
+    </radialGradient>
+    <radialGradient id="skin-02-calm-wave" cx="36%" cy="28%" r="70%">
+      <stop offset="0%" stop-color="#D6A57E"/>
+      <stop offset="78%" stop-color="#D6A57E"/>
+      <stop offset="100%" stop-color="#B37F58"/>
+    </radialGradient>
+    <linearGradient id="rim-02-calm-wave" x1="75%" y1="15%" x2="100%" y2="85%">
+      <stop offset="0%" stop-color="#35CFC8" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#438CCB" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="hair-02-calm-wave" x1="25%" y1="15%" x2="80%" y2="90%">
+      <stop offset="0%" stop-color="#2B2327"/>
+      <stop offset="100%" stop-color="#070F0D" stop-opacity="0.88"/>
+    </linearGradient>
+  </defs>
+    <rect width="256" height="256" fill="url(#bg-02-calm-wave)"/>
+    <circle cx="128" cy="128" r="104" stroke="#35CFC8" stroke-opacity="0.24" stroke-width="10"/>
+    <circle cx="128" cy="128" r="98" stroke="#35CFC8" stroke-opacity="0.85" stroke-width="3.5"/>
+  <path d="M 74 114 C 66 150, 74 176, 86 184 L 170 184 C 182 176, 190 150, 182 114 Z" fill="#2B2327"/>
+    <path d="M 62 238 C 64 194, 92 178, 128 178 C 164 178, 192 194, 194 238 Z" fill="#1F212C"/>
+    <path d="M 96 182 Q 128 202 160 182" stroke="#438CCB" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <rect x="112" y="160" width="32" height="28" rx="14" fill="#B37F58"/>
+    <ellipse cx="128" cy="170" rx="16" ry="7" fill="#070F0D" fill-opacity="0.25"/>
+  
+    <circle cx="80" cy="128" r="11" fill="#B37F58"/>
+    <circle cx="176" cy="128" r="11" fill="#B37F58"/>
+  
+    <rect x="82" y="72" width="92" height="102" rx="45" fill="url(#skin-02-calm-wave)"/>
+    <rect x="82" y="72" width="92" height="102" rx="45" fill="url(#rim-02-calm-wave)"/>
+    <ellipse cx="106" cy="96" rx="14" ry="8" fill="#FFFFFF" fill-opacity="0.12" transform="rotate(-20 106 96)"/>
+    <ellipse cx="98" cy="140" rx="9" ry="5" fill="#F04460" fill-opacity="0.16"/>
+    <ellipse cx="158" cy="140" rx="9" ry="5" fill="#F04460" fill-opacity="0.16"/>
+  
+      <circle cx="109" cy="124" r="6.2" fill="#17171E"/>
+      <circle cx="147" cy="124" r="6.2" fill="#17171E"/>
+      <circle cx="107" cy="122" r="2" fill="#FFFFFF"/>
+      <circle cx="145" cy="122" r="2" fill="#FFFFFF"/>
+      <path d="M 99 111 Q 109 107 119 111" stroke="#17171E" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <path d="M 137 111 Q 147 107 157 111" stroke="#17171E" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M 125 135 Q 128 139 131 135" stroke="#B37F58" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M 118 148 Q 128 156 138 148" stroke="#17171E" stroke-width="3.6" stroke-linecap="round" fill="none"/>
+        <path d="M 80 108 C 80 64, 176 64, 176 108 C 154 88, 118 82, 80 108 Z" fill="#2B2327"/>
+        <path d="M 134 74 C 154 78, 166 90, 172 104" stroke="#35CFC8" stroke-width="6" stroke-linecap="round" fill="none"/>
+      
+      <circle cx="109" cy="124" r="14" stroke="#F4F5F7" stroke-width="3" fill="#35CFC8" fill-opacity="0.08"/>
+      <circle cx="147" cy="124" r="14" stroke="#F4F5F7" stroke-width="3" fill="#35CFC8" fill-opacity="0.08"/>
+      <path d="M 123 124 H 133" stroke="#F4F5F7" stroke-width="3"/>
+    
+</svg>
