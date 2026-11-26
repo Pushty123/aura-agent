@@ -49,8 +49,8 @@ export function parseFood(text: string): ParseResult {
   const items: ParsedFood[] = [];
   const unmatched: string[] = [];
 
-  for (const part of parts) {
-    const m = part.match(/^(\d+(?:\.\d+)?|a|an|one|two|three|four|five|six|seven|eight|nine|ten|half)?\s*(?:x\s*)?(.*)$/);
+    for (const part of parts) {
+    const m = part.match(/^(\d+(?:\.\d+)?|(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|half)(?![a-z]))?\s*(?:x\s*)?(.*)$/);
     const qtyRaw = m?.[1];
     const rest = (m?.[2] ?? part)
       .trim()
