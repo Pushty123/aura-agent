@@ -336,8 +336,8 @@ export async function registerReminderActions(): Promise<void> {
       {
         id: REMINDER_ACTIONS,
         actions: [
-          { id: 'done', title: '✓ Done' },
-          { id: 'snooze', title: '⏰ 10 min' },
+          { id: 'done', title: 'Done' },
+          { id: 'snooze', title: 'Snooze 10 min' },
         ],
       },
     ],

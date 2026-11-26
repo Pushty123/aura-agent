@@ -56,7 +56,7 @@ export async function initNotificationActions(): Promise<void> {
             },
           ],
         });
-        window.dispatchEvent(new CustomEvent('aura-toast', { detail: '⏰ Reminding you again in 10 minutes.' }));
+        window.dispatchEvent(new CustomEvent('aura-toast', { detail: 'Reminding you again in 10 minutes.' }));
         return;
       }
       if (e.actionId === 'done') {
@@ -89,19 +89,19 @@ export async function applyQueuedActions(): Promise<string | null> {
     if (q.action === 'water') {
       const cur = (await loadDays()).find((d) => d.date === date)?.waterGlasses ?? 0;
       await patchDay(date, { waterGlasses: cur + 1 });
-      notes.push('💧 +1 glass of water');
+      notes.push('+1 glass of water');
     } else if (q.action.startsWith('goal:')) {
       const g = (await loadGoals()).find((x) => x.id === q.action.slice(5));
       if (g?.metric === 'waterGlasses') {
         const cur = (await loadDays()).find((d) => d.date === date)?.waterGlasses ?? 0;
         await patchDay(date, { waterGlasses: cur + 1 });
-        notes.push('💧 +1 glass of water');
+        notes.push('+1 glass of water');
       } else if (g) {
         await completeGoal(g, date);
-        notes.push(`✓ ${g.title} done`);
+        notes.push(`${g.title} done`);
       }
     } else {
-      notes.push('✓ Reminder done');
+      notes.push('Reminder done');
     }
   }
   const keep = Object.fromEntries(Object.entries({ ...log, [date]: day }).sort(([a], [b]) => b.localeCompare(a)).slice(0, 30));
@@ -130,7 +130,7 @@ export async function sendTestReminder(title: string, body: string, rid: string,
         },
       ],
     });
-    return 'Test reminder coming in 5 seconds. Pull down the notification and tap "✓ Done".';
+    return 'Test reminder coming in 5 seconds. Pull down the notification and tap "Done".';
   } catch {
     return 'Could not send a test notification.';
   }

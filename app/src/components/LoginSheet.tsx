@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { X } from 'lucide-react';
 import { login, noteSignedIn, register, verify } from '../lib/account';
 
 /** Log in (or create an account) after using AURA without one. The vault stays as it is. */
@@ -48,7 +49,9 @@ export function LoginSheet({ onClose, onDone }: { onClose: () => void; onDone: (
       >
         <div className="row between center-v">
           <h2 style={{ margin: 0 }}>{mode === 'login' ? 'Log in' : mode === 'signup' ? 'Create account' : 'Enter code'}</h2>
-          <button type="button" className="btn ghost sm" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="btn ghost sm" onClick={onClose} aria-label="Close">
+            <X size={18} />
+          </button>
         </div>
         <p className="xs muted">An account lets you use AI replies and back up your encrypted data. Your data on this phone stays as it is.</p>
         {mode !== 'code' ? (

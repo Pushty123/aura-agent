@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Smartphone } from 'lucide-react';
 import { getAppUsage, getUsage, isNative, notify, pushAppLimits, type AppLimit, type AppUse } from '../native/bridge';
 import { ALL_APPS, demoApps, fmtMin, limitState, loadLimits, phoneLimit, saveLimits, setLimit } from '../apps/appUsage';
 import { AppIcon } from '../components/AppIcon';
@@ -96,7 +97,7 @@ export function AppUsage() {
       <div className="card stack-sm">
         <div className="row between center-v wrap gap">
           <div>
-            <h3 style={{ margin: 0 }}>📱 Daily phone limit</h3>
+            <h3 className="row gap-sm center-v" style={{ margin: 0 }}><Smartphone size={18} aria-hidden="true" /> Daily phone limit</h3>
             <p className="xs muted" style={{ margin: 0 }}>All apps together. AURA reminds you at 80% and when you reach it.</p>
           </div>
           {phoneLimit(limits) !== undefined && (
@@ -177,7 +178,7 @@ export function AppUsage() {
                   </div>
                 </div>
                 <button type="button" className={`btn sm ${limit ? '' : 'ghost'}`} onClick={() => setEditing(editing === a.pkg ? null : a.pkg)}>
-                  {limit ? (st === 'over' ? '⛔ Limit' : '⏳ Limit') : 'Set limit'}
+                  {limit ? (st === 'over' ? 'Over limit' : 'Limit on') : 'Set limit'}
                 </button>
               </div>
               <div className="bar" aria-hidden="true">

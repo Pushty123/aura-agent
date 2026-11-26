@@ -25,18 +25,18 @@ export function localReply(q: string, days: DayRecord[], food: FoodEntry[], date
   const meta = `Built-in answer · from your last ${week.length} day${week.length === 1 ? '' : 's'}`;
 
   if (/^(hi|hello|hey|namaste|good (morning|evening|afternoon))\b/.test(t))
-    return { text: `Hi! 👋 Ask me about your sleep, steps, screen time, water, mood or food, or tell me how you feel. Thought for today: ${thoughtFor(date)}`, meta: 'Built-in answer' };
-  if (/^(thanks|thank you|thx|ok|okay|cool|nice)\b/.test(t)) return { text: "You're welcome! Small steps every day. 🌱", meta: 'Built-in answer' };
+    return { text: `Hi! Ask me about your sleep, steps, screen time, water, mood or food, or tell me how you feel. Thought for today: ${thoughtFor(date)}`, meta: 'Built-in answer' };
+  if (/^(thanks|thank you|thx|ok|okay|cool|nice)\b/.test(t)) return { text: "You're welcome! Small steps every day.", meta: 'Built-in answer' };
 
   if (/screen|phone|mobile|scroll|instagram|youtube|reels|app usage/.test(t)) {
     const s = avg(week.map((d) => d.screenMinutes));
     const late = avg(week.map((d) => d.lateScreenMin));
-    if (s === null) return { text: 'I do not have screen-time data yet. Allow usage access in ☰ Menu → Phone & band data.', meta };
+    if (s === null) return { text: 'I do not have screen-time data yet. Allow usage access in Menu → Phone & band data.', meta };
     return {
       text:
         `You average ${h(s)} of screen time a day${today?.screenMinutes !== undefined ? ` (today so far: ${h(today.screenMinutes)})` : ''}. ` +
         (late !== null && late >= 30 ? `About ${Math.round(late)} min of it is after 11 pm, which can cut into sleep. Try a wind-down reminder at 10:30 pm.` : 'Late-night use is low. Nice!') +
-        (s > 300 ? ' Setting a daily limit on your top app in ☰ Menu → App usage can help.' : ''),
+        (s > 300 ? ' Setting a daily limit on your top app in Menu → App usage can help.' : ''),
       meta,
     };
   }
@@ -79,7 +79,7 @@ export function localReply(q: string, days: DayRecord[], food: FoodEntry[], date
     if (sl !== null) parts.push(`sleep ${sl.toFixed(1)} h`);
     if (st !== null) parts.push(`${Math.round(st).toLocaleString()} steps`);
     if (sc !== null) parts.push(`${h(sc)} screen time`);
-    if (!parts.length) return { text: 'Not enough data yet. Check in today, or allow phone data in ☰ Menu.', meta };
+    if (!parts.length) return { text: 'Not enough data yet. Check in today, or allow phone data in Menu.', meta };
     const tip = sl !== null && sl < 7 ? 'The biggest win this week would be an earlier bedtime.' : st !== null && st < 6000 ? 'A daily 20-minute walk would lift your score.' : sc !== null && sc > 300 ? 'Cutting screen time a little would help most.' : 'You are doing well. Keep the routine going!';
     return { text: `This week you average ${parts.join(', ')} a day. ${tip} See the Report tab for details.`, meta };
   }

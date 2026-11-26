@@ -77,11 +77,11 @@ const blank = (over: Partial<Reminder>): Reminder => ({
 });
 
 export const TEMPLATES: { key: string; label: string; make: () => Reminder }[] = [
-  { key: 'water', label: '💧 Drink water every 2 hours', make: () => blank({ title: 'Drink water', body: 'Time for a glass of water.', kind: 'interval', everyHours: 2, start: '09:00', end: '21:00', action: 'water' }) },
-  { key: 'wind', label: '🌙 Wind down at 10:30 pm', make: () => blank({ title: 'Wind down', body: 'Screens off soon for better sleep.', time: '22:30' }) },
-  { key: 'move', label: '🚶 Move break at 3 pm', make: () => blank({ title: 'Move break', body: 'Stand up and walk for 5 minutes.', time: '15:00' }) },
-  { key: 'checkin', label: '📝 Evening check-in at 9 pm', make: () => blank({ title: 'Daily check-in', body: 'How was your day? Log it in AURA.', time: '21:00' }) },
-  { key: 'stretch', label: '🧘 Stretch every 3 hours', make: () => blank({ title: 'Stretch', body: 'A short stretch for your back and neck.', kind: 'interval', everyHours: 3, start: '10:00', end: '19:00' }) },
+  { key: 'water', label: 'Drink water every 2 hours', make: () => blank({ title: 'Drink water', body: 'Time for a glass of water.', kind: 'interval', everyHours: 2, start: '09:00', end: '21:00', action: 'water' }) },
+  { key: 'wind', label: 'Wind down at 10:30 pm', make: () => blank({ title: 'Wind down', body: 'Screens off soon for better sleep.', time: '22:30' }) },
+  { key: 'move', label: 'Move break at 3 pm', make: () => blank({ title: 'Move break', body: 'Stand up and walk for 5 minutes.', time: '15:00' }) },
+  { key: 'checkin', label: 'Evening check-in at 9 pm', make: () => blank({ title: 'Daily check-in', body: 'How was your day? Log it in AURA.', time: '21:00' }) },
+  { key: 'stretch', label: 'Stretch every 3 hours', make: () => blank({ title: 'Stretch', body: 'A short stretch for your back and neck.', kind: 'interval', everyHours: 3, start: '10:00', end: '19:00' }) },
 ];
 
 export function newReminder(over: Partial<Reminder> = {}): Reminder {

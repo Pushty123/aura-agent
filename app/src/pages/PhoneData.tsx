@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Smartphone } from 'lucide-react';
 import type { DayRecord } from '../types';
 import { allowPhoneSteps, phoneSensorStatus, type PhoneSensors } from '../native/bridge';
 import {
@@ -166,7 +167,7 @@ export function PhoneData({ days, onChange }: { days: DayRecord[]; onChange: () 
       {isNative() && (
         <article className="card stack-sm">
           <div className="row between">
-            <h3 style={{ margin: 0 }}>📱 This phone (no band needed)</h3>
+            <h3 className="row gap-sm center-v" style={{ margin: 0 }}><Smartphone size={18} aria-hidden="true" /> This phone (no band needed)</h3>
             <span className={`pill ${sensors?.stepsAllowed && sensors?.usageAllowed ? 'ok' : ''}`}>
               {sensors?.stepsAllowed && sensors?.usageAllowed ? 'On' : 'Needs permission'}
             </span>

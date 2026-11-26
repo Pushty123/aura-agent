@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { BarChart3, Droplet, Dumbbell, HeartPulse, LayoutGrid, Utensils, X } from 'lucide-react';
 import type { DayRecord } from '../types';
 import { runInsights } from '../insights/engine';
 import { balanceScore } from '../insights/balance';
@@ -164,7 +165,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   async function addWater() {
     await patchDay(today(), { waterGlasses: ((days.find((d) => d.date === today())?.waterGlasses) ?? 0) + 1 });
     await onChange();
-    setMsg('💧 +1 glass of water logged.');
+    setMsg('+1 glass of water logged.');
   }
 
   return (
@@ -205,7 +206,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
 
       {offerWidget && (
         <div className="card row between center-v gap wrap">
-          <span className="small">📲 Put AURA on your home screen to see your score without opening the app.</span>
+          <span className="row gap center-v small"><LayoutGrid size={18} aria-hidden="true" /> Put AURA on your home screen to see your score without opening the app.</span>
           <span className="row gap">
             <button
               type="button"
@@ -227,7 +228,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
                 void db.meta.put({ key: 'widget-offer', value: 'hide' });
               }}
             >
-              ✕
+              <X size={16} />
             </button>
           </span>
         </div>
@@ -237,16 +238,16 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
       <StreakRow list={streakList} onOpen={() => onNavigate?.('report')} />
 
       <div className="quick-actions" role="group" aria-label="Quick actions">
-        <button type="button" className="quick-action" onClick={() => void addWater()}><span>💧</span>+1 water</button>
-        <button type="button" className="quick-action" onClick={() => onNavigate?.('food')}><span>🍽️</span>Log food</button>
-        <button type="button" className="quick-action" onClick={() => onNavigate?.('exercise')}><span>🏃</span>Exercise</button>
-        <button type="button" className="quick-action" onClick={() => onNavigate?.('health')}><span>🩺</span>How I feel</button>
+        <button type="button" className="quick-action" onClick={() => void addWater()}><span><Droplet size={20} /></span>+1 water</button>
+        <button type="button" className="quick-action" onClick={() => onNavigate?.('food')}><span><Utensils size={20} /></span>Log food</button>
+        <button type="button" className="quick-action" onClick={() => onNavigate?.('exercise')}><span><Dumbbell size={20} /></span>Exercise</button>
+        <button type="button" className="quick-action" onClick={() => onNavigate?.('health')}><span><HeartPulse size={20} /></span>How I feel</button>
       </div>
       {msg && <p className="status-banner ok" role="status">{msg}</p>}
 
       <button type="button" className="card row between center-v week-chart" onClick={() => onNavigate?.('report')}>
         <span className="stack-sm" style={{ gap: 2 }}>
-          <strong>📊 Weekly report</strong>
+          <strong className="row gap-sm center-v"><BarChart3 size={18} aria-hidden="true" /> Weekly report</strong>
           <span className="xs muted">{weekly.sentences[0] ?? 'See how this week compares with last week.'}</span>
         </span>
         <span aria-hidden="true">›</span>

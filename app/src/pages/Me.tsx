@@ -1,11 +1,12 @@
 import { AuraAvatar } from '../avatar/AuraAvatar';
+import { Info, Lock, Moon, ShieldCheck, Sun, User } from 'lucide-react';
 import { useMe } from '../avatar/AvatarContext';
 import type { AppTab, ThemeMode } from '../components/AppShell';
 
-const ROWS: { tab: AppTab; title: string; sub: string; emoji: string }[] = [
-  { tab: 'profile', title: 'Profile & security', sub: 'Character, details, fingerprint, widget', emoji: '👤' },
-  { tab: 'vault', title: 'My data & privacy', sub: 'Consent, export, delete, network log', emoji: '🔐' },
-  { tab: 'about', title: 'About AURA', sub: 'How your data is protected', emoji: 'ℹ️' },
+const ROWS: { tab: AppTab; title: string; sub: string; emoji: JSX.Element }[] = [
+  { tab: 'profile', title: 'Profile & security', sub: 'Character, details, fingerprint, widget', emoji: <User size={20} /> },
+  { tab: 'vault', title: 'My data & privacy', sub: 'Consent, export, delete, network log', emoji: <ShieldCheck size={20} /> },
+  { tab: 'about', title: 'About AURA', sub: 'How your data is protected', emoji: <Info size={20} /> },
 ];
 
 /** "Me" hub: everything personal and settings-like in one calm list. */
@@ -56,7 +57,7 @@ export function Me({
       <div className="card list-card">
         <button type="button" className="list-row" onClick={onToggleTheme}>
           <span className="list-emoji" aria-hidden="true">
-            {theme === 'dark' ? '☀️' : '🌙'}
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </span>
           <span className="list-text">
             <strong>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</strong>
@@ -64,7 +65,7 @@ export function Me({
         </button>
         <button type="button" className="list-row" onClick={onLock}>
           <span className="list-emoji" aria-hidden="true">
-            🔒
+            <Lock size={20} />
           </span>
           <span className="list-text">
             <strong>Lock AURA</strong>

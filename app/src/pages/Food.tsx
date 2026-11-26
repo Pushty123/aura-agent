@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Camera, Image as ImageIcon, X } from 'lucide-react';
 import { parseFood, foodTip } from '../food/parse';
 import { deleteFood, loadFood, saveFood } from '../lib/store';
 import { downscale, getPhoto } from '../lib/camera';
@@ -102,7 +103,7 @@ export function Food() {
                 aria-pressed={meal === m}
                 onClick={() => setMeal(m)}
               >
-                {m === 'breakfast' ? '🌅' : m === 'lunch' ? '🍛' : m === 'dinner' ? '🍽️' : '🍎'} {m[0].toUpperCase() + m.slice(1)}
+                {m[0].toUpperCase() + m.slice(1)}
               </button>
             ))}
           </div>
@@ -118,10 +119,10 @@ export function Food() {
 
           <div className="row gap wrap center-v">
             <button type="button" className="btn sm" onClick={() => void addPhoto('camera')}>
-              📷 Take photo
+              <Camera size={16} aria-hidden="true" /> Take photo
             </button>
             <button type="button" className="btn sm ghost" onClick={() => void addPhoto('gallery')}>
-              🖼️ Choose photo
+              <ImageIcon size={16} aria-hidden="true" /> Choose photo
             </button>
             {photo && (
               <div className="row gap center-v">
@@ -207,7 +208,7 @@ export function Food() {
                     aria-label={`Remove ${entry.text}`}
                     onClick={() => void deleteFood(entry.id).then(refresh)}
                   >
-                    ✕
+                    <X size={16} />
                   </button>
                 </li>
               ))}

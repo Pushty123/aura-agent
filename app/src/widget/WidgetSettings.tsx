@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { loadDays } from '../lib/store';
 import { isNative, pinWidget, widgetStatus } from '../native/bridge';
 import type { DayRecord } from '../types';
@@ -61,7 +62,7 @@ export function WidgetSettings() {
       {isNative() && (
         <div className="row gap wrap center-v">
           <button type="button" className="btn primary" onClick={() => void addToHome()}>
-            ➕ Add widget to home screen
+            <Plus size={16} aria-hidden="true" /> Add widget to home screen
           </button>
           {status && status.placed > 0 && <span className="xs">✓ {status.placed} on your home screen</span>}
         </div>

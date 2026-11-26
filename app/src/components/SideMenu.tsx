@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Hourglass, Info, KeyRound, Lock, LogOut, Moon, Settings, ShieldCheck, Sun, User, Watch, type LucideIcon } from 'lucide-react';
 import { AuraAvatar } from '../avatar/AuraAvatar';
 import { useMe } from '../avatar/AvatarContext';
 import { getSession, logout } from '../lib/account';
@@ -7,7 +8,7 @@ import type { AppTab, ThemeMode } from './AppShell';
 
 interface Item {
   tab: AppTab;
-  emoji: string;
+  icon: LucideIcon;
   label: string;
   sub: string;
 }
@@ -16,17 +17,17 @@ const SECTIONS: { title: string; items: Item[] }[] = [
   {
     title: 'Your phone',
     items: [
-      { tab: 'apps', emoji: '⏳', label: 'App usage & limits', sub: 'Time per app, opens, daily limits' },
-      { tab: 'phone', emoji: '⌚', label: 'Phone & band data', sub: 'Steps, sleep, screen time, Health Connect' },
+      { tab: 'apps', icon: Hourglass, label: 'App usage & limits', sub: 'Time per app, opens, daily limits' },
+      { tab: 'phone', icon: Watch, label: 'Phone & band data', sub: 'Steps, sleep, screen time, Health Connect' },
     ],
   },
   {
     title: 'Account & settings',
     items: [
-      { tab: 'profile', emoji: '👤', label: 'Profile & character', sub: 'Details, avatar, fingerprint, widget' },
-      { tab: 'me', emoji: '⚙️', label: 'Settings', sub: 'Theme, lock, app preferences' },
-      { tab: 'vault', emoji: '🔐', label: 'My data & privacy', sub: 'Export, delete, network log' },
-      { tab: 'about', emoji: 'ℹ️', label: 'About & help', sub: 'How AURA protects your data' },
+      { tab: 'profile', icon: User, label: 'Profile & character', sub: 'Details, avatar, fingerprint, widget' },
+      { tab: 'me', icon: Settings, label: 'Settings', sub: 'Theme, lock, app preferences' },
+      { tab: 'vault', icon: ShieldCheck, label: 'My data & privacy', sub: 'Export, delete, network log' },
+      { tab: 'about', icon: Info, label: 'About & help', sub: 'How AURA protects your data' },
     ],
   },
 ];
@@ -98,7 +99,7 @@ export function SideMenu({
             <span className="side-title">{s.title}</span>
             {s.items.map((i) => (
               <button key={i.tab} type="button" className={`side-item ${tab === i.tab ? 'active' : ''}`} onClick={() => go(i.tab)}>
-                <span className="side-emoji" aria-hidden="true">{i.emoji}</span>
+                <span className="side-emoji" aria-hidden="true"><i.icon size={20} /></span>
                 <span className="side-text">
                   <span>{i.label}</span>
                   <span className="xs muted">{i.sub}</span>
@@ -110,21 +111,21 @@ export function SideMenu({
 
         <div className="side-section">
           <button type="button" className="side-item" onClick={onToggleTheme}>
-            <span className="side-emoji" aria-hidden="true">{theme === 'dark' ? '☀️' : '🌙'}</span>
+            <span className="side-emoji" aria-hidden="true">{theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}</span>
             <span className="side-text"><span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span></span>
           </button>
           <button type="button" className="side-item" onClick={() => { onClose(); onLock(); }}>
-            <span className="side-emoji" aria-hidden="true">🔒</span>
+            <span className="side-emoji" aria-hidden="true"><Lock size={20} /></span>
             <span className="side-text"><span>Lock AURA</span><span className="xs muted">Unlock with fingerprint or password</span></span>
           </button>
           {email ? (
             <button type="button" className="side-item danger" onClick={() => void signOut()}>
-              <span className="side-emoji" aria-hidden="true">↩️</span>
+              <span className="side-emoji" aria-hidden="true"><LogOut size={20} /></span>
               <span className="side-text"><span>Log out</span><span className="xs muted">{email}</span></span>
             </button>
           ) : (
             <button type="button" className="side-item" onClick={() => setShowLogin(true)}>
-              <span className="side-emoji" aria-hidden="true">🔑</span>
+              <span className="side-emoji" aria-hidden="true"><KeyRound size={20} /></span>
               <span className="side-text"><span>Log in or create account</span><span className="xs muted">For AI replies and encrypted backup</span></span>
             </button>
           )}

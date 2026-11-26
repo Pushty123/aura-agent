@@ -44,7 +44,7 @@ export function thoughtFor(date: string): string {
 export function todayLine(d: DayRecord | undefined, score?: number): string {
   if (!d) return "Let's check your wellness today.";
   if (d.sleepHours !== undefined && d.sleepHours < 6) return `Only ${d.sleepHours.toFixed(1)} h of sleep. Go easy today and drink water.`;
-  if (d.steps !== undefined && d.steps >= 10000) return `${d.steps.toLocaleString()} steps already. You're on fire! 🔥`;
+  if (d.steps !== undefined && d.steps >= 10000) return `${d.steps.toLocaleString()} steps already. Great going!`;
   if (d.lateScreenMin !== undefined && d.lateScreenMin >= 60) return 'Late screens last night. Try a phone-free last hour tonight.';
   if (score !== undefined && score >= 80) return 'You are in great balance today. Keep it going!';
   if (d.sleepHours !== undefined && d.sleepHours >= 7) return `${d.sleepHours.toFixed(1)} h of sleep. A well-rested start!`;

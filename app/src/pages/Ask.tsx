@@ -1,4 +1,5 @@
 import { detectSymptom, GUIDES, loadHealth, newEntry, personalNotes, recentCounts, saveHealth, type SymptomId } from '../health/symptoms';
+import { Check, Mic, Plus, Square, Volume2 } from 'lucide-react';
 import { getAutoSpeak, listen, setAutoSpeak, speak, stopSpeaking, voiceIssue, type Listener } from '../voice/voice';
 import { localReply } from '../ask/localBrain';
 import { useMe } from '../avatar/AvatarContext';
@@ -295,7 +296,7 @@ export function Ask({ days }: { days: DayRecord[] }) {
             <span />
           </label>
         </div>
-        {smartOn && !loggedIn && <p className="xs">Log in (☰ menu) to use smart replies.</p>}
+        {smartOn && !loggedIn && <p className="xs">Log in from the menu to use smart replies.</p>}
         {smartOn && loggedIn && !serverReady && <p className="xs">The AI server isn&apos;t reachable right now, so built-in answers are used.</p>}
         <details>
           <summary className="xs muted">What is shared?</summary>
@@ -306,7 +307,7 @@ export function Ask({ days }: { days: DayRecord[] }) {
       <div className="ask-chat" aria-live="polite">
         {messages.length === 0 && (
           <div className="ask-empty">
-            <p className="small muted">Ask anything about your sleep, steps, mood or screen time, tell AURA how you feel (&quot;I have a headache&quot;), or give a command (&quot;set an alarm for 6:30 am&quot;). Tap 🎤 to talk.</p>
+            <p className="small muted">Ask anything about your sleep, steps, mood or screen time, tell AURA how you feel (&quot;I have a headache&quot;), or give a command (&quot;set an alarm for 6:30 am&quot;). Tap the mic to talk.</p>
           </div>
         )}
         {messages.map((m) => (
@@ -315,11 +316,11 @@ export function Ask({ days }: { days: DayRecord[] }) {
             {m.role === 'aura' && (
               <div className="row gap wrap" style={{ marginTop: 6 }}>
                 <button type="button" className="btn sm ghost" onClick={() => void say(m.id, m.text)} aria-label={speaking === m.id ? 'Stop speaking' : 'Read aloud'}>
-                  {speaking === m.id ? '⏹ Stop' : '🔊'}
+                  {speaking === m.id ? <><Square size={14} /> Stop</> : <><Volume2 size={14} /> Listen</>}
                 </button>
                 {m.symptom && (
                   <button type="button" className="btn sm" disabled={m.saved} onClick={() => void saveSymptom(m)}>
-                    {m.saved ? '✓ Saved to health log' : '➕ Save to health log'}
+                    {m.saved ? <><Check size={14} /> Saved to health log</> : <><Plus size={14} /> Save to health log</>}
                   </button>
                 )}
               </div>
@@ -398,13 +399,13 @@ export function Ask({ days }: { days: DayRecord[] }) {
           disabled={thinking}
           aria-label={listener ? 'Stop listening' : 'Talk to AURA'}
         >
-          {listener ? '⏹' : '🎤'}
+          {listener ? <Square size={18} /> : <Mic size={18} />}
         </button>
         <input
           className="input"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={listener ? 'Listening… tap ⏹ when done' : 'Message AURA…'}
+          placeholder={listener ? 'Listening… tap stop when done' : 'Message AURA…'}
           aria-label="Message to AURA"
           maxLength={500}
         />
@@ -423,7 +424,7 @@ export function Ask({ days }: { days: DayRecord[] }) {
               if (!e.target.checked) void stopSpeaking();
             }}
           />
-          🔊 Read replies aloud
+          Read replies aloud
         </label>
         {voiceMsg && <span className="muted">{voiceMsg}</span>}
       </div>

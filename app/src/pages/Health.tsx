@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { BedDouble, Bell, CalendarHeart, Soup, X } from 'lucide-react';
 import { today } from '../lib/dates';
 import { loadFood } from '../lib/store';
 import { notify } from '../native/bridge';
@@ -136,11 +137,11 @@ export function Health({ days }: { days: DayRecord[] }) {
                 </div>
               )}
               <div>
-                <strong className="small">🍲 Food and drink</strong>
+                <strong className="small row gap-sm center-v"><Soup size={16} aria-hidden="true" /> Food and drink</strong>
                 <ul className="small">{guide.food.map((n) => <li key={n}>{n}</li>)}</ul>
               </div>
               <div>
-                <strong className="small">🛌 Care</strong>
+                <strong className="small row gap-sm center-v"><BedDouble size={16} aria-hidden="true" /> Care</strong>
                 <ul className="small">{guide.care.map((n) => <li key={n}>{n}</li>)}</ul>
               </div>
               <div className="status-banner error">
@@ -172,7 +173,7 @@ export function Health({ days }: { days: DayRecord[] }) {
                     {e.notes && <span className="xs muted" style={{ display: 'block' }}>{e.notes}</span>}
                   </span>
                   <button type="button" className="btn sm ghost" aria-label={`Delete ${e.label}`} onClick={() => void deleteHealth(e.id).then(refresh)}>
-                    ✕
+                    <X size={16} />
                   </button>
                 </li>
               ))}
@@ -182,7 +183,7 @@ export function Health({ days }: { days: DayRecord[] }) {
       </div>
       {female && <CycleCard />}
       {sexUnset && (
-        <p className="xs muted">🌸 A private period calendar is available. Set Sex to Female in ☰ Menu → Profile to show it here.</p>
+        <p className="xs muted">A private period calendar is available. Set Sex to Female in Menu → Profile to show it here.</p>
       )}
     </section>
   );
@@ -210,7 +211,7 @@ function CycleCard() {
   if (!on)
     return (
       <div className="card stack-sm">
-        <h2>🌸 Period calendar</h2>
+        <h2 className="row gap-sm center-v"><CalendarHeart size={20} aria-hidden="true" /> Period calendar</h2>
         <p className="small muted">Optional. Log period dates to see your next expected period. Kept encrypted on this phone and never sent to the AI.</p>
         <div>
           <button type="button" className="btn" onClick={() => void setCycleEnabled(true).then(() => setOn(true))}>
@@ -244,7 +245,7 @@ function CycleCard() {
   return (
     <div className="card stack-md">
       <div className="row between wrap center-v">
-        <h2>🌸 Period calendar</h2>
+        <h2 className="row gap-sm center-v"><CalendarHeart size={20} aria-hidden="true" /> Period calendar</h2>
         <button type="button" className="btn sm ghost" onClick={() => void setCycleEnabled(false).then(() => setOn(false))}>
           Hide
         </button>
@@ -336,7 +337,7 @@ function CycleCard() {
                       )
                     }
                   >
-                    🔔 Remind me 2 days before
+                    <Bell size={14} aria-hidden="true" /> Remind me 2 days before
                   </button>
                 </div>
               )}

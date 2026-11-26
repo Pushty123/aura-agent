@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Footprints, Hourglass, Smartphone } from 'lucide-react';
 import type { DayRecord } from '../types';
 import type { AppTab } from './AppShell';
 import { getAppUsage, type AppUse } from '../native/bridge';
@@ -77,14 +78,14 @@ export function WeekCharts({ days, hasDemo, onNavigate }: { days: DayRecord[]; h
     <div className="grid-3">
       <button type="button" className="card stack-sm week-chart" onClick={() => onNavigate?.('goals')}>
         <div className="row between center-v">
-          <strong>🚶 Steps this week</strong>
+          <strong className="row gap-sm center-v"><Footprints size={18} aria-hidden="true" /> Steps this week</strong>
           {sAvg !== null && <span className="xs muted">avg {Math.round(sAvg).toLocaleString()} · goal 8k (dashed)</span>}
         </div>
         <Bars values={steps} labels={labels} goal={8000} color="#60a5fa" fmt={(v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v)))} />
       </button>
       <button type="button" className="card stack-sm week-chart" onClick={() => onNavigate?.('apps')}>
         <div className="row between center-v">
-          <strong>📱 Screen time</strong>
+          <strong className="row gap-sm center-v"><Smartphone size={18} aria-hidden="true" /> Screen time</strong>
           {tAvg !== null && <span className="xs muted">avg {tAvg.toFixed(1)} h{phoneMax ? ` · limit ${fmtMin(phoneMax)} (dashed)` : ''}</span>}
         </div>
         <Bars values={screen} labels={labels} goal={phoneMax ? phoneMax / 60 : undefined} color="#fb7185" fmt={(v) => `${v.toFixed(1)}`} />
@@ -92,7 +93,7 @@ export function WeekCharts({ days, hasDemo, onNavigate }: { days: DayRecord[]; h
       </button>
       <button type="button" className="card stack-sm week-chart" onClick={() => onNavigate?.('apps')}>
         <div className="row between center-v">
-          <strong>⏳ Top apps today</strong>
+          <strong className="row gap-sm center-v"><Hourglass size={18} aria-hidden="true" /> Top apps today</strong>
           {appsDemo && <span className="pill demo">DEMO</span>}
         </div>
         {apps && apps.length > 0 ? (

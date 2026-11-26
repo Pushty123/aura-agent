@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Bell, Hourglass, Sparkles } from 'lucide-react';
 import { today } from '../lib/dates';
 import { getSession } from '../lib/account';
 import { askSmart, buildContext, getAiConsent } from '../lib/ai';
@@ -10,7 +11,7 @@ import { buildPlan, EXAMPLES, loadPlans, mergeLimits, parseGoal, savePlans, summ
 import type { DayRecord } from '../types';
 
 const fmt = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
-const KIND_LABEL = { exam: '📚 Exam plan', fitness: '💪 Fitness plan', sleep: '😴 Sleep plan', screen: '📵 Screen-time plan', habit: '🎯 Habit plan' };
+const KIND_LABEL = { exam: 'Exam plan', fitness: 'Fitness plan', sleep: 'Sleep plan', screen: 'Screen-time plan', habit: 'Habit plan' };
 
 /** Type a goal in your own words; AURA builds a plan from your data. Nothing is set until you tap Apply. */
 export function PlanCard({ days, onApplied }: { days: DayRecord[]; onApplied: () => Promise<void> | void }) {
@@ -126,7 +127,7 @@ export function PlanCard({ days, onApplied }: { days: DayRecord[]; onApplied: ()
   return (
     <div className="card stack-md">
       <div>
-        <h2 style={{ margin: 0 }}>✨ Plan with AURA</h2>
+        <h2 className="row gap-sm center-v" style={{ margin: 0 }}><Sparkles size={20} aria-hidden="true" /> Plan with AURA</h2>
         <p className="xs muted">Type a goal in your own words. AURA builds a plan from your sleep, screen time and app usage. You review it before anything is set.</p>
       </div>
       <form className="row gap wrap" onSubmit={(e) => { e.preventDefault(); void make(); }}>
@@ -192,13 +193,13 @@ export function PlanCard({ days, onApplied }: { days: DayRecord[]; onApplied: ()
             {plan.reminders.map((r) => (
               <label key={r.id} className="row gap center-v small">
                 <input type="checkbox" checked={keep(r)} onChange={() => toggle(r.id)} />
-                ⏰ {r.time} · {r.title}
+                <Bell size={14} aria-hidden="true" /> {r.time} · {r.title}
               </label>
             ))}
             {plan.limits.map((l) => (
               <label key={l.pkg} className="row gap center-v small">
                 <input type="checkbox" checked={keep(l)} onChange={() => toggle(l.pkg)} />
-                ⏳ Limit {l.label} to {fmtMin(l.minutes)} a day
+                <Hourglass size={14} aria-hidden="true" /> Limit {l.label} to {fmtMin(l.minutes)} a day
               </label>
             ))}
             {demoUsage && plan.limits.length > 0 && <p className="xs muted">App limits here use DEMO app usage in the browser. The Android app uses your real usage.</p>}
@@ -220,7 +221,7 @@ export function PlanCard({ days, onApplied }: { days: DayRecord[]; onApplied: ()
 
           <div className="row gap wrap">
             <button type="button" className="btn primary" disabled={busy} onClick={() => void apply()}>{busy ? 'Applying…' : 'Apply plan'}</button>
-            <button type="button" className="btn" disabled={ai.busy} onClick={() => void askAi()}>{ai.busy ? 'Asking…' : '🤖 AI tips for this plan'}</button>
+            <button type="button" className="btn" disabled={ai.busy} onClick={() => void askAi()}>{ai.busy ? 'Asking…' : 'AI tips for this plan'}</button>
             <button type="button" className="btn ghost" onClick={() => setPlan(null)}>Cancel</button>
           </div>
         </div>
@@ -235,7 +236,7 @@ export function PlanCard({ days, onApplied }: { days: DayRecord[]; onApplied: ()
             return (
               <div key={p.id} className="card-subtle row between center-v gap">
                 <div className="stack-sm" style={{ gap: 2 }}>
-                  <strong className="small">{KIND_LABEL[p.kind].split(' ')[0]} {p.title}</strong>
+                  <strong className="small">{p.title}</strong>
                   <span className="xs muted">
                     {left !== null ? `${left} day${left === 1 ? '' : 's'} left` : ''}
                     {now ? ` · Now: ${now.label}` : ''}

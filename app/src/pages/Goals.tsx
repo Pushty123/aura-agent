@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BellRing } from 'lucide-react';
 import type { DayRecord } from '../types';
 import { median } from '../insights/stats';
 import { today } from '../lib/dates';
@@ -198,9 +199,9 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
       <div className="aura-segmented inline" role="tablist" aria-label="Goals sections">
         {(
           [
-            ['goals', '🎯 My goals'],
-            ['plan', '✨ Plan'],
-            ['reminders', '⏰ Reminders'],
+            ['goals', 'My goals'],
+            ['plan', 'Plan'],
+            ['reminders', 'Reminders'],
           ] as const
         ).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={view === id} className={view === id ? 'active' : ''} onClick={() => setView(id)}>
@@ -367,14 +368,14 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
                   <strong>
                     {g.icon ?? '🎯'} {g.title}
                   </strong>
-                  <span className={`pill ${p.met ? 'ok' : 'primary'}`}>{p.met ? '🎉 Done' : `${p.pct}%`}</span>
+                  <span className={`pill ${p.met ? 'ok' : 'primary'}`}>{p.met ? 'Done' : `${p.pct}%`}</span>
                 </div>
                 <p className="xs muted">
                   {g.metric === 'habit'
                     ? 'Tick it off each day'
                     : `${g.direction === 'atLeast' ? 'At least' : 'At most'} ${fmt(g, g.target)} a day`}
                   {g.daysPerWeek ? ` · ${g.daysPerWeek} days a week` : ''}
-                  {g.reminderTime ? ` · ⏰ ${g.reminderTime}` : ''}
+                  {g.reminderTime ? ` · reminder ${g.reminderTime}` : ''}
                   {g.endsOn ? ` · until ${g.endsOn.slice(8)}/${g.endsOn.slice(5, 7)}` : ''}
                 </p>
                 <div className="bar" role="progressbar" aria-valuenow={p.pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${g.title} progress`}>
@@ -387,7 +388,7 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
                       This week: {week.met}/{week.of}
                     </span>
                   ) : (
-                    <span className="pill">Streak: {streak} day{streak === 1 ? '' : 's'}{streak >= 3 ? ' 🏅' : ''}</span>
+                    <span className="pill">Streak: {streak} day{streak === 1 ? '' : 's'}</span>
                   )}
                 </div>
                 {editing === g.id && (
@@ -583,7 +584,7 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
                   <span className="muted">
                     · {slotsFor(r).map((s) => hhmm(s.hour, s.minute)).join(', ')}
                   </span>
-                  {doneMap[r.id] ? <span className="pill ok" style={{ marginLeft: 6 }}>✓ {doneMap[r.id]}× today</span> : null}
+                  {doneMap[r.id] ? <span className="pill ok" style={{ marginLeft: 6 }}>Done {doneMap[r.id]}× today</span> : null}
                 </span>
               </label>
               <span className="row gap">
@@ -592,7 +593,7 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
                   className="btn sm"
                   onClick={() => void sendTestReminder(r.title, r.body, r.id, actionFor(r)).then((t) => setMsg({ ok: true, text: t }))}
                 >
-                  🔔 Test
+                  <BellRing size={14} aria-hidden="true" /> Test
                 </button>
                 <button type="button" className="btn sm ghost" onClick={() => void updateReminders(reminders.filter((x) => x.id !== r.id))}>
                   Remove

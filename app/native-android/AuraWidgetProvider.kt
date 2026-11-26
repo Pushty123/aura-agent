@@ -47,7 +47,7 @@ class AuraWidgetProvider : AppWidgetProvider() {
                 strokeWidth = stroke
                 strokeCap = Paint.Cap.ROUND
             }
-            paint.color = Color.parseColor("#2E2C66")
+            paint.color = Color.parseColor("#243033")
             canvas.drawArc(box, 0f, 360f, false, paint)
             if (score > 0) {
                 paint.color = color
@@ -61,7 +61,7 @@ class AuraWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.aura_widget)
             val enabled = p.getBoolean("enabled", false)
             val score = if (enabled) p.getInt("score", -1) else -1
-            val color = parseColor(p.getString("color", null), Color.parseColor("#A78BFA"))
+            val color = parseColor(p.getString("color", null), Color.parseColor("#2DD4BF"))
 
             views.setImageViewBitmap(R.id.aura_ring, ring(score, color))
             views.setTextViewText(R.id.aura_score, if (score >= 0) score.toString() else "–")

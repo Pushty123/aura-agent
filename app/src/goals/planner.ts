@@ -161,7 +161,7 @@ export function buildPlan(p: ParsedGoal, ctx: PlanContext): Plan {
       out.limits.push({ pkg: a.pkg, label: a.label, minutes: m });
       out.reasons.push(`${a.label}: ${a.minutes} min today → limit ${m} min.`);
     }
-    if (!top.length) out.tips.push('Allow App usage access (☰ Menu → App usage) so AURA can also set limits on your most distracting apps.');
+    if (!top.length) out.tips.push('Allow App usage access (Menu → App usage) so AURA can also set limits on your most distracting apps.');
   };
 
   if (p.kind === 'exam') {
@@ -169,11 +169,11 @@ export function buildPlan(p: ParsedGoal, ctx: PlanContext): Plan {
     const hours = p.hours ?? (dl <= 7 ? 6 : dl <= 30 ? 4 : 3);
     const blocks = clamp(Math.ceil(hours / 1.5), 2, 4);
     const times = ['07:00', '16:30', '19:00', '21:00'].slice(0, blocks);
-    out.goals.push(goal(`Study ${hours} h`, '📚', 'habit', undefined, { ...tag, reminderTime: times[0] }));
-    out.goals.push(goal('Screen time during exams', '📵', 'screenMinutes', screenTarget(dl <= 14 ? 0.5 : 0.65, 120), tag));
-    out.goals.push(goal('Sleep before exams', '😴', 'sleepHours', 7.5, tag));
-    times.forEach((tm, i) => out.reminders.push(remind(`📚 Study block ${i + 1}`, 'Phone away. 50 min focus, then a 10 min break.', tm)));
-    out.reminders.push(remind('🌙 Exam wind-down', 'Sleep helps you remember what you studied. Screens off.', '22:30'));
+    out.goals.push(goal(`Study ${hours} h`, '', 'habit', undefined, { ...tag, reminderTime: times[0] }));
+    out.goals.push(goal('Screen time during exams', '', 'screenMinutes', screenTarget(dl <= 14 ? 0.5 : 0.65, 120), tag));
+    out.goals.push(goal('Sleep before exams', '', 'sleepHours', 7.5, tag));
+    times.forEach((tm, i) => out.reminders.push(remind(`Study block ${i + 1}`, 'Phone away. 50 min focus, then a 10 min break.', tm)));
+    out.reminders.push(remind('Exam wind-down', 'Sleep helps you remember what you studied. Screens off.', '22:30'));
     appLimits(dl <= 14 ? 0.4 : 0.5, 45);
     if (sleep !== null && sleep < 7) out.reasons.push(`Your sleep averages ${sleep.toFixed(1)} h; memory works better with 7–8 h.`);
 
@@ -207,28 +207,28 @@ export function buildPlan(p: ParsedGoal, ctx: PlanContext): Plan {
   } else if (p.kind === 'fitness') {
     const st = steps === null ? 7000 : clamp(roundTo(steps * 1.2, 500), 5000, 12000);
     out.reasons.push(steps === null ? 'No step history yet, so the plan starts at 7,000 steps.' : `You average ${Math.round(steps).toLocaleString()} steps; the plan adds about 20%.`);
-    out.goals.push(goal('Daily steps', '🚶', 'steps', st, tag));
-    out.goals.push(goal('Workout', '💪', 'exerciseMinutes', 30, { ...tag, daysPerWeek: 5, reminderTime: '18:00' }));
-    out.goals.push(goal('Water', '💧', 'waterGlasses', 8, tag));
-    out.reminders.push(remind('💪 Workout time', '30 minutes: walk, run or a camera workout in AURA.', '18:00'));
-    out.reminders.push(remind('🚶 Walk break', 'Stand up and walk for 10 minutes.', '15:00'));
+    out.goals.push(goal('Daily steps', '', 'steps', st, tag));
+    out.goals.push(goal('Workout', '', 'exerciseMinutes', 30, { ...tag, daysPerWeek: 5, reminderTime: '18:00' }));
+    out.goals.push(goal('Water', '', 'waterGlasses', 8, tag));
+    out.reminders.push(remind('Workout time', '30 minutes: walk, run or a camera workout in AURA.', '18:00'));
+    out.reminders.push(remind('Walk break', 'Stand up and walk for 10 minutes.', '15:00'));
     out.tips.push('Increase steps or distance by about 10% a week, not more.', 'Protein at each meal helps recovery: dal, eggs, paneer, curd.', 'Rest at least one day a week.');
   } else if (p.kind === 'sleep') {
-    out.goals.push(goal('Sleep', '😴', 'sleepHours', 7.5, tag));
-    out.goals.push(goal('Screen time', '📵', 'screenMinutes', screenTarget(0.8, 180), tag));
-    out.reminders.push(remind('🌙 Wind down', 'Screens off in 30 minutes. Dim the lights.', '22:30'));
-    out.reminders.push(remind('☕ Last caffeine', 'No more tea or coffee today for better sleep.', '16:00'));
+    out.goals.push(goal('Sleep', '', 'sleepHours', 7.5, tag));
+    out.goals.push(goal('Screen time', '', 'screenMinutes', screenTarget(0.8, 180), tag));
+    out.reminders.push(remind('Wind down', 'Screens off in 30 minutes. Dim the lights.', '22:30'));
+    out.reminders.push(remind('Last caffeine', 'No more tea or coffee today for better sleep.', '16:00'));
     if (late !== null) out.reasons.push(`You spend about ${Math.round(late)} min on screens after 11 pm.`);
     if (sleep !== null) out.reasons.push(`Your sleep averages ${sleep.toFixed(1)} h.`);
     out.tips.push('Wake up at the same time every day, even weekends.', 'Get morning daylight for 10 minutes.', 'Keep the phone away from the bed.');
   } else if (p.kind === 'screen') {
-    out.goals.push(goal('Screen time', '📵', 'screenMinutes', screenTarget(0.7, 150), tag));
-    out.reminders.push(remind('📵 Phone-free hour', 'Put the phone away for an hour. Read, walk or talk to someone.', '20:00'));
+    out.goals.push(goal('Screen time', '', 'screenMinutes', screenTarget(0.7, 150), tag));
+    out.reminders.push(remind('Phone-free hour', 'Put the phone away for an hour. Read, walk or talk to someone.', '20:00'));
     appLimits(0.6, 60);
     out.tips.push('Turn off notifications for social apps.', 'Move distracting apps off the home screen.', 'Use grayscale mode in the evening.');
   } else {
-    out.goals.push(goal(p.title.slice(0, 60), '🎯', 'habit', undefined, { ...tag, reminderTime: '19:00' }));
-    out.reminders.push(remind(`🎯 ${p.title.slice(0, 50)}`, 'Time for your goal. Small steps every day.', '19:00'));
+    out.goals.push(goal(p.title.slice(0, 60), '', 'habit', undefined, { ...tag, reminderTime: '19:00' }));
+    out.reminders.push(remind(`${p.title.slice(0, 50)}`, 'Time for your goal. Small steps every day.', '19:00'));
     out.tips.push('Make it small enough to do even on a bad day.', 'Do it at the same time each day.', 'Tick it off in Goals to build a streak.');
   }
   return out;

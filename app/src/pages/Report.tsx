@@ -1,4 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { CloudRain, Dumbbell, Droplet, Footprints, HeartPulse, MoonStar, Moon, Share2, Smartphone, Smile, Target, Trophy } from 'lucide-react';
+import type { CompareRow } from '../summary/compare';
+
+const COMPARE_ICON = { sleepHours: Moon, steps: Footprints, screenMinutes: Smartphone, lateScreenMin: MoonStar, mood: Smile, waterGlasses: Droplet, exerciseMinutes: Dumbbell };
+function CompareIcon({ k }: { k: CompareRow['key'] }) {
+  const I = COMPARE_ICON[k];
+  return <I size={14} aria-hidden="true" />;
+}
 import {
   CartesianGrid,
   Legend,
@@ -105,7 +113,9 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
           <h2 style={{ margin: 0 }}>Your week</h2>
           <p className="xs muted">7 days ending {fmtDay(latest.date)}, compared with the 7 days before{isDemo ? ' · DEMO data' : ''}</p>
         </div>
-        <button type="button" className="btn primary" onClick={() => void share()}>📤 Share report</button>
+        <button type="button" className="btn primary" onClick={() => void share()}>
+          <Share2 size={16} /> Share report
+        </button>
       </div>
       {shareMsg && <div className="status-banner ok" role="status">{shareMsg}</div>}
 
@@ -113,7 +123,7 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
         <div className="compare-grid">
           {rows.map((r) => (
             <div key={r.key} className="card compare-cell">
-              <span className="xs muted">{r.emoji} {r.label}</span>
+              <span className="xs muted row gap-sm center-v"><CompareIcon k={r.key} /> {r.label}</span>
               <strong className="compare-value">{r.fmt(r.now!)}</strong>
               {r.change !== null ? (
                 <span className={`xs compare-change ${r.better === true ? 'good' : r.better === false ? 'bad' : ''}`}>
@@ -245,7 +255,7 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
         <div className="grid-2">
           {bw.best && (
             <div className="card stack-sm">
-              <span className="xs muted">🏆 Best day</span>
+              <span className="xs muted row gap-sm center-v"><Trophy size={14} /> Best day</span>
               <strong>{fmtDay(bw.best.date)}</strong>
               <span className="small muted">
                 {[bw.best.sleepHours !== undefined && `${bw.best.sleepHours.toFixed(1)} h sleep`, bw.best.steps !== undefined && `${bw.best.steps.toLocaleString()} steps`, bw.best.screenMinutes !== undefined && `${(bw.best.screenMinutes / 60).toFixed(1)} h screen`].filter(Boolean).join(' · ')}
@@ -254,7 +264,7 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
           )}
           {bw.worst && (
             <div className="card stack-sm">
-              <span className="xs muted">🌧️ Hardest day</span>
+              <span className="xs muted row gap-sm center-v"><CloudRain size={14} /> Hardest day</span>
               <strong>{fmtDay(bw.worst.date)}</strong>
               <span className="small muted">
                 {[bw.worst.sleepHours !== undefined && `${bw.worst.sleepHours.toFixed(1)} h sleep`, bw.worst.steps !== undefined && `${bw.worst.steps.toLocaleString()} steps`, bw.worst.screenMinutes !== undefined && `${(bw.worst.screenMinutes / 60).toFixed(1)} h screen`].filter(Boolean).join(' · ')}
@@ -268,7 +278,7 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
 
       <div className="grid-2">
         <button type="button" className="card stack-sm week-chart" onClick={() => onNavigate?.('goals')}>
-          <strong>🎯 Goals this week</strong>
+          <strong className="row gap-sm center-v"><Target size={18} /> Goals this week</strong>
           {goals.length ? (
             goals.slice(0, 6).map(({ g, met, of }) => (
               <div key={g.id} className="stack-sm" style={{ gap: 2 }}>
@@ -281,11 +291,11 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
           )}
         </button>
         <button type="button" className="card stack-sm week-chart" onClick={() => onNavigate?.('health')}>
-          <strong>🩺 Health log this week</strong>
+          <strong className="row gap-sm center-v"><HeartPulse size={18} /> Health log this week</strong>
           {health.length ? (
             <p className="small">{health.map((h) => `${h.label} ×${h.n}`).join(' · ')}</p>
           ) : (
-            <p className="xs muted">Nothing logged this week. 🎉</p>
+            <p className="xs muted">Nothing logged this week.</p>
           )}
         </button>
       </div>

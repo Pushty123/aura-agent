@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Coffee, Droplet, Dumbbell } from 'lucide-react';
 import type { DayRecord } from '../types';
 import { patchDay } from '../lib/store';
 import { today } from '../lib/dates';
@@ -88,7 +89,7 @@ export function CheckIn({ days, onChange }: { days: DayRecord[]; onChange: () =>
             <div className="card-subtle row between">
               <div>
                 <div className="small" style={{ fontWeight: 600 }}>
-                  💧 Water
+                  <Droplet size={16} className="ic-water" aria-hidden="true" /> Water
                 </div>
                 <div className="xs muted">{rec?.waterGlasses ?? 0} glasses today</div>
               </div>
@@ -122,7 +123,7 @@ export function CheckIn({ days, onChange }: { days: DayRecord[]; onChange: () =>
             <div className="card-subtle row between">
               <div>
                 <div className="small" style={{ fontWeight: 600 }}>
-                  ☕ Coffee / tea
+                  <Coffee size={16} className="ic-coffee" aria-hidden="true" /> Coffee / tea
                 </div>
                 <div className="xs muted">{rec?.caffeineCups ?? 0} cups today</div>
               </div>
@@ -156,7 +157,7 @@ export function CheckIn({ days, onChange }: { days: DayRecord[]; onChange: () =>
             <div className="card-subtle row between">
               <div>
                 <div className="small" style={{ fontWeight: 600 }}>
-                  🏃 Workout
+                  <Dumbbell size={16} className="ic-workout" aria-hidden="true" /> Workout
                 </div>
                 <div className="xs muted">{rec?.workout ? 'Completed today' : 'Not logged yet'}</div>
               </div>
@@ -172,7 +173,7 @@ export function CheckIn({ days, onChange }: { days: DayRecord[]; onChange: () =>
                   )
                 }
               >
-                {rec?.workout ? 'Logged ✓' : 'Mark workout'}
+                {rec?.workout ? 'Logged' : 'Mark workout'}
               </button>
             </div>
           </div>
@@ -183,11 +184,11 @@ export function CheckIn({ days, onChange }: { days: DayRecord[]; onChange: () =>
             <h3>Sleep last night (hours)</h3>
             {rec?.sleepHours !== undefined && rec.source === 'device' ? (
               <p className="small">
-                📱 <strong>{rec.sleepHours} h</strong> filled in automatically from your phone or band. Change it only if it&apos;s wrong.
+                <strong>{rec.sleepHours} h</strong> filled in automatically from your phone or band. Change it only if it&apos;s wrong.
               </p>
             ) : (
               <p className="xs muted">
-                Filled in automatically once you allow it in ☰ Menu → Phone &amp; band data. You can also type it here.
+                Filled in automatically once you allow it in Menu → Phone &amp; band data. You can also type it here.
               </p>
             )}
           </div>
