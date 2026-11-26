@@ -30,6 +30,7 @@ export function App() {
   const [ready, setReady] = useState(false);
   const [exists, setExists] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
+  const [idleLocked, setIdleLocked] = useState(false);
   const [tab, setTab] = useState<AppTab>('dashboard');
   const [days, setDays] = useState<DayRecord[]>([]);
   const [theme, setTheme] = useState<ThemeMode>(readInitialTheme);
@@ -65,6 +66,7 @@ export function App() {
     if (!unlocked) return;
     return startAutoLock(AUTO_LOCK_MS, () => {
       setDays([]);
+      setIdleLocked(true);
       setUnlocked(false);
     });
   }, [unlocked]);
@@ -87,7 +89,9 @@ export function App() {
         exists={exists}
         theme={theme}
         onToggleTheme={toggleTheme}
+        notice={idleLocked ? 'Locked after 5 minutes of inactivity to protect your data.' : undefined}
         onDone={() => {
+          setIdleLocked(false);
           setExists(true);
           setUnlocked(true);
         }}

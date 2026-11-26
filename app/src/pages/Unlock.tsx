@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { createVault, unlock } from '../lib/vault';
+import { useEffect, useState } from 'react';
+import { createVault, unlock, unlockWaitSeconds } from '../lib/vault';
 import { AuraLogoIcon, EyeIcon, EyeOffIcon, MoonIcon, SunIcon } from '../components/Icons';
 import type { ThemeMode } from '../components/AppShell';
 
@@ -8,18 +8,38 @@ interface UnlockProps {
   theme: ThemeMode;
   onToggleTheme: () => void;
   onDone: () => void;
+  /** Shown above the form, e.g. after an idle auto-lock. */
+  notice?: string;
 }
 
-export function Unlock({ exists, theme, onToggleTheme, onDone }: UnlockProps) {
+export function Unlock({ exists, theme, onToggleTheme, onDone, notice }: UnlockProps) {
   const [pass, setPass] = useState('');
   const [pass2, setPass2] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [waitSec, setWaitSec] = useState(0);
+
+  // After several wrong passphrases the vault makes you wait. Show a live
+  // countdown (it also survives a page reload, because it is stored).
+  useEffect(() => {
+    if (!exists) return;
+    let stop = false;
+    const tick = async () => {
+      const w = await unlockWaitSeconds();
+      if (!stop) setWaitSec(w);
+    };
+    void tick();
+    const id = window.setInterval(() => void tick(), 1000);
+    return () => {
+      stop = true;
+      window.clearInterval(id);
+    };
+  }, [exists]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (busy) return;
+    if (busy || waitSec > 0) return;
     setError('');
     if (!exists && pass !== pass2) {
       setError('The two passphrases do not match.');
@@ -33,6 +53,7 @@ export function Unlock({ exists, theme, onToggleTheme, onDone }: UnlockProps) {
           onDone();
         } else {
           setError('That passphrase is not right.');
+          setWaitSec(await unlockWaitSeconds());
         }
       } else {
         await createVault(pass);
@@ -120,13 +141,25 @@ export function Unlock({ exists, theme, onToggleTheme, onDone }: UnlockProps) {
           </div>
         )}
 
-        {error && (
+        {notice && !error && waitSec === 0 && (
+          <div className="status-banner ok" role="status">
+            {notice}
+          </div>
+        )}
+
+        {waitSec > 0 && (
+          <div className="status-banner error" role="alert">
+            Too many wrong attempts. Try again in {waitSec} second{waitSec === 1 ? '' : 's'}.
+          </div>
+        )}
+
+        {error && waitSec === 0 && (
           <div className="status-banner error" role="alert">
             {error}
           </div>
         )}
 
-        <button type="submit" className="btn primary" disabled={busy || !pass}>
+        <button type="submit" className="btn primary" disabled={busy || !pass || waitSec > 0}>
           {busy ? 'Unlocking…' : exists ? 'Unlock vault' : 'Create encrypted vault'}
         </button>
 

@@ -68,9 +68,10 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
     setBusy(true);
     try {
       await setConsent('demo', true);
-      for (const d of generateDemoData(today())) await saveDay(d);
+      const demo = generateDemoData(today());
+      for (const d of demo) await saveDay(d);
       await onChange();
-      setMsg('Loaded 30 days of DEMO data (clearly labelled as sample data).');
+      setMsg(`Loaded ${demo.length} days of DEMO data (clearly labelled as sample data).`);
     } finally {
       setBusy(false);
     }
@@ -121,7 +122,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
           </div>
           <div className="row gap wrap">
             <button type="button" className="btn primary" onClick={loadDemo} disabled={busy}>
-              Load 30-day DEMO data
+              Load DEMO data
             </button>
             <button type="button" className="btn" onClick={readPhone} disabled={busy}>
               Read my screen time (Android)
