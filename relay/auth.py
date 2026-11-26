@@ -14,6 +14,8 @@ import re
 import secrets
 import smtplib
 import sqlite3
+
+import db
 import time
 from email.message import EmailMessage
 
@@ -33,8 +35,8 @@ def db_path() -> str:
     return os.environ.get("AURA_RELAY_DB", "relay.db")
 
 
-def conn() -> sqlite3.Connection:
-    c = sqlite3.connect(db_path())
+def conn():
+    c = db.connect(db_path())
     c.execute(
         "CREATE TABLE IF NOT EXISTS users ("
         "email TEXT PRIMARY KEY, salt BLOB NOT NULL, key_hash BLOB NOT NULL, "

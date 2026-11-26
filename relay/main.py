@@ -11,6 +11,7 @@ import time
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+import db
 from auth import router as auth_router
 from llm import router as llm_router
 from voice import router as voice_router
@@ -43,8 +44,8 @@ app.include_router(llm_router)
 app.include_router(voice_router)
 
 
-def conn() -> sqlite3.Connection:
-    c = sqlite3.connect(DB_PATH)
+def conn():
+    c = db.connect(DB_PATH)
     c.execute(
         "CREATE TABLE IF NOT EXISTS blobs (mailbox TEXT NOT NULL, seq TEXT NOT NULL, "
         "data BLOB NOT NULL, ts REAL NOT NULL, PRIMARY KEY (mailbox, seq))"
