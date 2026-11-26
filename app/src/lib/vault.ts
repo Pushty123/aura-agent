@@ -136,6 +136,7 @@ export async function exportAll(): Promise<string> {
     food: await getAll('food'),
     goal: await getAll('goal'),
     settings: await getAll('settings'),
+    workout: await getAll('workout'),
   };
   await audit('data.export', 'Exported all data as JSON');
   return JSON.stringify(out, null, 2);

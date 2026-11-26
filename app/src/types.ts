@@ -56,4 +56,4 @@ export interface Insight {
   notEnoughData?: boolean;
 }
 
-export type DataKind = 'day' | 'food' | 'goal' | 'settings';
+export type DataKind = 'day' | 'food' | 'goal' | 'settings' | 'workout';

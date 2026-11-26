@@ -159,3 +159,11 @@ export function ProfileIcon(props: IconProps) {
     </IconBase>
   );
 }
+
+export function ExerciseIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11" />
+    </IconBase>
+  );
+}

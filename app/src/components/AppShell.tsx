@@ -4,6 +4,7 @@ import {
   AuraLogoIcon,
   CheckInIcon,
   DataIcon,
+  ExerciseIcon,
   FoodIcon,
   GoalsIcon,
   InfoIcon,
@@ -14,7 +15,7 @@ import {
   TodayIcon,
 } from './Icons';
 
-export type AppTab = 'dashboard' | 'checkin' | 'food' | 'goals' | 'ask' | 'vault' | 'profile' | 'about';
+export type AppTab = 'dashboard' | 'checkin' | 'food' | 'goals' | 'ask' | 'exercise' | 'vault' | 'profile' | 'about';
 export type ThemeMode = 'dark' | 'light';
 
 interface NavItem {
@@ -29,6 +30,7 @@ const PRIMARY_NAV: NavItem[] = [
   { id: 'checkin', label: 'Check-in', subtitle: 'Quick mood, sleep and daily habits', icon: CheckInIcon },
   { id: 'goals', label: 'Goals', subtitle: 'Personal baselines from your own history', icon: GoalsIcon },
   { id: 'food', label: 'Food', subtitle: 'Approximate daily nutrition log', icon: FoodIcon },
+  { id: 'exercise', label: 'Exercise', subtitle: 'Count reps with your camera, on this phone', icon: ExerciseIcon },
   { id: 'ask', label: 'Ask AURA', subtitle: 'Evidence-backed answers & confirmed actions', icon: AskIcon },
   { id: 'vault', label: 'My Data', subtitle: 'Consent, network ledger, CSV import & vault', icon: DataIcon },
 ];

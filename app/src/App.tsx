@@ -10,6 +10,7 @@ import { Ask } from './pages/Ask';
 import { VaultPage } from './pages/VaultPage';
 import { About } from './pages/About';
 import { Profile } from './pages/Profile';
+import { Exercise } from './pages/Exercise';
 import { loadDays } from './lib/store';
 import { startAutoLock } from './lib/autolock';
 import { AppShell, type AppTab, type ThemeMode } from './components/AppShell';
@@ -132,6 +133,7 @@ export function App() {
       {tab === 'checkin' && <CheckIn days={days} onChange={refresh} />}
       {tab === 'food' && <Food />}
       {tab === 'goals' && <Goals days={days} />}
+      {tab === 'exercise' && <Exercise />}
       {tab === 'ask' && <Ask days={days} />}
       {tab === 'vault' && (
         <VaultPage

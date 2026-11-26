@@ -12,6 +12,7 @@ import {
   type Sex,
 } from '../profile/profile';
 import { getSession } from '../lib/account';
+import { getPhoto, loadProfilePhoto, removeProfilePhoto, saveProfilePhoto } from '../lib/camera';
 
 const EMPTY: ProfileData = {
   name: '',
@@ -31,6 +32,7 @@ const num = (v: string) => (v === '' ? 0 : Number(v));
 export function Profile({ onSaved }: { onSaved?: () => void }) {
   const [p, setP] = useState<ProfileData>(EMPTY);
   const [email, setEmail] = useState('');
+  const [photo, setPhoto] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
@@ -39,6 +41,7 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
       const saved = await loadProfile();
       if (saved) setP(saved);
       setEmail((await getSession())?.email ?? '');
+      setPhoto(await loadProfilePhoto());
       setLoaded(true);
     })();
   }, []);
@@ -58,15 +61,67 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
     onSaved?.();
   }
 
+  async function changePhoto(source: 'camera' | 'gallery') {
+    try {
+      const img = await getPhoto(source);
+      if (!img) return;
+      await saveProfilePhoto(img);
+      setPhoto(img);
+      setStatus({ kind: 'ok', text: 'Photo saved and encrypted on this device.' });
+    } catch (e) {
+      setStatus({ kind: 'error', text: e instanceof Error ? e.message : 'Could not get the photo.' });
+    }
+  }
+
+  async function dropPhoto() {
+    await removeProfilePhoto();
+    setPhoto(null);
+  }
+
   if (!loaded) return <p className="muted">Loading…</p>;
 
   return (
     <section className="stack-lg">
       <div className="grid-2">
         <form className="card stack-md" onSubmit={save}>
-          <div>
-            <h2 style={{ margin: 0 }}>{p.name ? p.name : 'Your profile'}</h2>
-            {email && <p className="xs muted">{email}</p>}
+          <div className="row center-v gap">
+            <div
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: '50%',
+                overflow: 'hidden',
+                flex: '0 0 auto',
+                display: 'grid',
+                placeItems: 'center',
+                background: 'var(--aura-primary-dim)',
+                fontWeight: 700,
+                fontSize: '1.6rem',
+              }}
+            >
+              {photo ? (
+                <img src={photo} alt="Your profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                (p.name.trim()[0] ?? '?').toUpperCase()
+              )}
+            </div>
+            <div className="stack-sm">
+              <h2 style={{ margin: 0 }}>{p.name ? p.name : 'Your profile'}</h2>
+              {email && <p className="xs muted">{email}</p>}
+              <div className="row gap wrap">
+                <button type="button" className="btn sm" onClick={() => void changePhoto('camera')}>
+                  Take photo
+                </button>
+                <button type="button" className="btn sm ghost" onClick={() => void changePhoto('gallery')}>
+                  Choose photo
+                </button>
+                {photo && (
+                  <button type="button" className="btn sm ghost" onClick={() => void dropPhoto()}>
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="stack-sm">
