@@ -12,6 +12,7 @@ import { About } from './pages/About';
 import { Profile } from './pages/Profile';
 import { Exercise } from './pages/Exercise';
 import { PhoneData } from './pages/PhoneData';
+import { AppUsage } from './pages/AppUsage';
 import { syncPhoneData } from './sync/phoneSync';
 import { AvatarProvider } from './avatar/AvatarContext';
 import { syncWidget } from './widget/widget';
@@ -181,6 +182,7 @@ export function App() {
       {tab === 'goals' && <Goals days={days} onChange={refresh} />}
       {tab === 'exercise' && <Exercise />}
       {tab === 'phone' && <PhoneData days={days} onChange={refresh} />}
+      {tab === 'apps' && <AppUsage />}
       {tab === 'ask' && <Ask days={days} />}
       {tab === 'vault' && (
         <VaultPage

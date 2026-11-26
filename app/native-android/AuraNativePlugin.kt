@@ -267,6 +267,51 @@ class AuraNativePlugin : Plugin() {
         }
     }
 
+    // ------------------------------------------------------------- per-app usage
+
+    private fun iconB64(pkg: String): String? = try {
+        val d = context.packageManager.getApplicationIcon(pkg)
+        val size = 72
+        val bmp = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+        val c = android.graphics.Canvas(bmp)
+        d.setBounds(0, 0, size, size)
+        d.draw(c)
+        val out = java.io.ByteArrayOutputStream()
+        bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+        "data:image/png;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
+    } catch (e: Exception) { null }
+
+    /** { apps: [{ pkg, label, minutes, opens, icon? }], unlocks } for today, most used first. */
+    @PluginMethod
+    fun getAppUsage(call: PluginCall) {
+        if (!usageAllowed()) { call.reject("usage access not granted"); return }
+        scope.launch {
+            try {
+                val t = UsageCalc.today(context)
+                val arr = JSArray()
+                t.minutes.entries.sortedByDescending { it.value }.take(30).forEach { (pkg, min) ->
+                    val o = JSObject().put("pkg", pkg).put("label", UsageCalc.label(context, pkg))
+                        .put("minutes", min).put("opens", t.opens[pkg] ?: 0)
+                    iconB64(pkg)?.let { o.put("icon", it) }
+                    arr.put(o)
+                }
+                call.resolve(JSObject().put("apps", arr).put("unlocks", t.unlocks))
+            } catch (e: Exception) {
+                call.reject("could not read app usage")
+            }
+        }
+    }
+
+    /** Saves daily app limits and starts (or stops) the background checker. { limits: [{ pkg, label, minutes }] } */
+    @PluginMethod
+    fun setAppLimits(call: PluginCall) {
+        val limits = call.getArray("limits") ?: JSArray()
+        context.getSharedPreferences(AppLimitWorker.PREFS, Context.MODE_PRIVATE).edit()
+            .putString("limits", limits.toString()).apply()
+        AppLimitWorker.schedule(context, limits.length() > 0)
+        call.resolve()
+    }
+
     // ------------------------------------------------------------ home-screen widget
 
     @PluginMethod

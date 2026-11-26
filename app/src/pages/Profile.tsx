@@ -20,6 +20,7 @@ import { Avatar } from '../components/Avatar';
 import { CHARACTERS } from '../avatar/characters';
 import { WidgetSettings } from '../widget/WidgetSettings';
 import { SecuritySettings } from './SecuritySettings';
+import { CharacterModal } from '../avatar/CharacterModal';
 
 const EMPTY: ProfileData = {
   name: '',
@@ -41,6 +42,7 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
   const [email, setEmail] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
   const me = useMe();
+  const [showCharacter, setShowCharacter] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
@@ -103,11 +105,19 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
       <div className="grid-2">
         <form className="card stack-md" onSubmit={save}>
           <div className="row center-v gap">
-            <AuraAvatar choice={me.choice} photo={photo} name={p.name} size={96} />
+            <button
+              type="button"
+              onClick={() => me.choice.kind === 'character' && setShowCharacter(true)}
+              aria-label="Your avatar. Tap to see your full character."
+              style={{ background: 'none', border: 0, padding: 0, cursor: me.choice.kind === 'character' ? 'pointer' : 'default' }}
+            >
+              <AuraAvatar choice={me.choice} photo={photo} name={p.name} size={96} />
+            </button>
+            {showCharacter && <CharacterModal choice={me.choice} onClose={() => setShowCharacter(false)} />}
             <div className="stack-sm">
               <h2 style={{ margin: 0 }}>{p.name ? p.name : 'Your profile'}</h2>
               {email && <p className="xs muted">{email}</p>}
-              <p className="xs muted">Your character's glow follows your Balance Score, and it changes pose with your day.</p>
+              <p className="xs muted">Tap your avatar to see your full character. Its glow follows your Balance Score.</p>
             </div>
           </div>
 

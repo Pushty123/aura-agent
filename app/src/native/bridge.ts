@@ -36,6 +36,21 @@ export interface WidgetSnapshot {
   demo: boolean;
 }
 
+export interface AppUse {
+  pkg: string;
+  label: string;
+  minutes: number;
+  opens: number;
+  /** Small PNG data URL of the app icon. */
+  icon?: string;
+}
+
+export interface AppLimit {
+  pkg: string;
+  label: string;
+  minutes: number;
+}
+
 export type HealthState = 'web' | 'unavailable' | 'needs-update' | 'needs-permission' | 'ready';
 export type UsageState = 'web' | 'needs-permission' | 'ready';
 
@@ -48,6 +63,8 @@ interface AuraNativePlugin {
   openHealthConnect(): Promise<void>;
   getHealthData(opts: { days: number }): Promise<{ days: HealthDay[] }>;
   updateWidget(opts: WidgetSnapshot): Promise<void>;
+  getAppUsage(): Promise<{ apps: AppUse[]; unlocks: number }>;
+  setAppLimits(opts: { limits: AppLimit[] }): Promise<void>;
   biometricStatus(): Promise<{ state: 'ready' | 'not-enrolled' | 'unavailable'; enabled: boolean }>;
   biometricEnable(opts: { secret: string }): Promise<{ ok: boolean; cancelled?: boolean; message?: string }>;
   biometricUnlock(): Promise<{ ok: boolean; secret?: string; cancelled?: boolean; reset?: boolean; message?: string }>;
@@ -265,5 +282,27 @@ export async function scheduleReminders(
     return { ok: true, count: items.length, message: `${items.length} reminder time${items.length === 1 ? '' : 's'} set on this phone.` };
   } catch {
     return { ok: false, count: 0, message: 'Could not set reminders on this phone.' };
+  }
+}
+
+export async function getAppUsage(): Promise<{ ok: true; apps: AppUse[]; unlocks: number } | Failure> {
+  if (!isNative()) return { ok: false, reason: 'web', message: 'Per-app usage needs the Android app.' };
+  try {
+    if (!(await Native.hasUsageAccess()).granted)
+      return { ok: false, reason: 'permission', message: 'Allow "Usage access" for AURA first.' };
+    const r = await Native.getAppUsage();
+    return { ok: true, apps: r.apps, unlocks: r.unlocks };
+  } catch {
+    return { ok: false, reason: 'error', message: 'Could not read app usage on this phone.' };
+  }
+}
+
+export async function pushAppLimits(limits: AppLimit[]): Promise<boolean> {
+  if (!isNative()) return false;
+  try {
+    await Native.setAppLimits({ limits });
+    return true;
+  } catch {
+    return false;
   }
 }

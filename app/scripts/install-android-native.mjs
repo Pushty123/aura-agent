@@ -32,9 +32,9 @@ function edit(file, fn, note) {
 // 1. Plugin source + MainActivity
 const pkgDir = join(android, 'app', 'src', 'main', 'java', 'in', 'phoenix', 'aura');
 mkdirSync(pkgDir, { recursive: true });
-for (const f of ['AuraNativePlugin.kt', 'AuraWidgetProvider.kt']) copyFileSync(join(root, 'native-android', f), join(pkgDir, f));
+for (const f of ['AuraNativePlugin.kt', 'AuraWidgetProvider.kt', 'AppLimits.kt']) copyFileSync(join(root, 'native-android', f), join(pkgDir, f));
 cpSync(join(root, 'native-android', 'res'), join(android, 'app', 'src', 'main', 'res'), { recursive: true });
-log.push('copied AuraNativePlugin.kt, AuraWidgetProvider.kt and widget resources');
+log.push('copied AuraNativePlugin.kt, AuraWidgetProvider.kt, AppLimits.kt and widget resources');
 const mainActivity = `package in.phoenix.aura;
 
 import android.os.Bundle;
@@ -78,6 +78,8 @@ edit(
       t = t.replace(/\n(\s*)buildTypes \{/, `\n$1kotlinOptions {\n$1    jvmTarget = '17'\n$1}\n$1buildTypes {`);
     // connect-client 1.1.0 (stable) needs compileSdk 36; 1.1.0-alpha07 works with compileSdk 34 / AGP 8.2.
     t = t.replace(/androidx\.health\.connect:connect-client:[^"']+/, 'androidx.health.connect:connect-client:1.1.0-alpha07');
+    if (!t.includes('androidx.work'))
+      t = t.replace(/dependencies \{/, `dependencies {\n    implementation "androidx.work:work-runtime:2.9.0"`);
     if (!t.includes('androidx.biometric'))
       t = t.replace(/dependencies \{/, `dependencies {\n    implementation "androidx.biometric:biometric:1.1.0"`);
     if (!t.includes('connect-client'))
@@ -113,6 +115,9 @@ edit(
     // Lets the demo app talk to a laptop server over plain http on the local Wi-Fi.
     if (!x.includes('usesCleartextTraffic'))
       x = x.replace('<application', '<application android:usesCleartextTraffic="true"');
+    // See other apps' names and icons for the App usage screen (Android 11+ package visibility).
+    if (!x.includes('android.intent.category.LAUNCHER" /></intent>'))
+      x = x.replace('</manifest>', `    <queries>\n        <intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent>\n    </queries>\n</manifest>`);
     if (!x.includes('com.google.android.apps.healthdata'))
       x = x.replace('</manifest>', `    <queries>\n        <package android:name="com.google.android.apps.healthdata" />\n    </queries>\n</manifest>`);
     if (!x.includes('AuraWidgetProvider'))

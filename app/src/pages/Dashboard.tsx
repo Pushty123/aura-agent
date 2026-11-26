@@ -14,8 +14,7 @@ import { runInsights } from '../insights/engine';
 import { balanceScore } from '../insights/balance';
 import { weeklySummary } from '../summary/weekly';
 import { AuraAvatar } from '../avatar/AuraAvatar';
-import { CharacterStage } from '../avatar/CharacterStage';
-import { characterById } from '../avatar/characters';
+import { CharacterModal } from '../avatar/CharacterModal';
 import { useMe } from '../avatar/AvatarContext';
 import { avatarMood } from '../avatar/mood';
 import { InsightCard } from '../components/InsightCard';
@@ -47,6 +46,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   const [busy, setBusy] = useState(false);
   const [range, setRange] = useState<7 | 14 | 30>(30);
   const [showScoreDetails, setShowScoreDetails] = useState(false);
+  const [showCharacter, setShowCharacter] = useState(false);
 
   const latest = days[days.length - 1];
   const insights = useMemo(() => runInsights(days), [days]);
@@ -166,31 +166,34 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
 
           <div className="row gap center-v wrap">
             {balance && (
-              <button
-                type="button"
-                onClick={() => setShowScoreDetails((s) => !s)}
-                aria-label={`Balance Score ${balance.score} out of 100. ${mood.label}. Show breakdown.`}
-                style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}
-                className="stack-sm center"
-              >
-                {me.choice.kind === 'character' && characterById(me.choice.id) ? (
-                  <div className="row center-v gap">
-                    <CharacterStage
-                      character={characterById(me.choice.id)!}
-                      mood={mood}
-                      height={250}
-                      sleepy={latest.sleepHours !== undefined && latest.sleepHours < 6}
-                      active={(latest.steps ?? 0) >= 8000}
-                    />
-                  </div>
-                ) : (
-                  <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={132} score={balance.score} mood={mood} />
-                )}
+              <div className="stack-sm center">
+                <button
+                  type="button"
+                  onClick={() => (me.choice.kind === 'character' ? setShowCharacter(true) : setShowScoreDetails((s) => !s))}
+                  aria-label={`Your avatar. Balance Score ${balance.score} out of 100. ${mood.label}.${me.choice.kind === 'character' ? ' Tap to see your character.' : ''}`}
+                  style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}
+                >
+                  <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={120} score={balance.score} mood={mood} />
+                </button>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '2rem', fontWeight: 700, lineHeight: 1, color: mood.color }}>{balance.score}</div>
                   <div className="xs muted">{mood.label}</div>
                 </div>
-              </button>
+              </div>
+            )}
+            {showCharacter && (
+              <CharacterModal
+                choice={me.choice}
+                mood={mood}
+                score={balance?.score}
+                sleepy={latest.sleepHours !== undefined && latest.sleepHours < 6}
+                active={(latest.steps ?? 0) >= 8000}
+                onClose={() => setShowCharacter(false)}
+                onChange={() => {
+                  setShowCharacter(false);
+                  onNavigate?.('profile');
+                }}
+              />
             )}
             <div className="grow">
               <ul className="reasons-list">

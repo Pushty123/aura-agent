@@ -5,6 +5,7 @@ import {
   AskIcon,
   AuraLogoIcon,
   CheckInIcon,
+  AppsIcon,
   DataIcon,
   ExerciseIcon,
   FoodIcon,
@@ -18,7 +19,7 @@ import {
   TodayIcon,
 } from './Icons';
 
-export type AppTab = 'dashboard' | 'checkin' | 'food' | 'goals' | 'ask' | 'exercise' | 'phone' | 'vault' | 'profile' | 'about';
+export type AppTab = 'dashboard' | 'checkin' | 'food' | 'goals' | 'ask' | 'exercise' | 'phone' | 'apps' | 'vault' | 'profile' | 'about';
 export type ThemeMode = 'dark' | 'light';
 
 interface NavItem {
@@ -36,6 +37,7 @@ const PRIMARY_NAV: NavItem[] = [
   { id: 'exercise', label: 'Exercise', subtitle: 'Count reps with your camera, on this phone', icon: ExerciseIcon },
   { id: 'ask', label: 'Ask AURA', subtitle: 'Evidence-backed answers & confirmed actions', icon: AskIcon },
   { id: 'phone', label: 'Phone data', subtitle: 'Screen time and fitness band data, synced to this phone', icon: PhoneIcon },
+  { id: 'apps', label: 'App usage', subtitle: 'Time and opens per app, with daily limits', icon: AppsIcon },
   { id: 'vault', label: 'My Data', subtitle: 'Consent, network ledger, CSV import & vault', icon: DataIcon },
 ];
 
@@ -159,8 +161,9 @@ export function AppShell({
               onClick={() => onTabChange('profile')}
               aria-label="Profile"
               title="Profile"
+              style={{ padding: 2 }}
             >
-              <ProfileIcon size={18} />
+              <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={26} />
             </button>
             <button
               type="button"
