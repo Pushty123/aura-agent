@@ -102,11 +102,11 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
       <div className="grid-2">
         <form className="card stack-md" onSubmit={save}>
           <div className="row center-v gap">
-            <AuraAvatar choice={me.choice} photo={photo} name={p.name} size={84} />
+            <AuraAvatar choice={me.choice} photo={photo} name={p.name} size={120} threeD />
             <div className="stack-sm">
               <h2 style={{ margin: 0 }}>{p.name ? p.name : 'Your profile'}</h2>
               {email && <p className="xs muted">{email}</p>}
-              <p className="xs muted">Your avatar's face and glow change with your Balance Score.</p>
+              <p className="xs muted">Your 3D avatar's face and glow change with your Balance Score. Drag it to turn it around.</p>
             </div>
           </div>
 

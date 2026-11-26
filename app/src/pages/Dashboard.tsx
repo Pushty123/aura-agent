@@ -171,7 +171,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
                 style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}
                 className="stack-sm center"
               >
-                <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={112} score={balance.score} mood={mood} />
+                <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={132} score={balance.score} mood={mood} threeD />
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '2rem', fontWeight: 700, lineHeight: 1, color: mood.color }}>{balance.score}</div>
                   <div className="xs muted">{mood.label}</div>

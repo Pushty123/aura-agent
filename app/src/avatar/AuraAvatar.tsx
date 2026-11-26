@@ -1,4 +1,8 @@
+import { lazy, Suspense } from 'react';
 import { Avatar } from '../components/Avatar';
+import { AVATAR_PRESETS } from '../assets/avatars/presets';
+
+const Avatar3D = lazy(() => import('./Avatar3D'));
 import type { AvatarChoice } from './choice';
 import type { Mood } from './mood';
 
@@ -11,10 +15,12 @@ interface Props {
   score?: number | null;
   mood?: Mood;
   label?: string;
+  /** Show the live 3D character (presets only). */
+  threeD?: boolean;
 }
 
 /** The person's avatar inside a glowing ring that fills with the Balance Score. */
-export function AuraAvatar({ choice, photo, name, size = 96, score, mood, label }: Props) {
+export function AuraAvatar({ choice, photo, name, size = 96, score, mood, label, threeD = false }: Props) {
   const color = mood?.color ?? 'var(--aura-primary)';
   const stroke = Math.max(3, Math.round(size * 0.06));
   const pad = stroke + Math.round(size * 0.05);
@@ -34,7 +40,7 @@ export function AuraAvatar({ choice, photo, name, size = 96, score, mood, label 
       />
     );
   } else if (choice.kind === 'preset') {
-    face = (
+    const flat = (
       <Avatar
         variant={choice.id}
         size={inner}
@@ -44,6 +50,27 @@ export function AuraAvatar({ choice, photo, name, size = 96, score, mood, label 
         name={name}
       />
     );
+    const preset = AVATAR_PRESETS.find((p) => p.id === choice.id);
+    face =
+      threeD && preset ? (
+        <div
+          role="img"
+          aria-label={label ?? `${preset.label} 3D avatar. ${mood?.label ?? ''}`}
+          style={{
+            width: inner,
+            height: inner,
+            borderRadius: '50%',
+            overflow: 'hidden',
+            background: 'radial-gradient(circle at 38% 30%, #323848, #1F212C 60%, #070F0D)',
+          }}
+        >
+          <Suspense fallback={flat}>
+            <Avatar3D preset={preset} mood={mood} size={inner} halo={false} />
+          </Suspense>
+        </div>
+      ) : (
+        flat
+      );
   } else {
     face = <Avatar variant="initials" size={inner} ring={false} name={name || 'AURA'} alt={label} />;
   }
@@ -62,7 +89,7 @@ export function AuraAvatar({ choice, photo, name, size = 96, score, mood, label 
     >
       <svg width={outer} height={outer} style={{ position: 'absolute', inset: 0 }} aria-hidden="true">
         <circle cx={outer / 2} cy={outer / 2} r={r} stroke="var(--aura-border)" strokeOpacity={0.6} strokeWidth={stroke} fill="none" />
-        <circle
+        {filled > 0 && <circle
           cx={outer / 2}
           cy={outer / 2}
           r={r}
@@ -73,7 +100,7 @@ export function AuraAvatar({ choice, photo, name, size = 96, score, mood, label 
           strokeDasharray={`${circ * filled} ${circ}`}
           transform={`rotate(-90 ${outer / 2} ${outer / 2})`}
           style={{ transition: 'stroke-dasharray 0.8s ease' }}
-        />
+        />}
       </svg>
       <div style={{ position: 'absolute', left: pad, top: pad }}>{face}</div>
     </div>
