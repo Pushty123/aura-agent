@@ -26,6 +26,7 @@
     "@capacitor/local-notifications": "^6.1.0",
     "@mediapipe/pose": "^0.5.1675469404",
     "dexie": "^4.0.8",
+    "lucide-react": "^1.81.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.12.7"

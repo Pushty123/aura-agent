@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { isUnlocked, lock, vaultExists } from './lib/vault';
+import { loadThemePreference, saveThemePreference } from './lib/theme';
 import { Unlock } from './pages/Unlock';
 import { Account } from './pages/Account';
 import { Dashboard } from './pages/Dashboard';
@@ -16,6 +17,7 @@ import { Exercise } from './pages/Exercise';
 import { PhoneData } from './pages/PhoneData';
 import { AppUsage } from './pages/AppUsage';
 import { Me } from './pages/Me';
+import { Design } from './pages/Design';
 import { syncPhoneData } from './sync/phoneSync';
 import { AvatarProvider } from './avatar/AvatarContext';
 import { syncWidget } from './widget/widget';
@@ -45,6 +47,8 @@ export function App() {
   const [tab, setTab] = useState<AppTab>('dashboard');
   const [days, setDays] = useState<DayRecord[]>([]);
   const [theme, setTheme] = useState<ThemeMode>(readInitialTheme);
+  const [themeVaultReady, setThemeVaultReady] = useState(false);
+  const themeTouchedWhileLocked = useRef(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -54,6 +58,39 @@ export function App() {
       // Ignore storage access errors
     }
   }, [theme]);
+
+  useEffect(() => {
+    if (!unlocked) {
+      setThemeVaultReady(false);
+      return;
+    }
+
+    let active = true;
+    setThemeVaultReady(false);
+    void loadThemePreference().then((savedTheme) => {
+      if (!active) return;
+      if (savedTheme && !themeTouchedWhileLocked.current) setTheme(savedTheme);
+      themeTouchedWhileLocked.current = false;
+      setThemeVaultReady(true);
+    }).catch((error: unknown) => {
+      console.error('Unable to load the saved theme from the vault.', error);
+      if (active) {
+        themeTouchedWhileLocked.current = false;
+        setThemeVaultReady(true);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [unlocked]);
+
+  useEffect(() => {
+    if (!unlocked || !themeVaultReady) return;
+    void saveThemePreference(theme).catch((error: unknown) => {
+      console.error('Unable to save the theme preference to the vault.', error);
+    });
+  }, [theme, themeVaultReady, unlocked]);
 
   useEffect(() => {
     vaultExists().then((e) => {
@@ -125,7 +162,12 @@ export function App() {
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  }, []);
+    if (!unlocked) themeTouchedWhileLocked.current = true;
+  }, [unlocked]);
+
+  if (window.location.pathname.replace(/\/+$/, '') === '/design') {
+    return <Design theme={theme} onToggleTheme={toggleTheme} />;
+  }
 
   if (!ready) {
     return (

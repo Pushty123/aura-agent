@@ -107,6 +107,10 @@ npm test             # 28 unit tests
 npm run build
 ```
 
+The reusable UI primitives, light/dark theme tokens, and sample-only component gallery
+are available at `/design` while the Vite app is running. Theme preference changes made
+while the vault is unlocked are stored as encrypted `settings` records.
+
 Optional blind relay (encrypted backup server):
 
 ```bash
