@@ -63,3 +63,53 @@ describe('vault', () => {
     expect(await vault.verifyAudit()).toBe(false);
   });
 });
+
+describe('vault hardening', () => {
+  beforeEach(async () => {
+    await db.meta.clear();
+    await db.records.clear();
+    await db.audit.clear();
+    vault.lock();
+  });
+
+  it('keeps the audit chain valid when entries are written at the same moment', async () => {
+    await vault.createVault('passphrase-123');
+    await Promise.all(Array.from({ length: 8 }, (_, i) => vault.audit('test.parallel', `entry ${i}`)));
+    expect(await vault.verifyAudit()).toBe(true);
+  });
+});
+
+describe('unlock throttle', () => {
+  beforeEach(async () => {
+    await db.meta.clear();
+    await db.records.clear();
+    await db.audit.clear();
+    vault.lock();
+  });
+
+  it('makes the user wait after 5 wrong passphrases, even for the right one', async () => {
+    await vault.createVault('passphrase-123');
+    vault.lock();
+    for (let i = 0; i < 5; i++) expect(await vault.unlock('wrong-wrong')).toBe(false);
+    expect(await vault.unlockWaitSeconds()).toBeGreaterThan(0);
+    await expect(vault.unlock('passphrase-123')).rejects.toThrow(/Too many wrong attempts/);
+  });
+
+  it('lets the user in after the wait and clears the counter', async () => {
+    await vault.createVault('passphrase-123');
+    vault.lock();
+    for (let i = 0; i < 5; i++) await vault.unlock('wrong-wrong');
+    await db.meta.put({ key: 'throttle', value: JSON.stringify({ fails: 5, until: Date.now() - 1 }) });
+    expect(await vault.unlock('passphrase-123')).toBe(true);
+    expect(await db.meta.get('throttle')).toBeUndefined();
+  });
+
+  it('logs failed attempts in the audit chain', async () => {
+    await vault.createVault('passphrase-123');
+    vault.lock();
+    await vault.unlock('nope-nope-nope');
+    const rows = await vault.getAudit();
+    expect(rows.some((r) => r.action === 'vault.unlock-failed')).toBe(true);
+    expect(await vault.verifyAudit()).toBe(true);
+  });
+});

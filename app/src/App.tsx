@@ -8,9 +8,12 @@ import { Goals } from './pages/Goals';
 import { Ask } from './pages/Ask';
 import { VaultPage } from './pages/VaultPage';
 import { loadDays } from './lib/store';
+import { startAutoLock } from './lib/autolock';
 import type { DayRecord } from './types';
 
-type Tab = 'dashboard' | 'checkin' | 'food' | 'goals' | 'ask' | 'vault';
+const AUTO_LOCK_MS = 5 * 60 * 1000;
+
+type Tab ='dashboard' | 'checkin' | 'food' | 'goals' | 'ask' | 'vault';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Today' },
@@ -43,6 +46,16 @@ export function App() {
   useEffect(() => {
     if (unlocked) void refresh();
   }, [unlocked, refresh]);
+
+  // Lock automatically after 5 minutes without activity, and drop the
+  // decrypted data held in memory.
+  useEffect(() => {
+    if (!unlocked) return;
+    return startAutoLock(AUTO_LOCK_MS, () => {
+      setDays([]);
+      setUnlocked(false);
+    });
+  }, [unlocked]);
 
   if (!ready) return <div className="center">Loading…</div>;
 
