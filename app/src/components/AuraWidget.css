@@ -80,3 +80,24 @@
 .aw-score-num { font-size: 2rem; font-weight: 800; line-height: 1.1; }
 .aw-score-num span { font-size: 0.85rem; color: var(--aw-sub); font-weight: 500; margin-left: 2px; }
 /* Light theme: keep the hero dark for contrast, like the home-screen widget. */
+/* Headings inherit the card's colour (global h2/h3 colours are for page text). */
+.aw h2, .aw h3, .aw h4 { color: inherit; }
+
+/* Light theme: a soft lavender card with dark ink instead of a dark block. */
+[data-theme='light'] .aw {
+  --aw-sub: #5b5fa8;
+  --aw-green: #047857;
+  color: #1e1b4b;
+  background:
+    radial-gradient(120% 90% at 85% 10%, #d9d3ff 0%, transparent 55%),
+    linear-gradient(160deg, #f1efff, #e8f0ff);
+  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 10px 26px rgba(79, 70, 229, 0.12);
+}
+[data-theme='light'] .aw-art { opacity: 0.35; }
+[data-theme='light'] .aw-badge { background: rgba(255, 255, 255, 0.8); border-color: rgba(4, 120, 87, 0.3); }
+[data-theme='light'] .aw-tile,
+[data-theme='light'] .aw-score { background: rgba(255, 255, 255, 0.75); border-color: rgba(99, 102, 241, 0.2); }
+[data-theme='light'] .aw-label,
+[data-theme='light'] .aw-week-title { color: #3f3d7a; }
+[data-theme='light'] .aw-ring circle:first-of-type { stroke: rgba(99, 102, 241, 0.18); }

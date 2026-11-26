@@ -89,7 +89,7 @@ export function Health({ days }: { days: DayRecord[] }) {
               <button
                 key={id}
                 type="button"
-                className={`btn sm ${symptom === id ? 'primary' : 'ghost'}`}
+                className={`btn sm ${symptom === id ? 'primary' : ''}`}
                 aria-pressed={symptom === id}
                 onClick={() => {
                   setSymptom(id);
@@ -108,7 +108,7 @@ export function Health({ days }: { days: DayRecord[] }) {
               <div className="row gap wrap center-v">
                 <span className="small muted">How strong?</span>
                 {([1, 2, 3] as const).map((s) => (
-                  <button key={s} type="button" className={`btn sm ${severity === s ? 'primary' : 'ghost'}`} aria-pressed={severity === s} onClick={() => setSeverity(s)}>
+                  <button key={s} type="button" className={`btn sm ${severity === s ? 'primary' : ''}`} aria-pressed={severity === s} onClick={() => setSeverity(s)}>
                     {SEV[s]}
                   </button>
                 ))}
