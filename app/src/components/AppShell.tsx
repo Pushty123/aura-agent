@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { SideMenu } from './SideMenu';
 import { AuraAvatar } from '../avatar/AuraAvatar';
 import { useMe } from '../avatar/AvatarContext';
 import {
@@ -8,6 +9,7 @@ import {
   GoalsIcon,
   LockIcon,
   AppsIcon,
+  MenuIcon,
   MoonIcon,
   ProfileIcon,
   SunIcon,
@@ -16,6 +18,7 @@ import {
 
 export type AppTab =
   | 'dashboard'
+  | 'report'
   | 'checkin'
   | 'food'
   | 'goals'
@@ -30,7 +33,7 @@ export type AppTab =
   | 'me';
 export type ThemeMode = 'dark' | 'light';
 
-type GroupId = 'today' | 'track' | 'goals' | 'usage' | 'ask' | 'me';
+type GroupId = 'today' | 'track' | 'report' | 'goals' | 'usage' | 'ask' | 'me';
 
 interface Group {
   id: GroupId;
@@ -39,28 +42,42 @@ interface Group {
   tabs: AppTab[];
 }
 
-/** Bottom tabs. Related screens live inside a tab as a segmented control. */
+/** Five bottom tabs for daily use. Everything else lives in the left menu (☰). */
 export const GROUPS: Group[] = [
   { id: 'today', label: 'Home', icon: TodayIcon, tabs: ['dashboard'] },
   { id: 'track', label: 'Track', icon: CheckInIcon, tabs: ['checkin', 'food', 'exercise', 'health'] },
+  { id: 'report', label: 'Report', icon: ReportIcon, tabs: ['report'] },
   { id: 'goals', label: 'Goals', icon: GoalsIcon, tabs: ['goals'] },
-  { id: 'usage', label: 'Usage', icon: AppsIcon, tabs: ['apps', 'phone'] },
   { id: 'ask', label: 'Ask', icon: AskIcon, tabs: ['ask'] },
+];
+
+/** Screens opened from the left menu. */
+const MENU_GROUPS: Group[] = [
+  { id: 'usage', label: 'Usage', icon: AppsIcon, tabs: ['apps', 'phone'] },
   { id: 'me', label: 'Me', icon: ProfileIcon, tabs: ['me', 'profile', 'vault', 'about'] },
 ];
 
+function ReportIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </svg>
+  );
+}
+
 const TITLES: Record<AppTab, string> = {
   dashboard: 'Home',
+  report: 'Weekly report',
   checkin: 'Track',
   food: 'Track',
   exercise: 'Track',
   health: 'Track',
   goals: 'Goals',
   ask: 'Ask AURA',
-  me: 'Me',
+  me: 'Settings',
   profile: 'Profile',
-  phone: 'Usage',
-  apps: 'Usage',
+  phone: 'Phone & band data',
+  apps: 'App usage',
   vault: 'My data & privacy',
   about: 'About AURA',
 };
@@ -78,7 +95,7 @@ const SUB_TABS: Partial<Record<GroupId, { id: AppTab; label: string }[]>> = {
   ],
 };
 
-export const groupOf = (tab: AppTab): Group => GROUPS.find((g) => g.tabs.includes(tab)) ?? GROUPS[0];
+export const groupOf = (tab: AppTab): Group => [...GROUPS, ...MENU_GROUPS].find((g) => g.tabs.includes(tab)) ?? GROUPS[0];
 
 interface AppShellProps {
   tab: AppTab;
@@ -93,8 +110,9 @@ interface AppShellProps {
 export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDemo, children }: AppShellProps) {
   const me = useMe();
   const group = groupOf(tab);
-  const isMeSub = group.id === 'me' && tab !== 'me';
+  const inMenu = MENU_GROUPS.some((g) => g.id === group.id);
   const subTabs = SUB_TABS[group.id];
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const navButton = (g: Group, cls: string) => {
     const Icon = g.icon;
@@ -131,7 +149,13 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
             <span className="aura-brand-tag">Personal Intelligence</span>
           </div>
         </div>
-        <nav className="aura-nav">{GROUPS.map((g) => navButton(g, 'aura-nav-btn'))}</nav>
+        <nav className="aura-nav">
+          {GROUPS.map((g) => navButton(g, 'aura-nav-btn'))}
+          <button type="button" className="aura-nav-btn" onClick={() => setMenuOpen(true)}>
+            <MenuIcon size={20} />
+            <span>More</span>
+          </button>
+        </nav>
         <div className="aura-sidebar-footer">
           <button type="button" className="aura-nav-btn" onClick={onToggleTheme}>
             {theme === 'dark' ? <SunIcon size={18} /> : <MoonIcon size={18} />}
@@ -147,33 +171,19 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
       <div className="aura-main-col">
         <header className="aura-topbar">
           <div className="aura-topbar-left">
-            {isMeSub && (
-              <button
-                type="button"
-                className="btn ghost icon-only"
-                onClick={() => onTabChange('me')}
-                aria-label="Back to Me"
-              >
+            {inMenu ? (
+              <button type="button" className="btn ghost icon-only" onClick={() => onTabChange('dashboard')} aria-label="Back to Home">
                 ‹
+              </button>
+            ) : (
+              <button type="button" className="btn ghost icon-only" onClick={() => setMenuOpen(true)} aria-label="Open menu" aria-expanded={menuOpen}>
+                <MenuIcon size={22} />
               </button>
             )}
             <h1 className="aura-page-title">{TITLES[tab]}</h1>
           </div>
           <div className="aura-topbar-actions">
-            <span className="pill primary aura-encrypted-pill" title="Vault decrypted on this device">
-              <LockIcon size={12} />
-              <span>Encrypted</span>
-            </span>
-            <button
-              type="button"
-              className="btn ghost icon-only"
-              onClick={onLock}
-              aria-label="Lock AURA"
-              title="Lock"
-            >
-              <LockIcon size={18} />
-            </button>
-            <button type="button" className="btn ghost icon-only" onClick={() => onTabChange('me')} aria-label="Me" title="Me" style={{ padding: 2 }}>
+            <button type="button" className="btn ghost icon-only" onClick={() => setMenuOpen(true)} aria-label="Open menu and profile" title="Menu" style={{ padding: 2 }}>
               <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={30} />
             </button>
           </div>
@@ -213,6 +223,16 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
       <nav className="aura-mobile-nav" aria-label="Main">
         {GROUPS.map((g) => navButton(g, 'aura-mobile-nav-btn'))}
       </nav>
+
+      <SideMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        tab={tab}
+        onNavigate={onTabChange}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+        onLock={onLock}
+      />
 
     </div>
   );

@@ -38,12 +38,12 @@ describe('widget snapshot', () => {
     expect(buildSnapshot([{ date: 'd', source: 'demo', sleepHours: 7 }], { enabled: true, showNumbers: true }, at).demo).toBe(true);
   });
 
-  it('is off by default and only pushes when turned on', async () => {
-    expect((await getWidgetPrefs()).enabled).toBe(false);
-    expect(await syncWidget(days)).toBeNull();
-    expect(bridge.updateWidget).not.toHaveBeenCalled();
-    await setWidgetPrefs({ enabled: true, showNumbers: true });
+  it('is on by default so a placed widget shows data, and does not push when turned off', async () => {
+    expect((await getWidgetPrefs()).enabled).toBe(true);
     await syncWidget(days);
+    expect(bridge.updateWidget).toHaveBeenCalledTimes(1);
+    await setWidgetPrefs({ enabled: false, showNumbers: true });
+    expect(await syncWidget(days)).toBeNull();
     expect(bridge.updateWidget).toHaveBeenCalledTimes(1);
   });
 

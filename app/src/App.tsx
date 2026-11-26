@@ -11,6 +11,7 @@ import { VaultPage } from './pages/VaultPage';
 import { About } from './pages/About';
 import { Profile } from './pages/Profile';
 import { Health } from './pages/Health';
+import { Report } from './pages/Report';
 import { Exercise } from './pages/Exercise';
 import { PhoneData } from './pages/PhoneData';
 import { AppUsage } from './pages/AppUsage';
@@ -179,6 +180,7 @@ export function App() {
       hasDemo={hasDemo}
     >
       {tab === 'dashboard' && <Dashboard days={days} onChange={refresh} onNavigate={setTab} />}
+      {tab === 'report' && <Report days={days} onNavigate={setTab} />}
       {tab === 'checkin' && <CheckIn days={days} onChange={refresh} />}
       {tab === 'food' && <Food />}
       {tab === 'goals' && <Goals days={days} onChange={refresh} />}

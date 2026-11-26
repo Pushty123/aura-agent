@@ -113,3 +113,10 @@ export async function login(email: string, password: string): Promise<Session> {
 export async function noteSignedIn(email: string): Promise<void> {
   await audit('account.signin', `Signed in as ${email.replace(/(.).+(@.+)/, '$1***$2')}`);
 }
+
+/** Signs out of the AURA account on this phone. Your encrypted data stays on the phone. */
+export async function logout(): Promise<void> {
+  const s = await getSession();
+  await db.meta.delete('account');
+  if (s) await audit('account.signout', `Signed out ${s.email.replace(/(.).+(@.+)/, '$1***$2')}`);
+}

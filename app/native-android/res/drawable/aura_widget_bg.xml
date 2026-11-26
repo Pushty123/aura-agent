@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Matches the in-app AURA hero card: deep indigo with a violet glow. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#1F212C" />
-    <corners android:radius="24dp" />
-    <stroke android:width="1dp" android:color="#454B5C" />
+    <gradient android:angle="135" android:startColor="#3B2F8F" android:centerColor="#1C1A45" android:endColor="#12142B" android:type="linear" />
+    <corners android:radius="28dp" />
+    <stroke android:width="1dp" android:color="#5A5DB0" />
 </shape>

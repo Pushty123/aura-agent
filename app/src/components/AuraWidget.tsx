@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import './AuraWidget.css';
 
 type Section = 'sleep' | 'steps' | 'screen' | 'mood' | 'week';
@@ -12,6 +13,13 @@ export interface AuraWidgetProps {
   isDemo?: boolean;
   onOpen?: (section: Section) => void;
   onSettings?: () => void;
+  /** Person's name for the greeting. */
+  name?: string;
+  /** Shown inside the score ring instead of the number (e.g. the avatar). */
+  ringContent?: ReactNode;
+  onRingClick?: () => void;
+  /** Short mood line under the score, e.g. "In balance today". */
+  moodLabel?: string;
 }
 
 const MOODS = ['Low', 'Tired', 'Okay', 'Good', 'Great'];
@@ -25,9 +33,11 @@ const fmtMinutes = (m?: number) => {
   return `${Math.floor(t / 60)}h ${t % 60}m`;
 };
 
-function greeting() {
+function greeting(name?: string) {
   const h = new Date().getHours();
-  return h < 12 ? 'Good Morning!' : h < 17 ? 'Good Afternoon!' : 'Good Evening!';
+  const base = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
+  const n = name?.trim().split(' ')[0];
+  return n ? `${base}, ${n}!` : `${base}!`;
 }
 
 function Tile(props: { icon: string; value: string; label: string; onClick?: () => void }) {
@@ -75,10 +85,10 @@ export function AuraWidget(p: AuraWidgetProps) {
         </div>
         <span className="aw-badge">🔒 Encrypted on this device</span>
         {p.isDemo && <span className="aw-demo">DEMO</span>}
-        <button type="button" className="aw-gear" onClick={p.onSettings} aria-label="Settings">⚙️</button>
+        {p.onSettings && <button type="button" className="aw-gear" onClick={p.onSettings} aria-label="Settings">⚙️</button>}
       </div>
 
-      <h3 className="aw-hello">{greeting()}</h3>
+      <h3 className="aw-hello">{greeting(p.name)}</h3>
       <p className="aw-sub">Let's check your wellness today</p>
 
       <div className="aw-tiles">
@@ -89,7 +99,7 @@ export function AuraWidget(p: AuraWidgetProps) {
       </div>
 
       <div className="aw-score">
-        <div className="aw-ring">
+        <div className={`aw-ring ${p.ringContent ? 'has-content' : ''}`} onClick={p.onRingClick} role={p.onRingClick ? 'button' : undefined} tabIndex={p.onRingClick ? 0 : undefined} aria-label={p.onRingClick ? 'Open your character' : undefined}>
           <svg viewBox="0 0 120 120" width="110" height="110" aria-hidden="true">
             <defs>
               <linearGradient id="aw-ring" x1="0" y1="0" x2="1" y2="1">
@@ -103,14 +113,19 @@ export function AuraWidget(p: AuraWidgetProps) {
               strokeDasharray={C} strokeDashoffset={offset} transform="rotate(-90 60 60)"
             />
           </svg>
-          <div className="aw-ring-text">
-            <strong>{score ?? '—'}</strong>
-            <span>/100</span>
-          </div>
+          {p.ringContent ? (
+            <div className="aw-ring-content">{p.ringContent}</div>
+          ) : (
+            <div className="aw-ring-text">
+              <strong>{score ?? '—'}</strong>
+              <span>/100</span>
+            </div>
+          )}
         </div>
         <div className="aw-score-info">
           <h4>Balance Score</h4>
-          <p>{status}{score !== undefined && score >= 70 ? <span className="aw-up"> ↗</span> : null}</p>
+          {p.ringContent && <div className="aw-score-num">{score ?? '—'}<span>/100</span></div>}
+          <p>{p.moodLabel ?? status}{score !== undefined && score >= 70 ? <span className="aw-up"> ↗</span> : null}</p>
         </div>
         <button type="button" className="aw-week" onClick={open('week')} aria-label="This week">
           <span className="aw-week-title">This Week ›</span>

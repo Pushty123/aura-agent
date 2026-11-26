@@ -14,7 +14,7 @@ export interface WidgetPrefs {
   showNumbers: boolean;
 }
 
-const DEFAULT: WidgetPrefs = { enabled: false, showNumbers: true };
+const DEFAULT: WidgetPrefs = { enabled: true, showNumbers: true };
 
 export async function getWidgetPrefs(): Promise<WidgetPrefs> {
   const row = await db.meta.get('widget-prefs');
