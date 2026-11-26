@@ -1,5 +1,6 @@
 import { detectSymptom, GUIDES, loadHealth, newEntry, personalNotes, recentCounts, saveHealth, type SymptomId } from '../health/symptoms';
-import { getAutoSpeak, listen, setAutoSpeak, speak, stopSpeaking, type Listener } from '../voice/voice';
+import { getAutoSpeak, listen, setAutoSpeak, speak, stopSpeaking, voiceIssue, type Listener } from '../voice/voice';
+import { localReply } from '../ask/localBrain';
 import { useMe } from '../avatar/AvatarContext';
 import { loadFood } from '../lib/store';
 import type { FoodEntry } from '../types';
@@ -149,7 +150,7 @@ export function Ask({ days }: { days: DayRecord[] }) {
             : /step|move|walk|active/.test(lower)
               ? questions[3]
               : null);
-    return hit ? hit.a() : null;
+    return hit ? hit.a() : localReply(q, days, food, today());
   }
 
   async function send(q: string) {
@@ -213,7 +214,7 @@ export function Ask({ days }: { days: DayRecord[] }) {
       role: 'aura',
       text: res
         ? res.text
-        : 'I can answer sleep, movement and Balance Score questions from your numbers. Turn on Smart replies above to chat about anything in your patterns.',
+        : `I can answer questions about your sleep, steps, screen time, water, mood, food, streaks and this week. ${loggedIn ? 'Switch on smart replies above to chat about anything.' : 'Log in (☰ menu) and switch on smart replies to chat about anything.'}`,
       meta: res ? `Built-in answer · ${res.meta}` : 'Built-in answer',
     });
   }
@@ -227,7 +228,8 @@ export function Ask({ days }: { days: DayRecord[] }) {
     setSpeaking(id);
     setVoiceMsg(null);
     try {
-      await speak(t, characterId);
+      const used = await speak(t, characterId);
+      setVoiceMsg(used === 'phone' ? voiceIssue() : null);
     } catch (e) {
       setVoiceMsg(e instanceof Error ? e.message : 'Could not speak.');
     }
@@ -268,6 +270,11 @@ export function Ask({ days }: { days: DayRecord[] }) {
   async function toggleSmart(on: boolean) {
     await setAiConsent(on);
     setSmartOn(on);
+    if (on) {
+      // Check again now: the server or login may have changed since the screen opened.
+      setLoggedIn(!!(await getSession()));
+      setServerReady(await smartStatus());
+    }
   }
 
   return (

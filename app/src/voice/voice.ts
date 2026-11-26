@@ -44,19 +44,38 @@ export function speakable(text: string): string {
     .slice(0, 650);
 }
 
-let serverVoice: boolean | null = null;
+let serverVoice: { on: boolean; at: number } | null = null;
 let current: HTMLAudioElement | null = null;
+/** Why the last reply used the phone voice instead of ElevenLabs (shown in Ask). */
+let lastIssue: string | null = null;
+export const voiceIssue = () => lastIssue;
 
 export async function cloudVoiceReady(): Promise<boolean> {
-  if (!(await getSession())) return false;
-  if (serverVoice === null) {
+  if (!(await getSession())) {
+    lastIssue = 'Log in (☰ menu) to use the ElevenLabs voice. Using your phone voice for now.';
+    return false;
+  }
+  // Re-check every minute, so turning the server on later works without restarting AURA.
+  if (!serverVoice || Date.now() - serverVoice.at > 60_000) {
     try {
-      serverVoice = (await apiCall<{ enabled: boolean }>('/v1/voice/status', { method: 'GET', label: 'voice-status' })).enabled;
+      const on = (await apiCall<{ enabled: boolean }>('/v1/voice/status', { method: 'GET', label: 'voice-status' })).enabled;
+      serverVoice = { on, at: Date.now() };
     } catch {
-      return false; // try again next time (server may be starting)
+      lastIssue = 'The AURA server is not reachable (same Wi-Fi? server running?). Using your phone voice.';
+      return false;
     }
   }
-  return serverVoice;
+  if (!serverVoice.on) lastIssue = 'ElevenLabs key is not set on the server (AURA_ELEVEN_KEY). Using your phone voice.';
+  return serverVoice.on;
+}
+
+function playToEnd(audio: HTMLAudioElement): Promise<void> {
+  return new Promise((resolve, reject) => {
+    audio.onended = () => resolve();
+    audio.onpause = () => resolve(); // stopped by the person
+    audio.onerror = () => reject(new Error('Could not play the audio.'));
+    audio.play().catch(reject);
+  });
 }
 
 export async function getAutoSpeak(): Promise<boolean> {
@@ -115,11 +134,12 @@ export async function speak(text: string, characterId?: string): Promise<'eleven
       });
       const audio = new Audio(`data:${r.mime};base64,${r.audio}`);
       current = audio;
-      await audio.play();
       await audit('voice', `Spoke a ${say.length}-character reply with ElevenLabs`);
+      lastIssue = null;
+      await playToEnd(audio);
       return 'eleven';
-    } catch {
-      /* fall back to the phone voice */
+    } catch (e) {
+      lastIssue = `ElevenLabs did not work (${e instanceof Error ? e.message : 'unknown error'}). Using your phone voice.`;
     }
   }
   await phoneVoice(say, s);
