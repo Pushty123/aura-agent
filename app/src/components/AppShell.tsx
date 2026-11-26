@@ -1,12 +1,14 @@
-import type { ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { AuraAvatar } from '../avatar/AuraAvatar';
 import { useMe } from '../avatar/AvatarContext';
+import { SideDrawer } from './SideDrawer';
 import {
   AskIcon,
   AuraLogoIcon,
   CheckInIcon,
   GoalsIcon,
   LockIcon,
+  MenuIcon,
   MoonIcon,
   ProfileIcon,
   SunIcon,
@@ -40,7 +42,7 @@ interface Group {
 
 /** Five bottom tabs, like most well-known apps. Related screens live inside a tab. */
 export const GROUPS: Group[] = [
-  { id: 'today', label: 'Today', icon: TodayIcon, tabs: ['dashboard'] },
+  { id: 'today', label: 'Home', icon: TodayIcon, tabs: ['dashboard'] },
   { id: 'track', label: 'Track', icon: CheckInIcon, tabs: ['checkin', 'food', 'exercise', 'health'] },
   { id: 'goals', label: 'Goals', icon: GoalsIcon, tabs: ['goals'] },
   { id: 'ask', label: 'Ask', icon: AskIcon, tabs: ['ask'] },
@@ -48,7 +50,7 @@ export const GROUPS: Group[] = [
 ];
 
 const TITLES: Record<AppTab, string> = {
-  dashboard: 'Today',
+  dashboard: 'Home',
   checkin: 'Track',
   food: 'Track',
   exercise: 'Track',
@@ -86,6 +88,8 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
   const me = useMe();
   const group = groupOf(tab);
   const isMeSub = group.id === 'me' && tab !== 'me';
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
 
   const navButton = (g: Group, cls: string) => {
     const Icon = g.icon;
@@ -99,7 +103,7 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
         onClick={() => onTabChange(g.tabs[0])}
       >
         {g.id === 'me' ? (
-          <span style={{ display: 'inline-flex', borderRadius: '50%', outline: active ? '2px solid var(--aura-primary)' : 'none' }}>
+          <span className="aura-nav-avatar-wrap">
             <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={20} />
           </span>
         ) : (
@@ -138,26 +142,41 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
       <div className="aura-main-col">
         <header className="aura-topbar">
           <div className="aura-topbar-left">
+            <button
+              ref={menuTriggerRef}
+              type="button"
+              className="btn ghost icon-only aura-mobile-menu-btn"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={drawerOpen}
+            >
+              <MenuIcon size={20} />
+            </button>
             {isMeSub && (
-              <button type="button" className="btn ghost icon-only" onClick={() => onTabChange('me')} aria-label="Back to Me">
+              <button
+                type="button"
+                className="btn ghost icon-only"
+                onClick={() => onTabChange('me')}
+                aria-label="Back to Me"
+              >
                 ‹
               </button>
             )}
             <h1 className="aura-page-title">{TITLES[tab]}</h1>
           </div>
           <div className="aura-topbar-actions">
-            <button type="button" className="btn ghost icon-only" onClick={onLock} aria-label="Lock AURA" title="Lock">
-              <LockIcon size={18} />
-            </button>
+            <span className="pill primary aura-encrypted-pill" title="Vault decrypted on this device">
+              <LockIcon size={12} />
+              <span>Encrypted</span>
+            </span>
             <button
               type="button"
               className="btn ghost icon-only"
-              onClick={() => onTabChange('me')}
-              aria-label="Me"
-              title="Me"
-              style={{ padding: 2 }}
+              onClick={onLock}
+              aria-label="Lock AURA"
+              title="Lock"
             >
-              <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={30} />
+              <LockIcon size={18} />
             </button>
           </div>
         </header>
@@ -196,6 +215,17 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
       <nav className="aura-mobile-nav" aria-label="Main">
         {GROUPS.map((g) => navButton(g, 'aura-mobile-nav-btn'))}
       </nav>
+
+      <SideDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        tab={tab}
+        onNavigate={onTabChange}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+        onLock={onLock}
+        triggerRef={menuTriggerRef}
+      />
     </div>
   );
 }

@@ -188,3 +188,56 @@ export function AppsIcon(props: IconProps) {
     </IconBase>
   );
 }
+
+export function MenuIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </IconBase>
+  );
+}
+
+export function CloseIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M6 6l12 12M18 6l-12 12" />
+    </IconBase>
+  );
+}
+
+export function ChevronRightIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M9 6l6 6-6 6" />
+    </IconBase>
+  );
+}
+
+export function SleepIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M20 14.5A8 8 0 0 1 9.5 4a7.5 7.5 0 1 0 10.5 10.5z" />
+    </IconBase>
+  );
+}
+
+export function StepsIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M13 4a2 2 0 1 0 0 .01" />
+      <path d="M9 20l2-6 3 2 2 4" />
+      <path d="M7 13l3-4 4 1 3 3" />
+    </IconBase>
+  );
+}
+
+export function MoodIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="9" cy="10" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="10" r="1" fill="currentColor" stroke="none" />
+      <path d="M8.5 14.5a4 4 0 0 0 7 0" />
+    </IconBase>
+  );
+}

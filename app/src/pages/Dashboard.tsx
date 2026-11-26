@@ -19,6 +19,8 @@ import { useMe } from '../avatar/AvatarContext';
 import { avatarMood } from '../avatar/mood';
 import { InsightCard } from '../components/InsightCard';
 import { MetricCard } from '../components/MetricCard';
+import { StillLearningCard } from '../components/StillLearningCard';
+import { MoodIcon, PhoneIcon, SleepIcon, StepsIcon } from '../components/Icons';
 import { generateDemoData } from '../lib/demoData';
 import { today } from '../lib/dates';
 import { saveDay } from '../lib/store';
@@ -35,6 +37,13 @@ const MOOD_LABELS: Record<NonNullable<DayRecord['mood']>, string> = {
   5: 'Great (5/5)',
 };
 
+function greetingForNow(name?: string): string {
+  const hour = new Date().getHours();
+  const base = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+  const cleanName = name?.trim();
+  return cleanName ? `${base}, ${cleanName}!` : `${base}!`;
+}
+
 interface DashboardProps {
   days: DayRecord[];
   onChange: () => Promise<void>;
@@ -46,17 +55,38 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   const [busy, setBusy] = useState(false);
   const [range, setRange] = useState<7 | 14 | 30>(30);
   const [showScoreDetails, setShowScoreDetails] = useState(false);
+  const [showWeeklyMore, setShowWeeklyMore] = useState(false);
   const [showCharacter, setShowCharacter] = useState(false);
 
   const latest = days[days.length - 1];
   const insights = useMemo(() => runInsights(days), [days]);
+  const readyInsights = useMemo(() => insights.filter((i) => !i.notEnoughData), [insights]);
+  const pendingInsights = useMemo(() => insights.filter((i) => i.notEnoughData), [insights]);
   const balance = useMemo(
     () => (latest ? balanceScore(latest, days.slice(0, -1)) : null),
     [latest, days],
   );
   const weekly = useMemo(() => weeklySummary(days), [days]);
   const me = useMe();
+  const greeting = greetingForNow(me.name);
   const mood = avatarMood(latest, balance?.score);
+
+  const sleepSeries = useMemo(
+    () => days.slice(-7).map((d) => d.sleepHours).filter((v): v is number => v !== undefined),
+    [days],
+  );
+  const stepSeries = useMemo(
+    () => days.slice(-7).map((d) => d.steps).filter((v): v is number => v !== undefined),
+    [days],
+  );
+  const screenSeries = useMemo(
+    () => days.slice(-7).map((d) => d.screenMinutes).filter((v): v is number => v !== undefined),
+    [days],
+  );
+  const moodSeries = useMemo(
+    () => days.slice(-7).map((d) => d.mood).filter((v): v is NonNullable<DayRecord['mood']> => v !== undefined),
+    [days],
+  );
 
   const chart = useMemo(
     () =>
@@ -114,6 +144,10 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   if (!latest) {
     return (
       <section className="stack-lg">
+        <div>
+          <h2 style={{ margin: 0 }}>{greeting}</h2>
+          <p className="xs muted">Welcome to AURA · {today()}</p>
+        </div>
         <div className="card stack-md">
           <div>
             <h2>Welcome to AURA</h2>
@@ -143,6 +177,10 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
 
   return (
     <section className="stack-lg">
+      <div>
+        <h2 style={{ margin: 0 }}>{greeting}</h2>
+        <p className="xs muted">Your daily wellness overview · {latest.date}</p>
+      </div>
       {/* Top Hero: Balance Score + Weekly Summary */}
       <div className="dashboard-hero-grid">
         <div className="card stack-md">
@@ -220,18 +258,30 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
         </div>
 
         <div className="card stack-md">
-          <div className="row between">
+          <div className="row between wrap">
             <div>
               <h2>Weekly Summary</h2>
               <p className="xs muted">
                 Last {weekly.daysCount} day{weekly.daysCount === 1 ? '' : 's'}
               </p>
             </div>
-            <span className="pill primary">7-day view</span>
+            <div className="row gap-sm center-v">
+              <span className="pill primary">7-day view</span>
+              {weekly.sentences.length > 2 && (
+                <button
+                  type="button"
+                  className="btn sm"
+                  aria-expanded={showWeeklyMore}
+                  onClick={() => setShowWeeklyMore((v) => !v)}
+                >
+                  {showWeeklyMore ? 'Less' : 'More'}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="stack-sm">
-            {weekly.sentences.map((s) => (
+            {(showWeeklyMore ? weekly.sentences : weekly.sentences.slice(0, 2)).map((s) => (
               <p key={s} className="small" style={{ lineHeight: 1.55 }}>
                 {s}
               </p>
@@ -248,38 +298,54 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
       <div className="grid-4">
         <MetricCard
           label="Sleep"
-          value={latest.sleepHours !== undefined ? `${latest.sleepHours.toFixed(1)} h` : '—'}
-          sub={latest.sleepHours !== undefined ? 'Last logged night' : 'Tap to log sleep'}
+          dateLabel={latest.date}
+          value={latest.sleepHours !== undefined ? latest.sleepHours.toFixed(1) : undefined}
+          unit={latest.sleepHours !== undefined ? 'h' : undefined}
+          sub={latest.sleepHours !== undefined ? 'Last logged night' : 'No sleep data yet'}
+          emptyAction="Log sleep"
           accent="purple"
+          icon={<SleepIcon size={18} />}
+          series={sleepSeries}
           onClick={() => onNavigate?.('checkin')}
         />
         <MetricCard
           label="Movement"
-          value={latest.steps !== undefined ? latest.steps.toLocaleString() : '—'}
-          sub={latest.steps !== undefined ? 'Steps on latest day' : 'Not recorded yet'}
+          dateLabel={latest.date}
+          value={latest.steps !== undefined ? latest.steps.toLocaleString() : undefined}
+          unit={latest.steps !== undefined ? 'steps' : undefined}
+          sub={latest.steps !== undefined ? 'Daily steps' : 'No step data yet'}
+          emptyAction="View goals"
           accent="blue"
+          icon={<StepsIcon size={18} />}
+          series={stepSeries}
           onClick={() => onNavigate?.('goals')}
         />
         <MetricCard
           label="Screen time"
-          value={
-            latest.screenMinutes !== undefined
-              ? `${(latest.screenMinutes / 60).toFixed(1)} h`
-              : '—'
-          }
+          dateLabel={latest.date}
+          value={latest.screenMinutes !== undefined ? (latest.screenMinutes / 60).toFixed(1) : undefined}
+          unit={latest.screenMinutes !== undefined ? 'h' : undefined}
           sub={
             latest.lateScreenMin !== undefined
               ? `${Math.round(latest.lateScreenMin)} min after 23:00`
-              : 'Tap to manage sources'
+              : 'Manage in Phone data'
           }
+          emptyAction="Connect source"
           accent="coral"
-          onClick={() => onNavigate?.('vault')}
+          icon={<PhoneIcon size={18} />}
+          series={screenSeries}
+          onClick={() => onNavigate?.('phone')}
         />
         <MetricCard
           label="Mood"
-          value={latest.mood !== undefined ? MOOD_LABELS[latest.mood] : '—'}
-          sub={latest.mood !== undefined ? 'Latest check-in' : 'Tap to check in'}
+          dateLabel={latest.date}
+          value={latest.mood !== undefined ? MOOD_LABELS[latest.mood].split(' ')[0] : undefined}
+          unit={latest.mood !== undefined ? `${latest.mood}/5` : undefined}
+          sub={latest.mood !== undefined ? 'Latest check-in' : 'No mood logged yet'}
+          emptyAction="Check in"
           accent="primary"
+          icon={<MoodIcon size={18} />}
+          series={moodSeries}
           onClick={() => onNavigate?.('checkin')}
         />
       </div>
@@ -290,11 +356,14 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
           <h3>What AURA noticed</h3>
           <span className="xs muted">Ranked by statistical signal</span>
         </div>
-        <div className="grid-2">
-          {insights.map((insight, idx) => (
-            <InsightCard key={insight.id} insight={insight} rank={idx + 1} />
-          ))}
-        </div>
+        {readyInsights.length > 0 && (
+          <div className="grid-2">
+            {readyInsights.map((insight, idx) => (
+              <InsightCard key={insight.id} insight={insight} rank={idx + 1} />
+            ))}
+          </div>
+        )}
+        <StillLearningCard insights={pendingInsights} />
       </div>
 
       {/* Sleep vs Late-Screen Chart */}
@@ -320,6 +389,11 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
           </div>
         </div>
 
+        <p className="sr-only">
+          {chart.length > 0
+            ? `Showing ${chart.length} days from ${chart[0].date} to ${chart[chart.length - 1].date}. Latest sleep: ${latest.sleepHours ?? 'not logged'} hours.`
+            : 'No chart data logged yet.'}
+        </p>
         <div style={{ width: '100%', height: 260 }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chart} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
