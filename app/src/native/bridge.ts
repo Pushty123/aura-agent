@@ -1,5 +1,15 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import type { Command } from '../commands/parse';
+import { hasPermission, type PermissionKey } from '../lib/permissions';
+
+export type HealthField = 'steps' | 'sleep' | 'heartRate' | 'bloodPressure' | 'exercise';
+const HEALTH_PERMISSION: Record<HealthField, PermissionKey> = {
+  steps: 'steps',
+  sleep: 'sleep',
+  heartRate: 'heartRate',
+  bloodPressure: 'heartRate',
+  exercise: 'steps',
+};
 
 /**
  * One interface for everything that needs Android. On the web (or if a native
@@ -19,6 +29,8 @@ export interface HealthDay {
   steps?: number;
   sleepMinutes?: number;
   avgHeartRate?: number;
+  avgBloodPressureSystolic?: number;
+  avgBloodPressureDiastolic?: number;
   exerciseMinutes?: number;
   /** Android package names of the apps that wrote each kind of data (e.g. a band's app). */
   origins: { steps: string[]; sleep: string[]; heartRate: string[]; exercise: string[] };
@@ -58,13 +70,14 @@ interface AuraNativePlugin {
   hasUsageAccess(): Promise<{ granted: boolean }>;
   openUsageAccessSettings(): Promise<void>;
   getUsageStats(opts: { days: number }): Promise<{ days: UsageDay[] }>;
-  healthStatus(): Promise<{ status: 'available' | 'needs-update' | 'unavailable'; granted: boolean }>;
-  requestHealthPermissions(): Promise<{ granted: boolean }>;
+  healthStatus(opts: { fields: HealthField[] }): Promise<{ status: 'available' | 'needs-update' | 'unavailable'; granted: boolean }>;
+  requestHealthPermissions(opts: { fields: HealthField[] }): Promise<{ granted: boolean }>;
   openHealthConnect(): Promise<void>;
-  getHealthData(opts: { days: number }): Promise<{ days: HealthDay[] }>;
+  getHealthData(opts: { days: number; fields: HealthField[] }): Promise<{ days: HealthDay[] }>;
   phoneSensorStatus(): Promise<{ stepSensor: boolean; stepsAllowed: boolean; usageAllowed: boolean }>;
   requestStepPermission(): Promise<{ granted: boolean }>;
-  getPhoneData(opts: { days: number }): Promise<{ days: PhoneDay[] }>;
+  getPhoneData(opts: { days: number; steps: boolean; sleep: boolean }): Promise<{ days: PhoneDay[] }>;
+  setPhoneStepsEnabled(opts: { enabled: boolean }): Promise<void>;
   updateWidget(opts: WidgetSnapshot): Promise<void>;
   getAppUsage(): Promise<{ apps: AppUse[]; unlocks: number }>;
   setAppLimits(opts: { limits: AppLimit[] }): Promise<void>;
@@ -96,6 +109,8 @@ export async function getUsageState(): Promise<UsageState> {
 
 /** Screen time. With `interactive`, opens Android's Usage access screen if permission is missing. */
 export async function getUsage(days = 7, interactive = true): Promise<{ ok: true; days: UsageDay[] } | Failure> {
+  if (!(await hasPermission('usage')))
+    return { ok: false, reason: 'unavailable', message: 'Enable Usage in Settings → Permissions first.' };
   if (!isNative())
     return { ok: false, reason: 'web', message: 'Real screen time needs the Android app. Using demo data or CSV import instead.' };
   try {
@@ -110,10 +125,10 @@ export async function getUsage(days = 7, interactive = true): Promise<{ ok: true
   }
 }
 
-export async function getHealthState(): Promise<HealthState> {
+export async function getHealthState(fields: HealthField[] = ['steps', 'sleep', 'heartRate', 'bloodPressure', 'exercise']): Promise<HealthState> {
   if (!isNative()) return 'web';
   try {
-    const { status, granted } = await Native.healthStatus();
+    const { status, granted } = await Native.healthStatus({ fields });
     if (status === 'unavailable') return 'unavailable';
     if (status === 'needs-update') return 'needs-update';
     return granted ? 'ready' : 'needs-permission';
@@ -123,16 +138,17 @@ export async function getHealthState(): Promise<HealthState> {
 }
 
 /** Opens Android's permission sheet for Health Connect (steps, sleep, heart rate, exercise: read only). */
-export async function connectHealth(): Promise<NativeResult> {
+export async function connectHealth(fields: HealthField[]): Promise<NativeResult> {
   if (!isNative()) return { ok: false, message: 'Fitness band data needs the Android app.' };
+  if (!fields.length) return { ok: false, message: 'Turn on a health data permission in Settings first.' };
   try {
-    const state = await getHealthState();
+    const state = await getHealthState(fields);
     if (state === 'unavailable' || state === 'needs-update') {
       await Native.openHealthConnect();
       return { ok: false, message: 'Install or update Health Connect, then come back and connect again.' };
     }
     if (state === 'ready') return { ok: true, message: 'Health Connect is already connected.' };
-    const { granted } = await Native.requestHealthPermissions();
+    const { granted } = await Native.requestHealthPermissions({ fields });
     return granted
       ? { ok: true, message: 'Health Connect connected.' }
       : { ok: false, message: 'Permission was not given. You can allow it from the Phone data screen any time.' };
@@ -168,6 +184,7 @@ export async function phoneSensorStatus(): Promise<PhoneSensors | null> {
 /** Asks for "Physical activity" so AURA can count steps with the phone's own sensor. */
 export async function allowPhoneSteps(): Promise<boolean> {
   if (!isNative()) return false;
+  if (!(await hasPermission('steps'))) return false;
   try {
     return (await Native.requestStepPermission()).granted;
   } catch {
@@ -178,22 +195,29 @@ export async function allowPhoneSteps(): Promise<boolean> {
 export async function getPhoneDays(days = 7): Promise<PhoneDay[]> {
   if (!isNative()) return [];
   try {
-    return (await Native.getPhoneData({ days })).days;
+    const steps = await hasPermission('steps');
+    const sleep = await hasPermission('sleep') && await hasPermission('usage');
+    if (!steps && !sleep) return [];
+    return (await Native.getPhoneData({ days, steps, sleep })).days;
   } catch {
     return [];
   }
 }
 
-export async function getHealth(days = 7): Promise<{ ok: true; days: HealthDay[] } | Failure> {
+export async function getHealth(days = 7, fields: HealthField[] = ['steps', 'sleep', 'heartRate', 'bloodPressure', 'exercise']): Promise<{ ok: true; days: HealthDay[] } | Failure> {
+  const allowedFields: HealthField[] = [];
+  for (const field of fields) if (await hasPermission(HEALTH_PERMISSION[field])) allowedFields.push(field);
+  if (!allowedFields.length)
+    return { ok: false, reason: 'unavailable', message: 'Turn on a health data permission in Settings first.' };
   if (!isNative())
     return { ok: false, reason: 'web', message: 'Fitness band data needs the Android app.' };
-  const state = await getHealthState();
+  const state = await getHealthState(allowedFields);
   if (state === 'unavailable' || state === 'needs-update')
     return { ok: false, reason: 'unavailable', message: 'Health Connect is not installed or needs an update.' };
   if (state === 'needs-permission')
     return { ok: false, reason: 'permission', message: 'Allow AURA to read Health Connect first.' };
   try {
-    return { ok: true, days: (await Native.getHealthData({ days })).days };
+    return { ok: true, days: (await Native.getHealthData({ days, fields: allowedFields })).days };
   } catch {
     return { ok: false, reason: 'error', message: 'Could not read Health Connect data.' };
   }
@@ -220,6 +244,8 @@ export async function runCommand(cmd: Command): Promise<NativeResult> {
 
 /** Local notification via @capacitor/local-notifications (loaded lazily so the web build stays light). */
 export async function notify(title: string, body: string, inSeconds = 5): Promise<NativeResult> {
+  if (!(await hasPermission('notifications')))
+    return { ok: false, message: 'Enable Notifications in Settings → Permissions first.' };
   if (!isNative()) {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, { body });
@@ -232,7 +258,13 @@ export async function notify(title: string, body: string, inSeconds = 5): Promis
     const perm = await LocalNotifications.requestPermissions();
     if (perm.display !== 'granted') return { ok: false, message: 'Notification permission was not granted.' };
     await LocalNotifications.schedule({
-      notifications: [{ id: Date.now() % 2147483000, title, body, schedule: { at: new Date(Date.now() + inSeconds * 1000) } }],
+      notifications: [{
+        id: Date.now() % 2147483000,
+        title,
+        body,
+        schedule: { at: new Date(Date.now() + inSeconds * 1000) },
+        extra: { aura: true },
+      }],
     });
     return { ok: true, message: `Notification scheduled in ${inSeconds} seconds.` };
   } catch {
@@ -306,6 +338,10 @@ export async function biometricDisable(): Promise<void> {
 export async function scheduleReminders(
   items: { id: number; title: string; body: string; hour: number; minute: number }[],
 ): Promise<{ ok: boolean; count: number; message: string }> {
+  if (!(await hasPermission('notifications'))) {
+    await clearAuraNotifications();
+    return { ok: false, count: 0, message: 'Enable Notifications in Settings → Permissions first.' };
+  }
   if (!isNative()) return { ok: false, count: 0, message: 'Reminders on your screen work in the Android app.' };
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
@@ -332,6 +368,8 @@ export async function scheduleReminders(
 }
 
 export async function getAppUsage(): Promise<{ ok: true; apps: AppUse[]; unlocks: number } | Failure> {
+  if (!(await hasPermission('usage')))
+    return { ok: false, reason: 'unavailable', message: 'Enable Usage in Settings → Permissions first.' };
   if (!isNative()) return { ok: false, reason: 'web', message: 'Per-app usage needs the Android app.' };
   try {
     if (!(await Native.hasUsageAccess()).granted)
@@ -345,10 +383,26 @@ export async function getAppUsage(): Promise<{ ok: true; apps: AppUse[]; unlocks
 
 export async function pushAppLimits(limits: AppLimit[]): Promise<boolean> {
   if (!isNative()) return false;
+  if (limits.length && (!(await hasPermission('usage')) || !(await hasPermission('notifications')))) return false;
   try {
     await Native.setAppLimits({ limits });
     return true;
   } catch {
     return false;
   }
+}
+
+export async function setPhoneStepsEnabled(enabled: boolean): Promise<void> {
+  if (!isNative()) return;
+  if (enabled && !(await hasPermission('steps'))) return;
+  await Native.setPhoneStepsEnabled({ enabled });
+}
+
+export async function clearAuraNotifications(): Promise<void> {
+  if (!isNative()) return;
+  const { LocalNotifications } = await import('@capacitor/local-notifications');
+  const pending = await LocalNotifications.getPending();
+  const ours = pending.notifications.filter((n) => (n.extra as { aura?: boolean } | undefined)?.aura);
+  if (ours.length) await LocalNotifications.cancel({ notifications: ours.map((n) => ({ id: n.id })) });
+  await Native.setAppLimits({ limits: [] });
 }

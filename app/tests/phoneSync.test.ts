@@ -9,6 +9,7 @@ vi.mock('../src/native/bridge', () => ({
 import { db } from '../src/lib/db';
 import * as vault from '../src/lib/vault';
 import { loadDays, saveDay } from '../src/lib/store';
+import { getPermissions, setPermission } from '../src/lib/permissions';
 import * as bridge from '../src/native/bridge';
 import {
   healthToPatch,
@@ -86,26 +87,43 @@ describe('syncPhoneData', () => {
     expect(health).not.toHaveBeenCalled();
   });
 
-  it('interactive sync turns consent on, stores merged days and remembers sources', async () => {
+  it('syncs only enabled sources, stores merged days and remembers origins', async () => {
+    await setPermission('usage', true);
+    await setPermission('steps', true);
+    await setPermission('sleep', true);
+    await setPermission('heartRate', true);
     usage.mockResolvedValue({ ok: true, days: [{ date: '2026-11-25', screenMinutes: 300, lateScreenMin: 40 }] });
     health.mockResolvedValue({
       ok: true,
-      days: [{ date: '2026-11-25', steps: 9000, sleepMinutes: 420, avgHeartRate: 70, origins: { ...noOrigins, steps: ['com.mi.health'], sleep: ['com.mi.health'] } }],
+      days: [{
+        date: '2026-11-25',
+        steps: 9000,
+        sleepMinutes: 420,
+        avgHeartRate: 70,
+        avgBloodPressureSystolic: 120,
+        avgBloodPressureDiastolic: 80,
+        origins: { ...noOrigins, steps: ['com.mi.health'], sleep: ['com.mi.health'] },
+      }],
     });
     await saveDay({ date: '2026-11-25', source: 'manual', mood: 4 });
 
     const r = await syncPhoneData({ interactive: true });
     expect(r.screen.state).toBe('synced');
     expect(r.health.origins.steps).toEqual(['com.mi.health']);
-    expect((await vault.getConsent()).device).toBe(true);
+    expect(await getPermissions()).toMatchObject({ usage: true, steps: true, sleep: true, heartRate: true });
 
     const day = (await loadDays()).find((d) => d.date === '2026-11-25')!;
-    expect(day).toMatchObject({ mood: 4, steps: 9000, sleepHours: 7, screenMinutes: 300, lateScreenMin: 40, avgHeartRate: 70 });
+    expect(day).toMatchObject({
+      mood: 4, steps: 9000, sleepHours: 7, screenMinutes: 300, lateScreenMin: 40,
+      avgHeartRate: 70, bloodPressureSystolic: 120, bloodPressureDiastolic: 80,
+    });
     expect((await loadLastSync())?.health.state).toBe('synced');
     expect(await vault.verifyAudit()).toBe(true);
   });
 
   it('reports missing permission without failing, and keeps the other source working', async () => {
+    await setPermission('usage', true);
+    await setPermission('steps', true);
     usage.mockResolvedValue({ ok: false, reason: 'permission', message: 'Allow Usage access' });
     health.mockResolvedValue({ ok: true, days: [{ date: '2026-11-25', steps: 4000, origins: noOrigins }] });
     const r = await syncPhoneData({ interactive: true });
@@ -115,6 +133,8 @@ describe('syncPhoneData', () => {
   });
 
   it('respects per-source switches', async () => {
+    await setPermission('usage', true);
+    await setPermission('steps', true);
     const { setSyncPrefs } = await import('../src/sync/phoneSync');
     await setSyncPrefs({ screen: false, health: true });
     health.mockResolvedValue({ ok: true, days: [] });

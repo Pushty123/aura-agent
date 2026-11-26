@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { getAppUsage, getUsage, isNative, notify, pushAppLimits, type AppLimit, type AppUse } from '../native/bridge';
 import { demoApps, fmtMin, limitState, loadLimits, saveLimits, setLimit } from '../apps/appUsage';
 import { AppIcon } from '../components/AppIcon';
+import { hasPermission } from '../lib/permissions';
 
 const COLORS = { none: 'var(--aura-blue)', ok: 'var(--aura-primary)', near: '#E8A33D', over: '#E2626B' } as const;
 const PRESETS = [15, 30, 45, 60, 90, 120];
@@ -55,7 +56,9 @@ export function AppUsage() {
       setLimits(next);
       setEditing(null);
       const pushed = await pushAppLimits(next);
-      if (minutes !== null && isNative()) await notify('AURA app limits', `We'll remind you when ${app.label} reaches ${fmtMin(minutes)} today.`, 1);
+      const notificationsAllowed = await hasPermission('notifications');
+      if (minutes !== null && isNative() && notificationsAllowed)
+        await notify('AURA app limits', `We'll remind you when ${app.label} reaches ${fmtMin(minutes)} today.`, 1);
       setMsg({
         ok: true,
         text:
@@ -63,7 +66,7 @@ export function AppUsage() {
             ? `Limit removed for ${app.label}.`
             : pushed
               ? `Limit set: ${app.label}, ${fmtMin(minutes)} a day. You'll get a reminder at 80% and at the limit.`
-              : `Limit saved. Reminders pop up in the Android app.`,
+              : `Limit saved. Enable Usage and Notifications in Settings to activate Android alerts.`,
       });
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : 'Could not save the limit.' });

@@ -18,6 +18,9 @@ export interface DayRecord {
   workout?: boolean;
   /** Average heart rate for the day (bpm), from a band via Health Connect. */
   avgHeartRate?: number;
+  /** Daily average blood pressure in mmHg, from Health Connect. */
+  bloodPressureSystolic?: number;
+  bloodPressureDiastolic?: number;
   /** Minutes of recorded exercise sessions. */
   exerciseMinutes?: number;
   /** Fields the person typed themselves; phone sync never overwrites these. */

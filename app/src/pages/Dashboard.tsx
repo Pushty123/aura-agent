@@ -1,15 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { DayRecord } from '../types';
 import { runInsights } from '../insights/engine';
 import { balanceScore } from '../insights/balance';
 import { weeklySummary } from '../summary/weekly';
-import { AuraAvatar } from '../avatar/AuraAvatar';
-import { CharacterModal } from '../avatar/CharacterModal';
 import { useMe } from '../avatar/AvatarContext';
-import { avatarMood } from '../avatar/mood';
 import { InsightCard } from '../components/InsightCard';
 import { StillLearningCard } from '../components/StillLearningCard';
-import { AuraWidget } from '../components/AuraWidget';
 import { StreakRow } from '../components/Streaks';
 import { streaks } from '../goals/badges';
 import { thoughtFor, todayLine } from '../home/thoughts';
@@ -20,6 +16,10 @@ import { patchDay, saveDay } from '../lib/store';
 import { setConsent } from '../lib/vault';
 import { syncPhoneData } from '../sync/phoneSync';
 import type { AppTab } from '../components/AppShell';
+import { MetricCard, ScreenHeader } from '../components/design-system';
+import { DEFAULT_PERMISSIONS, getPermissions, type Permissions } from '../lib/permissions';
+import { loadWorkouts, type Workout } from '../exercise/workouts';
+import { todayMetrics } from '../home/todayMetrics';
 
 function greetingForNow(name?: string): string {
   const hour = new Date().getHours();
@@ -37,11 +37,17 @@ interface DashboardProps {
 export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
-  const [showCharacter, setShowCharacter] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [permissions, setPermissions] = useState<Permissions | null>(null);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const streakList = useMemo(() => streaks(days, today()), [days]);
 
   const latest = days[days.length - 1];
+  const todayRecord = days.find((d) => d.date === today());
+  useEffect(() => {
+    void getPermissions().then(setPermissions);
+    void loadWorkouts().then(setWorkouts);
+  }, []);
   const insights = useMemo(() => runInsights(days), [days]);
   const readyInsights = useMemo(() => insights.filter((i) => !i.notEnoughData), [insights]);
   const pendingInsights = useMemo(() => insights.filter((i) => i.notEnoughData), [insights]);
@@ -52,7 +58,29 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   const weekly = useMemo(() => weeklySummary(days), [days]);
   const me = useMe();
   const greeting = greetingForNow(me.name);
-  const mood = avatarMood(latest, balance?.score);
+
+  const metrics = todayMetrics(
+    todayRecord,
+    days.filter((d) => todayRecord && d.date < todayRecord.date),
+    permissions ?? DEFAULT_PERMISSIONS,
+    workouts,
+  );
+  const metricsSection = (
+    <>
+      <div className="ds-metric-grid ds-today-grid">
+        {metrics.map((metric) => <MetricCard key={metric.kind} {...metric} />)}
+      </div>
+      {(permissions ?? DEFAULT_PERMISSIONS).heartRate && <p className="ds-wellness-note">wellness info, not medical advice</p>}
+    </>
+  );
+  const screenDate = new Intl.DateTimeFormat(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  }).format(new Date());
+  const screenHeader = (
+    <ScreenHeader title="Today" date={screenDate} onSettingsClick={() => onNavigate?.('me')} />
+  );
 
 
   async function loadDemo() {
@@ -89,17 +117,14 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
 
   if (!latest) {
     return (
-      <section className="stack-lg">
-        <div>
-          <h2 style={{ margin: 0 }}>{greeting}</h2>
-          <p className="xs muted">Welcome to AURA · {today()}</p>
-        </div>
+      <section className="ds-demo-page aura-today-page stack-lg">
+        {screenHeader}
+        {metricsSection}
         <div className="card stack-md">
           <div>
-            <h2>Welcome to AURA</h2>
+            <h2>{greeting}</h2>
             <p className="muted small">
-              Your vault is unlocked, and there is no wellness data yet. Start with clearly labelled
-              demo data, read Android screen time, or record a quick check-in.
+              No wellness data is recorded yet. Start with clearly labelled demo data or record a check-in.
             </p>
           </div>
           <div className="row gap wrap">
@@ -109,6 +134,11 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
             <button type="button" className="btn" onClick={readPhone} disabled={busy}>
               Read my screen time (Android)
             </button>
+            {onNavigate && (
+              <button type="button" className="btn ghost" onClick={() => onNavigate('me')}>
+                Manage permissions
+              </button>
+            )}
             {onNavigate && (
               <button type="button" className="btn" onClick={() => onNavigate('checkin')}>
                 Go to Check-in
@@ -120,8 +150,6 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
       </section>
     );
   }
-
-  const weekScores = days.slice(-7).map((d, i, arr) => balanceScore(d, days.slice(0, days.length - arr.length + i)).score);
 
   const thought = thoughtFor(today());
   const line = todayLine(latest, balance?.score);
@@ -154,36 +182,9 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   }
 
   return (
-    <section className="stack-lg">
-      <AuraWidget
-        name={me.name}
-        sleepHours={latest.sleepHours}
-        steps={latest.steps}
-        screenMinutes={latest.screenMinutes}
-        mood={latest.mood}
-        balanceScore={balance?.score}
-        weekScores={weekScores}
-        isDemo={latest.source === 'demo'}
-        moodLabel={mood.label}
-        subline={line}
-        ringContent={balance ? <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={88} /> : undefined}
-        onRingClick={() => (me.choice.kind === 'character' ? setShowCharacter(true) : onNavigate?.('report'))}
-        onOpen={(s) => onNavigate?.(s === 'sleep' || s === 'mood' ? 'checkin' : s === 'steps' ? 'phone' : s === 'screen' ? 'apps' : 'report')}
-      />
-      {showCharacter && (
-        <CharacterModal
-          choice={me.choice}
-          mood={mood}
-          score={balance?.score}
-          sleepy={latest.sleepHours !== undefined && latest.sleepHours < 6}
-          active={(latest.steps ?? 0) >= 8000}
-          onClose={() => setShowCharacter(false)}
-          onChange={() => {
-            setShowCharacter(false);
-            onNavigate?.('profile');
-          }}
-        />
-      )}
+    <section className="ds-demo-page aura-today-page stack-lg">
+      {screenHeader}
+      {metricsSection}
 
       <div className="card thought-card stack-sm">
         <div className="row between center-v">

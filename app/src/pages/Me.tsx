@@ -1,9 +1,11 @@
 import { AuraAvatar } from '../avatar/AuraAvatar';
 import { useMe } from '../avatar/AvatarContext';
-import type { AppTab, ThemeMode } from '../components/AppShell';
+import type { AppTab } from '../components/AppShell';
+import type { ThemePreference } from '../lib/theme';
 
 const ROWS: { tab: AppTab; title: string; sub: string; emoji: string }[] = [
   { tab: 'profile', title: 'Profile & security', sub: 'Character, details, fingerprint, widget', emoji: '👤' },
+  { tab: 'permissions', title: 'Permissions', sub: 'Choose which data sources AURA can access', emoji: '🛡️' },
   { tab: 'vault', title: 'My data & privacy', sub: 'Consent, export, delete, network log', emoji: '🔐' },
   { tab: 'about', title: 'About AURA', sub: 'How your data is protected', emoji: 'ℹ️' },
 ];
@@ -12,12 +14,12 @@ const ROWS: { tab: AppTab; title: string; sub: string; emoji: string }[] = [
 export function Me({
   onOpen,
   theme,
-  onToggleTheme,
+  onThemeChange,
   onLock,
 }: {
   onOpen: (tab: AppTab) => void;
-  theme: ThemeMode;
-  onToggleTheme: () => void;
+  theme: ThemePreference;
+  onThemeChange: (theme: ThemePreference) => void;
   onLock: () => void;
 }) {
   const me = useMe();
@@ -54,14 +56,24 @@ export function Me({
       </div>
 
       <div className="card list-card">
-        <button type="button" className="list-row" onClick={onToggleTheme}>
-          <span className="list-emoji" aria-hidden="true">
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </span>
+        <label className="list-row">
+          <span className="list-emoji" aria-hidden="true">🎨</span>
           <span className="list-text">
-            <strong>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</strong>
+            <strong>Theme</strong>
+            <span className="xs muted">Choose light, dark, or follow your device</span>
           </span>
-        </button>
+          <select
+            className="input"
+            aria-label="Theme"
+            value={theme}
+            onChange={(event) => onThemeChange(event.target.value as ThemePreference)}
+            style={{ width: 'auto', minWidth: 112 }}
+          >
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="system">System</option>
+          </select>
+        </label>
         <button type="button" className="list-row" onClick={onLock}>
           <span className="list-emoji" aria-hidden="true">
             🔒

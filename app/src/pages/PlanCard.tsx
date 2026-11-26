@@ -76,7 +76,9 @@ export function PlanCard({ days, onApplied }: { days: DayRecord[]; onApplied: ()
         const merged = mergeLimits(await loadLimits(), limits);
         await saveLimits(merged);
         const pushed = await pushAppLimits(merged);
-        limitNote = pushed ? ` ${limits.length} app limit${limits.length > 1 ? 's' : ''} on.` : ' App limits saved (they work in the Android app).';
+        limitNote = pushed
+          ? ` ${limits.length} app limit${limits.length > 1 ? 's' : ''} on.`
+          : ' App limits saved. Enable Usage and Notifications in Settings to activate Android alerts.';
       }
       const saved = { ...summarise(plan), limitPkgs: limits.map((l) => l.pkg) };
       const next = [saved, ...plans.filter((x) => x.id !== plan.id)];

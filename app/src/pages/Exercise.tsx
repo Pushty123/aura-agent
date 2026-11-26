@@ -5,6 +5,7 @@ import { EXERCISES, POSE_LINES, RepCounter, type ExerciseId } from '../exercise/
 import { loadWorkouts, saveWorkout, type Workout } from '../exercise/workouts';
 import { today } from '../lib/dates';
 import { Capacitor } from '@capacitor/core';
+import { hasPermission } from '../lib/permissions';
 
 type Phase = 'idle' | 'loading' | 'running';
 
@@ -82,6 +83,10 @@ export function Exercise() {
     setSaved('');
     setReps(0);
     setSeconds(0);
+    if (!(await hasPermission('camera'))) {
+      setError('Enable Camera in Settings → Permissions first.');
+      return;
+    }
     setPhase('loading');
     try {
       if (Capacitor.isNativePlatform()) {

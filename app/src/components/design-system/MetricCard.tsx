@@ -8,9 +8,10 @@ interface MetricCardProps {
   unit?: string;
   timestamp: string;
   range?: RangeBarProps;
+  demo?: boolean;
 }
 
-export function MetricCard({ kind, label, value, unit, timestamp, range }: MetricCardProps) {
+export function MetricCard({ kind, label, value, unit, timestamp, range, demo }: MetricCardProps) {
   return (
     <article className="ds-metric-card" data-metric={kind}>
       <IconTile kind={kind} />
@@ -19,6 +20,7 @@ export function MetricCard({ kind, label, value, unit, timestamp, range }: Metri
           <div className="ds-metric-label-group">
             <h3 className="ds-metric-label">{label}</h3>
             <p className="ds-metric-timestamp">{timestamp}</p>
+            {demo && <span className="ds-demo-badge">DEMO</span>}
           </div>
           <p className="ds-metric-value">
             {value}

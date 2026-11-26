@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../src/lib/db';
 import * as vault from '../src/lib/vault';
+import { setPermission } from '../src/lib/permissions';
 import { GUIDES, loadHealth, newEntry, personalNotes, recentCounts, saveHealth } from '../src/health/symptoms';
 import { addDays, cycleStats, loadPeriods, markFor, savePeriod, type Period } from '../src/health/cycle';
 
@@ -30,6 +31,7 @@ describe('health journal', () => {
   });
 
   it('saves encrypted and counts recent symptoms', async () => {
+    await setPermission('healthRecords', true);
     await saveHealth(newEntry('2026-11-20', 'headache', 2, 'after long class'));
     await saveHealth(newEntry('2026-11-25', 'headache', 1));
     await saveHealth(newEntry('2026-11-25', 'other', 2, '', 'Eye strain'));
@@ -39,6 +41,15 @@ describe('health journal', () => {
     const c = recentCounts(all, '2026-11-26');
     expect(c[0]).toMatchObject({ symptom: 'headache', n: 2 });
     expect(c.some((x) => x.label === 'Eye strain')).toBe(true);
+  });
+
+  it('does not read health records while their permission is off', async () => {
+    await saveHealth(newEntry('2026-11-25', 'headache', 1));
+    expect(await loadHealth()).toEqual([]);
+    await setPermission('healthRecords', true);
+    expect(await loadHealth()).toHaveLength(1);
+    await setPermission('healthRecords', false);
+    expect(await loadHealth()).toEqual([]);
   });
 });
 
@@ -75,6 +86,7 @@ describe('period calendar', () => {
     await db.records.clear();
     vault.lock();
     await vault.createVault('passphrase-123');
+    await setPermission('healthRecords', true);
     await savePeriod(p('2026-11-01', '2026-11-05'));
     expect((await loadPeriods())[0].start).toBe('2026-11-01');
     expect(JSON.stringify(await db.records.toArray())).not.toContain('2026-11-01');

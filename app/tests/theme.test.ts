@@ -17,6 +17,8 @@ describe('vault-backed theme preference', () => {
     await saveThemePreference('light');
     expect(await loadThemePreference()).toBe('light');
     expect(JSON.stringify(await db.records.get('settings:theme'))).not.toContain('light');
+    await saveThemePreference('system');
+    expect(await loadThemePreference()).toBe('system');
   });
 
   it('rejects theme access while the vault is locked', async () => {

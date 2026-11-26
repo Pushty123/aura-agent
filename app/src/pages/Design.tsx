@@ -70,9 +70,9 @@ export function Design({ theme, onToggleTheme }: DesignProps) {
 
       <div className="ds-demo-banner">
         <span className="ds-demo-badge">DEMO</span>
-        <span>Sample content only · {theme === 'dark' ? 'Dark' : 'Light'} theme</span>
+        <span>Sample content only · {theme === 'system' ? 'System' : theme === 'dark' ? 'Dark' : 'Light'} theme</span>
         <button type="button" className="ds-theme-toggle" onClick={onToggleTheme}>
-          Switch to {theme === 'dark' ? 'light' : 'dark'}
+          Switch to {document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'}
         </button>
       </div>
 

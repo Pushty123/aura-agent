@@ -1,6 +1,6 @@
 import { getRecord, putRecord } from './vault';
 
-export type ThemePreference = 'light' | 'dark';
+export type ThemePreference = 'light' | 'dark' | 'system';
 
 interface ThemeSetting {
   mode: ThemePreference;
@@ -8,7 +8,7 @@ interface ThemeSetting {
 
 export async function loadThemePreference(): Promise<ThemePreference | undefined> {
   const setting = await getRecord<ThemeSetting>('settings', 'theme');
-  return setting?.mode === 'light' || setting?.mode === 'dark' ? setting.mode : undefined;
+  return setting?.mode === 'light' || setting?.mode === 'dark' || setting?.mode === 'system' ? setting.mode : undefined;
 }
 
 export async function saveThemePreference(mode: ThemePreference): Promise<void> {

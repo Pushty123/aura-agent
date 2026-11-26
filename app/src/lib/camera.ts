@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { getRecord, putRecord } from './vault';
 import { db } from './db';
+import { hasPermission } from './permissions';
 
 /** Shrink a photo before storing it (keeps the encrypted vault small). */
 export function downscale(dataUrl: string, maxSide = 320, quality = 0.8): Promise<string> {
@@ -41,6 +42,7 @@ function pickFile(capture: boolean): Promise<string | null> {
 
 /** Take a photo with the camera, or choose one from the gallery. Returns a small JPEG data URL. */
 export async function getPhoto(source: 'camera' | 'gallery'): Promise<string | null> {
+  if (!(await hasPermission('camera'))) throw new Error('Enable Camera in Settings → Permissions first.');
   try {
     let raw: string | null;
     if (Capacitor.isNativePlatform()) {

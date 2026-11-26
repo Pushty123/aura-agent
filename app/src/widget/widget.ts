@@ -3,6 +3,7 @@ import { balanceScore } from '../insights/balance';
 import { avatarMood } from '../avatar/mood';
 import { clearWidget, updateWidget, type WidgetSnapshot } from '../native/bridge';
 import type { DayRecord } from '../types';
+import { getPermissions } from '../lib/permissions';
 
 /**
  * Home-screen widget (Android). Off by default because the home screen can be
@@ -49,7 +50,19 @@ export function buildSnapshot(days: DayRecord[], prefs: WidgetPrefs, now = new D
 export async function syncWidget(days: DayRecord[]): Promise<WidgetSnapshot | null> {
   const prefs = await getWidgetPrefs();
   if (!prefs.enabled) return null;
-  const snap = buildSnapshot(days, prefs);
+  const permissions = await getPermissions();
+  const filtered = days.map((day) => {
+    if (day.source !== 'device') return day;
+    const next = { ...day };
+    if (!permissions.sleep) delete next.sleepHours;
+    if (!permissions.steps) delete next.steps;
+    if (!permissions.usage) {
+      delete next.screenMinutes;
+      delete next.lateScreenMin;
+    }
+    return next;
+  });
+  const snap = buildSnapshot(filtered, prefs);
   await updateWidget(snap);
   return snap;
 }

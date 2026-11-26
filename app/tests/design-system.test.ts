@@ -19,6 +19,7 @@ describe('design system components', () => {
       unit: 'bpm',
       timestamp: 'Updated 9:41 AM',
       range: { min: 40, max: 180, value: 72, label: 'Heart rate range' },
+      demo: true,
     }));
 
     expect(markup).toContain('data-metric="heart"');
@@ -27,6 +28,7 @@ describe('design system components', () => {
     expect(markup).toContain('bpm');
     expect(markup).toContain('Updated 9:41 AM');
     expect(markup).toContain('aria-label="Heart rate range"');
+    expect(markup).toContain('DEMO');
   });
 
   it('clamps a range marker to the visible track', () => {
@@ -63,7 +65,7 @@ describe('design system components', () => {
   });
 
   it('renders every supported metric icon tile without emoji', () => {
-    const kinds = ['heart', 'exercise', 'blood-pressure', 'sleep', 'steps', 'water', 'mood', 'food'] as const;
+    const kinds = ['heart', 'exercise', 'blood-pressure', 'sleep', 'steps', 'water', 'mood', 'food', 'balance'] as const;
     const markup = renderToStaticMarkup(createElement('div', null,
       ...kinds.map((kind) => createElement(IconTile, { key: kind, kind })),
     ));

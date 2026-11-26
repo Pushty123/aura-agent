@@ -1,5 +1,6 @@
 import { db } from '../lib/db';
 import { getAll, putRecord } from '../lib/vault';
+import { hasPermission } from '../lib/permissions';
 import { mean } from '../insights/stats';
 import type { DayRecord, FoodEntry } from '../types';
 
@@ -189,6 +190,7 @@ export function newEntry(date: string, symptom: SymptomId, severity: 1 | 2 | 3, 
 }
 
 export async function loadHealth(): Promise<HealthEntry[]> {
+  if (!(await hasPermission('healthRecords'))) return [];
   return (await getAll<HealthEntry>('health')).sort((a, b) => b.ts - a.ts);
 }
 

@@ -23,6 +23,7 @@
   --ds-water: #38c8e8;
   --ds-mood: #f078ad;
   --ds-food: #f3b84e;
+  --ds-balance: #64d5a4;
   color-scheme: dark;
 }
 
@@ -43,6 +44,7 @@
   --ds-water: #087c99;
   --ds-mood: #b52b68;
   --ds-food: #925600;
+  --ds-balance: #176b4a;
   color-scheme: light;
 }
 
@@ -353,6 +355,29 @@
 .ds-icon-tile[data-metric='food'] {
   --ds-accent: var(--ds-food);
   --ds-accent-soft: color-mix(in srgb, var(--ds-food) 13%, var(--ds-card));
+}
+
+.ds-metric-card[data-metric='balance'],
+.ds-icon-tile[data-metric='balance'] {
+  --ds-accent: var(--ds-balance);
+  --ds-accent-soft: color-mix(in srgb, var(--ds-balance) 13%, var(--ds-card));
+}
+
+.ds-metric-grid.ds-today-grid {
+  grid-template-columns: minmax(0, 1fr);
+  padding-left: 16px;
+}
+
+.ds-wellness-note {
+  margin: -12px 0 0;
+  color: var(--ds-muted);
+  font-size: 0.78rem;
+}
+
+@media (min-width: 720px) {
+  .ds-metric-grid.ds-today-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .ds-range-bar {

@@ -5,6 +5,7 @@ import {
   Footprints,
   Heart,
   Moon,
+  Sparkles,
   Smile,
   Utensils,
   type LucideIcon,
@@ -18,7 +19,8 @@ export type MetricKind =
   | 'steps'
   | 'water'
   | 'mood'
-  | 'food';
+  | 'food'
+  | 'balance';
 
 const METRIC_ICONS: Record<MetricKind, LucideIcon> = {
   heart: Heart,
@@ -29,6 +31,7 @@ const METRIC_ICONS: Record<MetricKind, LucideIcon> = {
   water: Droplets,
   mood: Smile,
   food: Utensils,
+  balance: Sparkles,
 };
 
 interface IconTileProps {

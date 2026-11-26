@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isUnlocked, lock, vaultExists } from './lib/vault';
-import { loadThemePreference, saveThemePreference } from './lib/theme';
+import { loadThemePreference, saveThemePreference, type ThemePreference } from './lib/theme';
 import { Unlock } from './pages/Unlock';
 import { Account } from './pages/Account';
 import { Dashboard } from './pages/Dashboard';
@@ -18,26 +18,15 @@ import { PhoneData } from './pages/PhoneData';
 import { AppUsage } from './pages/AppUsage';
 import { Me } from './pages/Me';
 import { Design } from './pages/Design';
+import { PermissionsPage } from './pages/Permissions';
 import { syncPhoneData } from './sync/phoneSync';
 import { AvatarProvider } from './avatar/AvatarContext';
 import { syncWidget } from './widget/widget';
 import { loadDays } from './lib/store';
 import { startAutoLock } from './lib/autolock';
 import { getLockAfter, lockLabel } from './lib/security';
-import { AppShell, type AppTab, type ThemeMode } from './components/AppShell';
+import { AppShell, type AppTab } from './components/AppShell';
 import type { DayRecord } from './types';
-
-const THEME_STORAGE_KEY = 'aura-theme';
-
-function readInitialTheme(): ThemeMode {
-  try {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (saved === 'light' || saved === 'dark') return saved;
-  } catch {
-    // Ignore storage access errors
-  }
-  return 'dark';
-}
 
 export function App() {
   const [ready, setReady] = useState(false);
@@ -46,17 +35,18 @@ export function App() {
   const [idleLocked, setIdleLocked] = useState(false);
   const [tab, setTab] = useState<AppTab>('dashboard');
   const [days, setDays] = useState<DayRecord[]>([]);
-  const [theme, setTheme] = useState<ThemeMode>(readInitialTheme);
+  const [theme, setTheme] = useState<ThemePreference>('system');
   const [themeVaultReady, setThemeVaultReady] = useState(false);
   const themeTouchedWhileLocked = useRef(false);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, theme);
-    } catch {
-      // Ignore storage access errors
-    }
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyTheme = () => {
+      document.documentElement.dataset.theme = theme === 'system' ? (media.matches ? 'dark' : 'light') : theme;
+    };
+    applyTheme();
+    media.addEventListener('change', applyTheme);
+    return () => media.removeEventListener('change', applyTheme);
   }, [theme]);
 
   useEffect(() => {
@@ -161,7 +151,12 @@ export function App() {
   }, [unlocked, days]);
 
   const toggleTheme = useCallback(() => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme((prev) => {
+      const current = prev === 'system'
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : prev;
+      return current === 'dark' ? 'light' : 'dark';
+    });
     if (!unlocked) themeTouchedWhileLocked.current = true;
   }, [unlocked]);
 
@@ -234,7 +229,7 @@ export function App() {
         <Me
           onOpen={setTab}
           theme={theme}
-          onToggleTheme={toggleTheme}
+          onThemeChange={setTheme}
           onLock={() => {
             lock();
             setUnlocked(false);
@@ -254,6 +249,7 @@ export function App() {
         />
       )}
       {tab === 'profile' && <Profile />}
+      {tab === 'permissions' && <PermissionsPage onChanged={refresh} />}
       {tab === 'about' && <About />}
     </AppShell>
     </AvatarProvider>

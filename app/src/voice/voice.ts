@@ -2,6 +2,8 @@ import { Capacitor } from '@capacitor/core';
 import { apiCall, getSession } from '../lib/account';
 import { audit } from '../lib/vault';
 import { db } from '../lib/db';
+import { hasPermission } from '../lib/permissions';
+import { getAiConsent } from '../lib/ai';
 
 /**
  * AURA's voice.
@@ -104,7 +106,7 @@ export async function speak(text: string, characterId?: string): Promise<'eleven
   if (!say) return 'phone';
   await stopSpeaking();
   const s = styleFor(characterId);
-  if (await cloudVoiceReady()) {
+  if (await getAiConsent() && await cloudVoiceReady()) {
     try {
       const session = await getSession();
       const r = await apiCall<{ audio: string; mime: string }>('/v1/voice/speak', {
@@ -204,8 +206,9 @@ async function cloudListen(maxSeconds: number): Promise<Listener> {
 
 /** Start listening. Uses ElevenLabs when available, otherwise the phone. */
 export async function listen(maxSeconds = 15): Promise<Listener> {
+  if (!(await hasPermission('microphone'))) throw new Error('Enable Microphone in Settings → Permissions first.');
   await stopSpeaking();
-  if ((await cloudVoiceReady()) && typeof MediaRecorder !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function") {
+  if (await getAiConsent() && (await cloudVoiceReady()) && typeof MediaRecorder !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function") {
     try {
       return await cloudListen(maxSeconds);
     } catch {

@@ -6,6 +6,8 @@ import { db } from '../src/lib/db';
 import * as bridge from '../src/native/bridge';
 import { buildSnapshot, getWidgetPrefs, setWidgetPrefs, syncWidget, turnWidgetOff } from '../src/widget/widget';
 import type { DayRecord } from '../src/types';
+import { createVault, lock } from '../src/lib/vault';
+import { setPermission } from '../src/lib/permissions';
 
 const days: DayRecord[] = [
   { date: '2026-11-24', source: 'manual', sleepHours: 7, steps: 6000, screenMinutes: 200 },
@@ -16,6 +18,10 @@ const at = new Date(2026, 10, 25, 9, 5);
 describe('widget snapshot', () => {
   beforeEach(async () => {
     await db.meta.clear();
+    await db.records.clear();
+    await db.audit.clear();
+    lock();
+    await createVault('widget-test-passphrase');
     vi.mocked(bridge.updateWidget).mockClear();
     vi.mocked(bridge.clearWidget).mockClear();
   });
@@ -40,11 +46,19 @@ describe('widget snapshot', () => {
 
   it('is on by default so a placed widget shows data, and does not push when turned off', async () => {
     expect((await getWidgetPrefs()).enabled).toBe(true);
+    await setPermission('usage', true);
+    await setPermission('sleep', true);
+    await setPermission('steps', true);
     await syncWidget(days);
     expect(bridge.updateWidget).toHaveBeenCalledTimes(1);
     await setWidgetPrefs({ enabled: false, showNumbers: true });
     expect(await syncWidget(days)).toBeNull();
     expect(bridge.updateWidget).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not expose device metrics to the widget when their permissions are off', async () => {
+    const snapshot = await syncWidget(days);
+    expect(snapshot).toMatchObject({ sleep: '–', steps: '–', screen: '–' });
   });
 
   it('turning off clears the widget', async () => {

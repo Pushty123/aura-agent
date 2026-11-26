@@ -111,6 +111,7 @@ edit(
       '<uses-permission android:name="android.permission.health.READ_STEPS" />',
       '<uses-permission android:name="android.permission.health.READ_SLEEP" />',
       '<uses-permission android:name="android.permission.health.READ_HEART_RATE" />',
+      '<uses-permission android:name="android.permission.health.READ_BLOOD_PRESSURE" />',
       '<uses-permission android:name="android.permission.health.READ_EXERCISE" />',
       '<uses-feature android:name="android.hardware.camera" android:required="false" />',
       '<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />',

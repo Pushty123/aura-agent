@@ -29,9 +29,10 @@ export type AppTab =
   | 'apps'
   | 'vault'
   | 'profile'
+  | 'permissions'
   | 'about'
   | 'me';
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = 'dark' | 'light' | 'system';
 
 type GroupId = 'today' | 'track' | 'report' | 'goals' | 'usage' | 'ask' | 'me';
 
@@ -54,7 +55,7 @@ export const GROUPS: Group[] = [
 /** Screens opened from the left menu. */
 const MENU_GROUPS: Group[] = [
   { id: 'usage', label: 'Usage', icon: AppsIcon, tabs: ['apps', 'phone'] },
-  { id: 'me', label: 'Me', icon: ProfileIcon, tabs: ['me', 'profile', 'vault', 'about'] },
+  { id: 'me', label: 'Me', icon: ProfileIcon, tabs: ['me', 'profile', 'permissions', 'vault', 'about'] },
 ];
 
 function ReportIcon({ size = 22 }: { size?: number }) {
@@ -66,7 +67,7 @@ function ReportIcon({ size = 22 }: { size?: number }) {
 }
 
 const TITLES: Record<AppTab, string> = {
-  dashboard: 'Home',
+  dashboard: 'Today',
   report: 'Weekly report',
   checkin: 'Track',
   food: 'Track',
@@ -76,6 +77,7 @@ const TITLES: Record<AppTab, string> = {
   ask: 'Ask AURA',
   me: 'Settings',
   profile: 'Profile',
+  permissions: 'Permissions',
   phone: 'Phone & band data',
   apps: 'App usage',
   vault: 'My data & privacy',
@@ -180,7 +182,7 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
                 <MenuIcon size={22} />
               </button>
             )}
-            <h1 className="aura-page-title">{TITLES[tab]}</h1>
+            {tab !== 'dashboard' && <h1 className="aura-page-title">{TITLES[tab]}</h1>}
           </div>
           <div className="aura-topbar-actions">
             <button type="button" className="btn ghost icon-only" onClick={() => setMenuOpen(true)} aria-label="Open menu and profile" title="Menu" style={{ padding: 2 }}>
