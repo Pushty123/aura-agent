@@ -106,6 +106,9 @@ edit(
     ];
     const missing = perms.filter((p) => !x.includes(p.match(/android:name="([^"]+)"/)[0]));
     if (missing.length) x = x.replace('<application', `${missing.map((p) => `    ${p}\n`).join('')}\n    <application`);
+    // Lets the demo app talk to a laptop server over plain http on the local Wi-Fi.
+    if (!x.includes('usesCleartextTraffic'))
+      x = x.replace('<application', '<application android:usesCleartextTraffic="true"');
     if (!x.includes('com.google.android.apps.healthdata'))
       x = x.replace('</manifest>', `    <queries>\n        <package android:name="com.google.android.apps.healthdata" />\n    </queries>\n</manifest>`);
     if (!x.includes('SHOW_PERMISSIONS_RATIONALE'))
