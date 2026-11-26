@@ -11,8 +11,11 @@ import { audit } from './vault';
  * is derived separately with a random local salt, so the server, which stores
  * a hash of the auth key, cannot read any health data.
  */
+/** The online AURA server (Render). Not secret. Local development uses the laptop server. */
+export const ONLINE_SERVER = 'https://aura-server-7hmc.onrender.com';
+
 export const DEFAULT_SERVER: string =
-  (import.meta.env.VITE_AURA_SERVER as string | undefined) ?? 'http://localhost:8787';
+  (import.meta.env.VITE_AURA_SERVER as string | undefined) ?? (import.meta.env.DEV ? 'http://localhost:8787' : ONLINE_SERVER);
 
 export interface Session {
   email: string;
