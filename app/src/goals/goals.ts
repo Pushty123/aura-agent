@@ -35,6 +35,10 @@ export interface Goal {
   reminderTime?: string;
   /** Optional emoji shown on the card. */
   icon?: string;
+  /** Set when the goal came from a plan (e.g. exams). */
+  planId?: string;
+  /** Last day the goal applies (YYYY-MM-DD); hidden after this. */
+  endsOn?: string;
 }
 
 export const METRICS: Record<GoalMetric, { label: string; unit: string; target: number; direction: Direction; step: number }> = {

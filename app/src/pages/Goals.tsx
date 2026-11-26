@@ -5,6 +5,7 @@ import { today } from '../lib/dates';
 import { loadFood, patchDay } from '../lib/store';
 import { loadWorkouts } from '../exercise/workouts';
 import { isNative } from '../native/bridge';
+import { PlanCard } from './PlanCard';
 import {
   buildDayValues,
   deleteGoal,
@@ -70,7 +71,7 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
   const [draft, setDraft] = useState<Reminder>(() => newReminder({ title: '' }));
 
   const refresh = useCallback(async () => {
-    setGoals(await loadGoals());
+    setGoals((await loadGoals()).filter((g) => !g.endsOn || g.endsOn >= today()));
     setReminders(await loadReminders());
     setFood(await loadFood());
     setWorkouts(await loadWorkouts());
@@ -181,6 +182,8 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
           {msg.text}
         </div>
       )}
+
+      <PlanCard days={days} onApplied={refresh} />
 
       {/* ---------------- My goals ---------------- */}
       <div className="card stack-md">
@@ -301,6 +304,7 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
                     : `${g.direction === 'atLeast' ? 'At least' : 'At most'} ${fmt(g, g.target)} a day`}
                   {g.daysPerWeek ? ` · ${g.daysPerWeek} days a week` : ''}
                   {g.reminderTime ? ` · ⏰ ${g.reminderTime}` : ''}
+                  {g.endsOn ? ` · until ${g.endsOn.slice(8)}/${g.endsOn.slice(5, 7)}` : ''}
                 </p>
                 <div className="bar" role="progressbar" aria-valuenow={p.pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${g.title} progress`}>
                   <div style={{ width: `${p.pct}%`, background: p.met ? 'var(--aura-primary)' : 'var(--aura-blue)' }} />

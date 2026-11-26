@@ -2,6 +2,7 @@ import { scheduleReminders } from '../native/bridge';
 import { getRecord, putRecord } from '../lib/vault';
 import type { DayRecord } from '../types';
 import { mean } from '../insights/stats';
+import { today as todayISO } from '../lib/dates';
 
 /**
  * Reminders that repeat every day, scheduled by the phone itself (no server).
@@ -17,6 +18,10 @@ export interface Reminder {
   start: string; // HH:MM
   end: string; // HH:MM
   enabled: boolean;
+  /** Set when the reminder came from a plan. */
+  planId?: string;
+  /** Stop after this date (YYYY-MM-DD). */
+  until?: string;
 }
 
 export interface Slot {
@@ -123,7 +128,7 @@ export async function saveReminders(list: Reminder[]): Promise<void> {
 export async function applyReminders(list: Reminder[]) {
   await saveReminders(list);
   const items = list
-    .filter((r) => r.enabled)
+    .filter((r) => r.enabled && (!r.until || r.until >= todayISO()))
     .flatMap((r) => slotsFor(r).map((s, i) => ({ id: notificationId(r.id, i), title: r.title, body: r.body || r.title, ...s })));
   return scheduleReminders(items);
 }
