@@ -60,8 +60,9 @@ export async function apiCall<T>(path: string, init: RequestInit & { label: stri
       ...init,
       headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
     });
-  } catch {
-    throw new AccountError('Could not reach the AURA server. Check your internet and the server address.');
+  } catch (e) {
+    const why = e instanceof Error && e.message ? ` (${e.message.slice(0, 120)})` : '';
+    throw new AccountError(`Could not reach the AURA server at ${server}. Check the Wi-Fi and the server address.${why}`);
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {

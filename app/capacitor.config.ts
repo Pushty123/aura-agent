@@ -9,6 +9,12 @@ const config: CapacitorConfig = {
   // use a laptop on the same Wi-Fi. Use an https:// server in production.
   android: { allowMixedContent: true },
   server: { cleartext: true },
+  plugins: {
+    // Send fetch() through Android's own HTTP stack instead of the WebView, so
+    // the WebView's CORS and mixed-content rules cannot block the account and
+    // smart-reply calls to the server.
+    CapacitorHttp: { enabled: true },
+  },
 };
 
 export default config;
