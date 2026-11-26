@@ -6,6 +6,7 @@ import { loadFood, patchDay } from '../lib/store';
 import { loadWorkouts } from '../exercise/workouts';
 import { isNative } from '../native/bridge';
 import { PlanCard } from './PlanCard';
+import { doneToday, sendTestReminder } from '../reminders/actions';
 import {
   buildDayValues,
   deleteGoal,
@@ -16,6 +17,7 @@ import {
   saveGoal,
   streakFor,
   toggleHabit,
+  logCustom,
   validateGoal,
   weekProgress,
   type Direction,
@@ -27,6 +29,7 @@ import {
   loadReminders,
   newReminder,
   slotsFor,
+  actionFor,
   suggestFromData,
   TEMPLATES,
   validateReminder,
@@ -37,6 +40,7 @@ const fmt = (g: Goal, v: number | null) => {
   if (v === null) return 'Not logged';
   if (g.metric === 'sleepHours') return `${v} h`;
   if (g.metric === 'mood') return `${v} / 5`;
+  if (g.metric === 'custom') return `${v.toLocaleString()} ${g.unit ?? ''}`.trim();
   return `${v.toLocaleString()} ${METRICS[g.metric].unit}`;
 };
 const ICONS = ['🎯', '💧', '🚶', '😴', '🧘', '🥗', '💪', '📵', '☕', '📚', '💊', '🙂'];
@@ -45,6 +49,10 @@ const hhmm = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m
 /** Goals you set yourself, goals suggested from your own baseline, and on-screen reminders. */
 export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => Promise<void> | void }) {
   const [view, setView] = useState<'goals' | 'plan' | 'reminders'>('goals');
+  const [doneMap, setDoneMap] = useState<Record<string, number>>({});
+  useEffect(() => {
+    void doneToday().then(setDoneMap);
+  }, [days]);
   const date = today();
   const todayRec = days.find((d) => d.date === date);
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -63,7 +71,8 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
   // add-goal form
   const [showAdd, setShowAdd] = useState(false);
   const [gTitle, setGTitle] = useState('');
-  const [gMetric, setGMetric] = useState<GoalMetric>('waterGlasses');
+  const [gMetric, setGMetric] = useState<GoalMetric>('custom');
+  const [gUnit, setGUnit] = useState('');
   const [gTarget, setGTarget] = useState(String(METRICS.waterGlasses.target));
   const [gDir, setGDir] = useState<Direction>('atLeast');
 
@@ -103,7 +112,7 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
     setGMetric(m);
     setGTarget(String(METRICS[m].target));
     setGDir(METRICS[m].direction);
-    if (!gTitle) setGTitle(m === 'habit' ? '' : METRICS[m].label);
+    if (!gTitle) setGTitle(m === 'habit' || m === 'custom' ? '' : METRICS[m].label);
   }
 
   async function addGoal(e: React.FormEvent) {
@@ -113,6 +122,7 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
       icon: gIcon,
       daysPerWeek: gDays === '7' ? undefined : Number(gDays),
       reminderTime: gRemind || undefined,
+      ...(gMetric === 'custom' ? { unit: gUnit.trim(), log: {} } : {}),
     };
     const err = validateGoal(g);
     if (err) return setMsg({ ok: false, text: err });
@@ -127,6 +137,7 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
     setGTitle('');
     setGRemind('');
     setGDays('7');
+    setGUnit('');
     setMsg({ ok: true, text: `Goal "${g.title}" added${g.reminderTime ? ` with a reminder at ${g.reminderTime}` : ''}.` });
     await refresh();
   }
@@ -215,6 +226,39 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
 
         {showAdd && (
           <form className="card-subtle stack-sm" onSubmit={addGoal}>
+            <div className="stack-sm">
+              <span className="small" style={{ fontWeight: 600 }}>Quick ideas</span>
+              <div className="ask-chips">
+                {(
+                  [
+                    ['📚', 'Read', 'custom', 20, 'pages', 'atLeast'],
+                    ['🧘', 'Meditate', 'custom', 10, 'min', 'atLeast'],
+                    ['🚴', 'Cycle', 'custom', 5, 'km', 'atLeast'],
+                    ['📖', 'Study', 'custom', 3, 'hours', 'atLeast'],
+                    ['🍬', 'Sweets', 'custom', 1, 'times', 'atMost'],
+                    ['🙏', 'Pray or journal', 'habit', 1, '', 'atLeast'],
+                    ['💧', 'Water', 'waterGlasses', 8, '', 'atLeast'],
+                    ['📵', 'Screen time', 'screenMinutes', 180, '', 'atMost'],
+                  ] as const
+                ).map(([ic, t, m, target, unit, dir]) => (
+                  <button
+                    key={t}
+                    type="button"
+                    className="pill"
+                    onClick={() => {
+                      setGMetric(m);
+                      setGTitle(t);
+                      setGTarget(String(target));
+                      setGDir(dir);
+                      setGUnit(unit);
+                      setGIcon(ic);
+                    }}
+                  >
+                    {ic} {t}
+                  </button>
+                ))}
+              </div>
+            </div>
             <label className="stack-sm">
               <span className="small" style={{ fontWeight: 600 }}>What do you want to track?</span>
               <select className="input" value={gMetric} onChange={(e) => pickMetric(e.target.value as GoalMetric)}>
@@ -231,7 +275,7 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
                 className="input"
                 value={gTitle}
                 maxLength={60}
-                placeholder={gMetric === 'habit' ? 'e.g. Meditate 10 minutes' : METRICS[gMetric].label}
+                placeholder={gMetric === 'habit' ? 'e.g. Meditate 10 minutes' : gMetric === 'custom' ? 'e.g. Read, Practise guitar, Walk the dog' : METRICS[gMetric].label}
                 onChange={(e) => setGTitle(e.target.value)}
               />
             </label>
@@ -252,8 +296,19 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
                   onChange={(e) => setGTarget(e.target.value)}
                   aria-label="Target"
                 />
+                {gMetric === 'custom' ? (
+                  <input
+                    className="input"
+                    style={{ maxWidth: 140 }}
+                    value={gUnit}
+                    maxLength={20}
+                    placeholder="unit: pages, km…"
+                    onChange={(e) => setGUnit(e.target.value)}
+                    aria-label="Unit"
+                  />
+                ) : null}
                 <span className="small muted" style={{ alignSelf: 'center' }}>
-                  {METRICS[gMetric].unit} a day
+                  {gMetric === 'custom' ? 'a day' : `${METRICS[gMetric].unit} a day`}
                 </span>
               </div>
             )}
@@ -355,6 +410,21 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
                     <button type="button" className="btn sm" onClick={() => void toggleHabit(g, date).then(refresh)}>
                       {p.met ? 'Undo today' : 'Mark done today'}
                     </button>
+                  )}
+                  {g.metric === 'custom' && (
+                    <>
+                      <button type="button" className="btn sm" aria-label={`Remove 1 ${g.unit}`} onClick={() => void logCustom(g, date, -1).then(refresh)}>
+                        −
+                      </button>
+                      <button type="button" className="btn sm primary" onClick={() => void logCustom(g, date, 1).then(refresh)}>
+                        + 1 {g.unit}
+                      </button>
+                      {g.target >= 5 && (
+                        <button type="button" className="btn sm" onClick={() => void logCustom(g, date, Math.round(g.target / 4)).then(refresh)}>
+                          + {Math.round(g.target / 4)}
+                        </button>
+                      )}
+                    </>
                   )}
                   {g.metric === 'waterGlasses' && (
                     <button type="button" className="btn sm" onClick={() => void plusWater()}>
@@ -513,11 +583,21 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
                   <span className="muted">
                     · {slotsFor(r).map((s) => hhmm(s.hour, s.minute)).join(', ')}
                   </span>
+                  {doneMap[r.id] ? <span className="pill ok" style={{ marginLeft: 6 }}>✓ {doneMap[r.id]}× today</span> : null}
                 </span>
               </label>
-              <button type="button" className="btn sm ghost" onClick={() => void updateReminders(reminders.filter((x) => x.id !== r.id))}>
-                Remove
-              </button>
+              <span className="row gap">
+                <button
+                  type="button"
+                  className="btn sm"
+                  onClick={() => void sendTestReminder(r.title, r.body, r.id, actionFor(r)).then((t) => setMsg({ ok: true, text: t }))}
+                >
+                  🔔 Test
+                </button>
+                <button type="button" className="btn sm ghost" onClick={() => void updateReminders(reminders.filter((x) => x.id !== r.id))}>
+                  Remove
+                </button>
+              </span>
             </div>
           ))
         )}

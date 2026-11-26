@@ -26,6 +26,8 @@ export interface AuraWidgetProps {
   thought?: string;
   onListen?: () => void;
   listening?: boolean;
+  /** Daily phone limit in minutes, shown on the screen-time tile. */
+  screenLimit?: number;
 }
 
 const MOODS = ['Low', 'Tired', 'Okay', 'Good', 'Great'];
@@ -113,7 +115,7 @@ export function AuraWidget(p: AuraWidgetProps) {
       <div className="aw-tiles">
         <Tile icon="🌙" value={fmtMinutes(typeof p.sleepHours === 'number' ? p.sleepHours * 60 : undefined)} label="Sleep" onClick={open('sleep')} />
         <Tile icon="👟" value={typeof p.steps === 'number' ? p.steps.toLocaleString() : '—'} label="Steps" onClick={open('steps')} />
-        <Tile icon="📱" value={fmtMinutes(p.screenMinutes)} label="Screen Time" onClick={open('screen')} />
+        <Tile icon="📱" value={fmtMinutes(p.screenMinutes)} label={p.screenLimit ? `Screen · limit ${fmtMinutes(p.screenLimit)}` : 'Screen Time'} onClick={open('screen')} />
         <Tile icon={p.mood ? MOOD_EMOJI[p.mood - 1] : '😶'} value={p.mood ? MOODS[p.mood - 1] : '—'} label="Mood" onClick={open('mood')} />
       </div>
 

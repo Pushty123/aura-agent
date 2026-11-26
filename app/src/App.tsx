@@ -17,6 +17,8 @@ import { PhoneData } from './pages/PhoneData';
 import { AppUsage } from './pages/AppUsage';
 import { Me } from './pages/Me';
 import { syncPhoneData } from './sync/phoneSync';
+import { applyQueuedActions, initNotificationActions } from './reminders/actions';
+import { Toast, toast } from './components/Toast';
 import { AvatarProvider } from './avatar/AvatarContext';
 import { syncWidget } from './widget/widget';
 import { loadDays } from './lib/store';
@@ -117,6 +119,33 @@ export function App() {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [unlocked, refresh]);
 
+  // Notification buttons ("✓ Done", "⏰ 10 min"): listen from the start, apply "Done" once unlocked.
+  useEffect(() => {
+    void initNotificationActions();
+  }, []);
+  useEffect(() => {
+    if (!unlocked) return;
+    const apply = async () => {
+      try {
+        const m = await applyQueuedActions();
+        if (m) {
+          toast(m);
+          await refresh();
+        }
+      } catch {
+        // never break the app over a reminder tap
+      }
+    };
+    void apply();
+    window.addEventListener('aura-actions', apply);
+    const onVis = () => document.visibilityState === 'visible' && void apply();
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.removeEventListener('aura-actions', apply);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [unlocked, refresh]);
+
   // Keep the home-screen widget in step with the latest data (only if turned on).
   useEffect(() => {
     if (!unlocked) return;
@@ -214,6 +243,7 @@ export function App() {
       {tab === 'profile' && <Profile />}
       {tab === 'about' && <About />}
     </AppShell>
+    <Toast />
     </AvatarProvider>
   );
 }

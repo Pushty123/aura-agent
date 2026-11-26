@@ -84,7 +84,8 @@ class AppLimitWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, param
             val o = limits.getJSONObject(i)
             val pkg = o.optString("pkg"); val label = o.optString("label", pkg); val limit = o.optInt("minutes", 0)
             if (limit <= 0) continue
-            val used = today.minutes[pkg] ?: 0L
+            // "__all__" is the overall daily phone limit (all apps together).
+            val used = if (pkg == "__all__") today.minutes.values.sum() else today.minutes[pkg] ?: 0L
             val level = when { used >= limit -> "100"; used >= limit * 0.8 -> "80"; else -> null } ?: continue
             val key = "$date|$pkg|$level"
             if (key in sent) continue

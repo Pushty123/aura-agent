@@ -17,6 +17,7 @@ import { speak, stopSpeaking } from '../voice/voice';
 import { pinWidget, widgetStatus } from '../native/bridge';
 import { db } from '../lib/db';
 import { syncWidget } from '../widget/widget';
+import { loadLimits, phoneLimit } from '../apps/appUsage';
 import { generateDemoData } from '../lib/demoData';
 import { today } from '../lib/dates';
 import { patchDay, saveDay } from '../lib/store';
@@ -44,8 +45,10 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   const [speaking, setSpeaking] = useState(false);
   const streakList = useMemo(() => streaks(days, today()), [days]);
   const [offerWidget, setOfferWidget] = useState(false);
+  const [phoneMax, setPhoneMax] = useState<number | undefined>();
   useEffect(() => {
     void (async () => {
+      setPhoneMax(phoneLimit(await loadLimits()));
       const st = await widgetStatus();
       const hidden = (await db.meta.get('widget-offer'))?.value === 'hide';
       setOfferWidget(!!st && st.placed === 0 && !hidden);
@@ -180,6 +183,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
         thought={thought}
         onListen={() => void listen()}
         listening={speaking}
+        screenLimit={phoneMax}
         ringContent={balance ? <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={88} /> : undefined}
         onRingClick={() => (me.choice.kind === 'character' ? setShowCharacter(true) : onNavigate?.('report'))}
         onOpen={(s) => onNavigate?.(s === 'sleep' || s === 'mood' ? 'checkin' : s === 'steps' ? 'phone' : s === 'screen' ? 'apps' : 'report')}

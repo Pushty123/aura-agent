@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import type { DayRecord } from '../types';
 import type { AppTab } from './AppShell';
 import { getAppUsage, type AppUse } from '../native/bridge';
-import { demoApps, fmtMin } from '../apps/appUsage';
+import { demoApps, fmtMin, limitState, loadLimits, phoneLimit } from '../apps/appUsage';
+import type { AppLimit } from '../native/bridge';
 import { AppIcon } from './AppIcon';
 
 const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -44,8 +45,10 @@ function Bars({ values, labels, goal, color, fmt }: { values: (number | undefine
 export function WeekCharts({ days, hasDemo, onNavigate }: { days: DayRecord[]; hasDemo: boolean; onNavigate?: (t: AppTab) => void }) {
   const [apps, setApps] = useState<AppUse[] | null>(null);
   const [appsDemo, setAppsDemo] = useState(false);
+  const [limits, setLimits] = useState<AppLimit[]>([]);
 
   useEffect(() => {
+    void loadLimits().then(setLimits);
     void getAppUsage().then((r) => {
       if (r.ok) setApps(r.apps.slice(0, 4));
       else if (r.reason === 'web' && hasDemo) {
@@ -66,6 +69,8 @@ export function WeekCharts({ days, hasDemo, onNavigate }: { days: DayRecord[]; h
   const sAvg = avg(steps);
   const tAvg = avg(screen);
   const maxApp = Math.max(1, ...(apps ?? []).map((a) => a.minutes));
+  const phoneMax = phoneLimit(limits);
+  const limitOf = (pkg: string) => limits.find((l) => l.pkg === pkg)?.minutes;
 
   if (!week.length) return null;
   return (
@@ -80,9 +85,10 @@ export function WeekCharts({ days, hasDemo, onNavigate }: { days: DayRecord[]; h
       <button type="button" className="card stack-sm week-chart" onClick={() => onNavigate?.('apps')}>
         <div className="row between center-v">
           <strong>📱 Screen time</strong>
-          {tAvg !== null && <span className="xs muted">avg {tAvg.toFixed(1)} h</span>}
+          {tAvg !== null && <span className="xs muted">avg {tAvg.toFixed(1)} h{phoneMax ? ` · limit ${fmtMin(phoneMax)} (dashed)` : ''}</span>}
         </div>
-        <Bars values={screen} labels={labels} color="#fb7185" fmt={(v) => `${v.toFixed(1)}`} />
+        <Bars values={screen} labels={labels} goal={phoneMax ? phoneMax / 60 : undefined} color="#fb7185" fmt={(v) => `${v.toFixed(1)}`} />
+        {!phoneMax && <span className="xs muted">Tap to set a daily phone limit.</span>}
       </button>
       <button type="button" className="card stack-sm week-chart" onClick={() => onNavigate?.('apps')}>
         <div className="row between center-v">
@@ -95,8 +101,17 @@ export function WeekCharts({ days, hasDemo, onNavigate }: { days: DayRecord[]; h
               <div key={a.pkg} className="row gap center-v">
                 <AppIcon pkg={a.pkg} label={a.label} icon={a.icon} size={26} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="row between xs"><span>{a.label}</span><span className="muted">{fmtMin(a.minutes)}</span></div>
-                  <div className="app-bar"><span style={{ width: `${(a.minutes / maxApp) * 100}%` }} /></div>
+                  <div className="row between xs">
+                    <span>{a.label}</span>
+                    <span className={limitOf(a.pkg) && limitState(a.minutes, limitOf(a.pkg)) === 'over' ? 'limit-over' : 'muted'}>
+                      {fmtMin(a.minutes)}{limitOf(a.pkg) ? ` / ${fmtMin(limitOf(a.pkg)!)}` : ''}
+                    </span>
+                  </div>
+                  {limitOf(a.pkg) ? (
+                    <div className={`limit-bar ${limitState(a.minutes, limitOf(a.pkg))}`}><span style={{ width: `${Math.min(100, (a.minutes / limitOf(a.pkg)!) * 100)}%` }} /></div>
+                  ) : (
+                    <div className="app-bar"><span style={{ width: `${(a.minutes / maxApp) * 100}%` }} /></div>
+                  )}
                 </div>
               </div>
             ))}

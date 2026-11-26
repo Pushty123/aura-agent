@@ -14,7 +14,7 @@ export type NumericMetric =
   | 'proteinG'
   | 'reps'
   | 'mood';
-export type GoalMetric = NumericMetric | 'habit';
+export type GoalMetric = NumericMetric | 'habit' | 'custom';
 
 /** Everything a goal can be measured against for one date. */
 export type DayValues = Partial<Record<NumericMetric, number>>;
@@ -39,6 +39,10 @@ export interface Goal {
   planId?: string;
   /** Last day the goal applies (YYYY-MM-DD); hidden after this. */
   endsOn?: string;
+  /** For custom goals: the person's own unit, e.g. "pages", "km", "times". */
+  unit?: string;
+  /** For custom goals: amount logged per date. */
+  log?: Record<string, number>;
 }
 
 export const METRICS: Record<GoalMetric, { label: string; unit: string; target: number; direction: Direction; step: number }> = {
@@ -53,13 +57,16 @@ export const METRICS: Record<GoalMetric, { label: string; unit: string; target: 
   reps: { label: 'Workout reps (camera)', unit: 'reps', target: 30, direction: 'atLeast', step: 5 },
   mood: { label: 'Mood (1-5 check-in)', unit: '/ 5', target: 4, direction: 'atLeast', step: 1 },
   habit: { label: 'Daily habit (tick off)', unit: '', target: 1, direction: 'atLeast', step: 1 },
+  custom: { label: '✏️ My own (any unit you like)', unit: '', target: 10, direction: 'atLeast', step: 1 },
 };
 
-export function validateGoal(g: Pick<Goal, 'title' | 'metric' | 'target'> & Partial<Pick<Goal, 'daysPerWeek' | 'reminderTime'>>): string | null {
+export function validateGoal(g: Pick<Goal, 'title' | 'metric' | 'target'> & Partial<Pick<Goal, 'daysPerWeek' | 'reminderTime' | 'unit'>>): string | null {
   if (!g.title.trim()) return 'Give the goal a name.';
   if (g.title.trim().length > 60) return 'Keep the name under 60 characters.';
   if (!(g.metric in METRICS)) return 'Pick what to track.';
   if (g.metric !== 'habit' && (!Number.isFinite(g.target) || g.target <= 0)) return 'The target must be a number above 0.';
+  if (g.metric === 'custom' && !g.unit?.trim()) return 'Add a unit, for example pages, km, minutes or times.';
+  if (g.metric === 'custom' && g.unit!.trim().length > 20) return 'Keep the unit short.';
   if (g.metric === 'sleepHours' && g.target > 14) return 'Sleep target must be 14 hours or less.';
   if (g.metric === 'mood' && g.target > 5) return 'Mood is rated 1 to 5.';
   if (g.daysPerWeek !== undefined && !(g.daysPerWeek >= 1 && g.daysPerWeek <= 7)) return 'Days a week must be 1 to 7.';
@@ -91,7 +98,7 @@ export function progressFor(g: Goal, day: DayValues | undefined, date: string): 
     const met = g.done.includes(date);
     return { value: met ? 1 : 0, pct: met ? 100 : 0, met };
   }
-  const v = day?.[g.metric];
+  const v = g.metric === 'custom' ? g.log?.[date] ?? 0 : day?.[g.metric];
   if (typeof v !== 'number') return { value: null, pct: 0, met: false };
   if (g.direction === 'atLeast') {
     return { value: v, pct: Math.min(100, Math.round((v / g.target) * 100)), met: v >= g.target };
@@ -174,6 +181,26 @@ export async function saveGoal(g: Goal): Promise<void> {
 
 export async function deleteGoal(id: string): Promise<void> {
   await db.records.delete(`goal:${id}`);
+}
+
+/** Add to (or take from) today's amount for a custom goal. Never below 0. */
+export async function logCustom(g: Goal, date: string, delta: number): Promise<Goal> {
+  const cur = g.log?.[date] ?? 0;
+  const v = Math.max(0, Math.round((cur + delta) * 100) / 100);
+  const keep = Object.entries(g.log ?? {}).sort(([a], [b]) => b.localeCompare(a)).slice(0, 400);
+  const next = { ...g, log: { ...Object.fromEntries(keep), [date]: v } };
+  await saveGoal(next);
+  return next;
+}
+
+/** Marks a goal complete for today, whatever its kind (used by the notification "Done" button). */
+export async function completeGoal(g: Goal, date: string): Promise<Goal> {
+  if (g.metric === 'habit') return g.done.includes(date) ? g : toggleHabit(g, date);
+  if (g.metric === 'custom') {
+    const cur = g.log?.[date] ?? 0;
+    return cur >= g.target ? g : logCustom(g, date, g.target - cur);
+  }
+  return g;
 }
 
 export async function toggleHabit(g: Goal, date: string): Promise<Goal> {

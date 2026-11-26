@@ -22,6 +22,8 @@ export interface Reminder {
   planId?: string;
   /** Stop after this date (YYYY-MM-DD). */
   until?: string;
+  /** What the notification's "Done" button does: 'water', 'goal:<id>' or 'done'. */
+  action?: string;
 }
 
 export interface Slot {
@@ -75,7 +77,7 @@ const blank = (over: Partial<Reminder>): Reminder => ({
 });
 
 export const TEMPLATES: { key: string; label: string; make: () => Reminder }[] = [
-  { key: 'water', label: '💧 Drink water every 2 hours', make: () => blank({ title: 'Drink water', body: 'Time for a glass of water.', kind: 'interval', everyHours: 2, start: '09:00', end: '21:00' }) },
+  { key: 'water', label: '💧 Drink water every 2 hours', make: () => blank({ title: 'Drink water', body: 'Time for a glass of water.', kind: 'interval', everyHours: 2, start: '09:00', end: '21:00', action: 'water' }) },
   { key: 'wind', label: '🌙 Wind down at 10:30 pm', make: () => blank({ title: 'Wind down', body: 'Screens off soon for better sleep.', time: '22:30' }) },
   { key: 'move', label: '🚶 Move break at 3 pm', make: () => blank({ title: 'Move break', body: 'Stand up and walk for 5 minutes.', time: '15:00' }) },
   { key: 'checkin', label: '📝 Evening check-in at 9 pm', make: () => blank({ title: 'Daily check-in', body: 'How was your day? Log it in AURA.', time: '21:00' }) },
@@ -124,11 +126,21 @@ export async function saveReminders(list: Reminder[]): Promise<void> {
   await putRecord('settings', 'reminders', list);
 }
 
+/** What tapping "Done" on this reminder's notification should do. */
+export function actionFor(r: Reminder): string {
+  if (r.action) return r.action;
+  if (r.id.startsWith('goal-')) return `goal:${r.id.slice(5)}`;
+  if (/water/i.test(r.title)) return 'water';
+  return 'done';
+}
+
 /** Save and (re)schedule every enabled reminder on the phone. */
 export async function applyReminders(list: Reminder[]) {
   await saveReminders(list);
   const items = list
     .filter((r) => r.enabled && (!r.until || r.until >= todayISO()))
-    .flatMap((r) => slotsFor(r).map((s, i) => ({ id: notificationId(r.id, i), title: r.title, body: r.body || r.title, ...s })));
+    .flatMap((r) =>
+      slotsFor(r).map((s, i) => ({ id: notificationId(r.id, i), title: r.title, body: r.body || r.title, rid: r.id, action: actionFor(r), ...s })),
+    );
   return scheduleReminders(items);
 }

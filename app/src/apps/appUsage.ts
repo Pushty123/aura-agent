@@ -18,6 +18,11 @@ export function setLimit(list: AppLimit[], app: Pick<AppUse, 'pkg' | 'label'>, m
   return minutes === null ? rest : [...rest, { pkg: app.pkg, label: app.label, minutes }];
 }
 
+/** Pseudo-package for the overall daily phone limit (all apps together). */
+export const ALL_APPS = '__all__';
+
+export const phoneLimit = (limits: AppLimit[]) => limits.find((l) => l.pkg === ALL_APPS)?.minutes;
+
 export type LimitState = 'none' | 'ok' | 'near' | 'over';
 
 export function limitState(used: number, limit?: number): LimitState {

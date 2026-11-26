@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getAppUsage, getUsage, isNative, notify, pushAppLimits, type AppLimit, type AppUse } from '../native/bridge';
-import { demoApps, fmtMin, limitState, loadLimits, saveLimits, setLimit } from '../apps/appUsage';
+import { ALL_APPS, demoApps, fmtMin, limitState, loadLimits, phoneLimit, saveLimits, setLimit } from '../apps/appUsage';
 import { AppIcon } from '../components/AppIcon';
 
 const COLORS = { none: 'var(--aura-blue)', ok: 'var(--aura-primary)', near: '#E8A33D', over: '#E2626B' } as const;
@@ -93,6 +93,48 @@ export function AppUsage() {
       )}
       {msg && <div className={`status-banner ${msg.ok ? 'ok' : 'error'}`}>{msg.text}</div>}
 
+      <div className="card stack-sm">
+        <div className="row between center-v wrap gap">
+          <div>
+            <h3 style={{ margin: 0 }}>📱 Daily phone limit</h3>
+            <p className="xs muted" style={{ margin: 0 }}>All apps together. AURA reminds you at 80% and when you reach it.</p>
+          </div>
+          {phoneLimit(limits) !== undefined && (
+            <span className={`pill ${limitState(total, phoneLimit(limits)) === 'over' ? '' : 'ok'}`} style={limitState(total, phoneLimit(limits)) === 'over' ? { background: '#E2626B33' } : undefined}>
+              {limitState(total, phoneLimit(limits)) === 'over' ? 'Over limit' : limitState(total, phoneLimit(limits)) === 'near' ? 'Almost there' : 'On track'}
+            </span>
+          )}
+        </div>
+        {phoneLimit(limits) !== undefined && (
+          <>
+            <div className="row between small">
+              <span><strong>{fmtMin(total)}</strong> used today</span>
+              <span className="muted">limit {fmtMin(phoneLimit(limits)!)}</span>
+            </div>
+            <div className={`limit-bar ${limitState(total, phoneLimit(limits))}`} aria-hidden="true">
+              <span style={{ width: `${Math.min(100, Math.round((total / phoneLimit(limits)!) * 100))}%` }} />
+            </div>
+          </>
+        )}
+        <div className="row gap wrap">
+          {[120, 180, 240, 300, 360].map((m) => (
+            <button
+              key={m}
+              type="button"
+              className={`btn sm ${phoneLimit(limits) === m ? 'primary' : ''}`}
+              onClick={() => void changeLimit({ pkg: ALL_APPS, label: 'Your phone (all apps)', minutes: total, opens: 0 } as AppUse, m)}
+            >
+              {m / 60} h
+            </button>
+          ))}
+          {phoneLimit(limits) !== undefined && (
+            <button type="button" className="btn sm ghost" onClick={() => void changeLimit({ pkg: ALL_APPS, label: 'Your phone (all apps)', minutes: total, opens: 0 } as AppUse, null)}>
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
         {[
           ['Screen time', fmtMin(total)],
@@ -169,7 +211,7 @@ export function AppUsage() {
         <div className="card stack-sm">
           <h3 style={{ margin: 0 }}>My app limits</h3>
           {limits.map((l) => {
-            const used = apps.find((a) => a.pkg === l.pkg)?.minutes ?? 0;
+            const used = l.pkg === ALL_APPS ? total : apps.find((a) => a.pkg === l.pkg)?.minutes ?? 0;
             const st = limitState(used, l.minutes);
             return (
               <div key={l.pkg} className="row between center-v">

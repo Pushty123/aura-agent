@@ -325,8 +325,27 @@ export async function biometricDisable(): Promise<void> {
  * Replace all AURA reminders on the phone with this set of daily repeating
  * notifications. Returns how many were scheduled.
  */
+export const REMINDER_ACTIONS = 'aura-reminder';
+
+/** The buttons under every AURA reminder: "✓ Done" and "⏰ 10 min". */
+export async function registerReminderActions(): Promise<void> {
+  if (!isNative()) return;
+  const { LocalNotifications } = await import('@capacitor/local-notifications');
+  await LocalNotifications.registerActionTypes({
+    types: [
+      {
+        id: REMINDER_ACTIONS,
+        actions: [
+          { id: 'done', title: '✓ Done' },
+          { id: 'snooze', title: '⏰ 10 min' },
+        ],
+      },
+    ],
+  });
+}
+
 export async function scheduleReminders(
-  items: { id: number; title: string; body: string; hour: number; minute: number }[],
+  items: { id: number; title: string; body: string; hour: number; minute: number; rid?: string; action?: string }[],
 ): Promise<{ ok: boolean; count: number; message: string }> {
   if (!isNative()) return { ok: false, count: 0, message: 'Reminders on your screen work in the Android app.' };
   try {
@@ -338,13 +357,15 @@ export async function scheduleReminders(
     const perm = await LocalNotifications.requestPermissions();
     if (perm.display !== 'granted')
       return { ok: false, count: 0, message: 'Allow notifications for AURA in phone Settings → Apps → AURA → Notifications.' };
+    await registerReminderActions();
     await LocalNotifications.schedule({
       notifications: items.map((n) => ({
         id: n.id,
         title: n.title,
         body: n.body,
         schedule: { on: { hour: n.hour, minute: n.minute }, allowWhileIdle: true },
-        extra: { aura: true },
+        actionTypeId: REMINDER_ACTIONS,
+        extra: { aura: true, rid: n.rid, action: n.action },
       })),
     });
     return { ok: true, count: items.length, message: `${items.length} reminder time${items.length === 1 ? '' : 's'} set on this phone.` };
