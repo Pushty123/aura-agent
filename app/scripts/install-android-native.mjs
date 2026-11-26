@@ -75,10 +75,12 @@ edit(
       t = t.replace("apply plugin: 'com.android.application'", "apply plugin: 'com.android.application'\napply plugin: 'kotlin-android'");
     if (!t.includes('kotlinOptions'))
       t = t.replace(/\n(\s*)buildTypes \{/, `\n$1kotlinOptions {\n$1    jvmTarget = '17'\n$1}\n$1buildTypes {`);
+    // connect-client 1.1.0 (stable) needs compileSdk 36; 1.1.0-alpha07 works with compileSdk 34 / AGP 8.2.
+    t = t.replace(/androidx\.health\.connect:connect-client:[^"']+/, 'androidx.health.connect:connect-client:1.1.0-alpha07');
     if (!t.includes('connect-client'))
       t = t.replace(
         /dependencies \{/,
-        `dependencies {\n    implementation "androidx.health.connect:connect-client:1.1.0"\n    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"`,
+        `dependencies {\n    implementation "androidx.health.connect:connect-client:1.1.0-alpha07"\n    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"`,
       );
     return t;
   },
