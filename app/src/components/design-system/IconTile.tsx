@@ -1,5 +1,6 @@
 import {
   Activity,
+  BookOpen,
   Dumbbell,
   Droplets,
   Footprints,
@@ -8,6 +9,8 @@ import {
   Sparkles,
   Smile,
   Utensils,
+  Repeat2,
+  UserRound,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -20,7 +23,12 @@ export type MetricKind =
   | 'water'
   | 'mood'
   | 'food'
-  | 'balance';
+  | 'balance'
+  | 'health'
+  | 'study'
+  | 'habit'
+  | 'personal'
+  | 'other';
 
 const METRIC_ICONS: Record<MetricKind, LucideIcon> = {
   heart: Heart,
@@ -32,6 +40,11 @@ const METRIC_ICONS: Record<MetricKind, LucideIcon> = {
   mood: Smile,
   food: Utensils,
   balance: Sparkles,
+  health: Heart,
+  study: BookOpen,
+  habit: Repeat2,
+  personal: UserRound,
+  other: Sparkles,
 };
 
 interface IconTileProps {

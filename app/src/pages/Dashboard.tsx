@@ -16,12 +16,14 @@ import { patchDay, saveDay } from '../lib/store';
 import { setConsent } from '../lib/vault';
 import { syncPhoneData } from '../sync/phoneSync';
 import type { AppTab } from '../components/AppShell';
-import { MetricCard, ScreenHeader } from '../components/design-system';
+import { IconTile, MetricCard, RangeBar, ScreenHeader } from '../components/design-system';
 import { DEFAULT_PERMISSIONS, getPermissions, type Permissions } from '../lib/permissions';
 import { loadWorkouts, type Workout } from '../exercise/workouts';
 import { todayMetrics } from '../home/todayMetrics';
 import { WaterCard } from '../components/WaterCard';
 import { addWaterGlass } from '../reminders/water';
+import { loadPersonalGoals, personalGoalProgress, type PersonalGoal } from '../goals/personalGoals';
+import { loadRoutineResponses, type RoutineResponse } from '../reminders/routine';
 
 function greetingForNow(name?: string): string {
   const hour = new Date().getHours();
@@ -42,6 +44,8 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   const [speaking, setSpeaking] = useState(false);
   const [permissions, setPermissions] = useState<Permissions | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [personalGoals, setPersonalGoals] = useState<PersonalGoal[]>([]);
+  const [routineResponses, setRoutineResponses] = useState<RoutineResponse[]>([]);
   const streakList = useMemo(() => streaks(days, today()), [days]);
 
   const latest = days[days.length - 1];
@@ -49,7 +53,16 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   useEffect(() => {
     void getPermissions().then(setPermissions);
     void loadWorkouts().then(setWorkouts);
+    void Promise.all([loadPersonalGoals(), loadRoutineResponses()]).then(([savedGoals, savedResponses]) => {
+      setPersonalGoals(savedGoals);
+      setRoutineResponses(savedResponses);
+    }).catch((error: unknown) => {
+      setMsg(error instanceof Error ? error.message : 'Could not load your goals.');
+    });
   }, []);
+  const nearestGoal = useMemo(() => personalGoals
+    .filter((goal) => !goal.archivedAt && !goal.completedAt)
+    .sort((a, b) => (a.targetDate ?? '9999-12-31').localeCompare(b.targetDate ?? '9999-12-31'))[0], [personalGoals]);
   const insights = useMemo(() => runInsights(days), [days]);
   const readyInsights = useMemo(() => insights.filter((i) => !i.notEnoughData), [insights]);
   const pendingInsights = useMemo(() => insights.filter((i) => i.notEnoughData), [insights]);
@@ -134,6 +147,30 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
       onManage={() => onNavigate?.('routine')}
     />
   );
+  const goalsCard = nearestGoal ? (() => {
+    const progress = personalGoalProgress(nearestGoal, routineResponses, today());
+    const overdue = !!nearestGoal.targetDate && nearestGoal.targetDate < today();
+    return (
+      <article className="plan-goal-card" data-category={nearestGoal.category}>
+        <div className="row gap center-v">
+          <IconTile kind={nearestGoal.category} size={20} />
+          <div className="stack-sm" style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <strong>On your way</strong>
+            <span className="small">{nearestGoal.title}</span>
+          </div>
+          <strong className="small">{progress.percent}%</strong>
+        </div>
+        <RangeBar min={0} max={100} value={progress.percent} label={`${nearestGoal.title} progress`} />
+        {overdue && <p className="xs muted" style={{ margin: 0 }}>Want to adjust the date?</p>}
+        <button type="button" className="btn sm ghost" onClick={() => onNavigate?.('plan-goals')}>View goals</button>
+      </article>
+    );
+  })() : (
+    <article className="card row between center-v gap">
+      <span className="small">Have a goal in mind? Start with one small step.</span>
+      <button type="button" className="btn sm" onClick={() => onNavigate?.('plan-goals')}>Add a goal</button>
+    </article>
+  );
 
   if (!latest) {
     return (
@@ -141,6 +178,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
         {screenHeader}
         {metricsSection}
         {waterCard}
+        {goalsCard}
         <div className="card stack-md">
           <div>
             <h2>{greeting}</h2>
@@ -201,6 +239,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
       {screenHeader}
       {metricsSection}
       {waterCard}
+      {goalsCard}
 
       <div className="card thought-card stack-sm">
         <div className="row between center-v">

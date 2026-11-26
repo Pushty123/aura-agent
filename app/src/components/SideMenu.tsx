@@ -14,6 +14,13 @@ interface Item {
 
 const SECTIONS: { title: string; items: Item[] }[] = [
   {
+    title: 'Plan & dreams',
+    items: [
+      { tab: 'plan-goals', emoji: '🎯', label: 'Goals', sub: 'Small steps, on your timeline' },
+      { tab: 'bucket-list', emoji: '✨', label: 'Bucket list', sub: 'Dreams and things you want to do' },
+    ],
+  },
+  {
     title: 'Your phone',
     items: [
       { tab: 'apps', emoji: '⏳', label: 'App usage & limits', sub: 'Time per app, opens, daily limits' },

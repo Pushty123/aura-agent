@@ -6,6 +6,7 @@ import { today as todayISO } from '../lib/dates';
 import { notificationId } from './notificationIds';
 import { loadRoutineItems, routineNotificationItems } from './routine';
 import { loadWaterSettings, waterNotificationItems } from './water';
+import { goalNotificationItems, loadPersonalGoals } from '../goals/personalGoals';
 
 export { notificationId } from './notificationIds';
 
@@ -136,5 +137,6 @@ export async function applyReminders(list: Reminder[]) {
     })));
   const routines = routineNotificationItems(await loadRoutineItems());
   const water = waterNotificationItems(await loadWaterSettings());
-  return scheduleReminders([...reminders, ...routines, ...water]);
+  const goalDates = goalNotificationItems(await loadPersonalGoals());
+  return scheduleReminders([...reminders, ...routines, ...water, ...goalDates]);
 }

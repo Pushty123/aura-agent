@@ -7,6 +7,8 @@ import { Dashboard } from './pages/Dashboard';
 import { CheckIn } from './pages/CheckIn';
 import { Food } from './pages/Food';
 import { Goals } from './pages/Goals';
+import { PlanGoals } from './pages/PlanGoals';
+import { BucketList } from './pages/BucketList';
 import { Ask } from './pages/Ask';
 import { VaultPage } from './pages/VaultPage';
 import { About } from './pages/About';
@@ -146,7 +148,7 @@ export function App() {
       : null;
     const kind = payload?.kind;
     if (pendingNotificationAction.actionId === 'tap') {
-      setTab(kind === 'routine' ? 'routine' : 'dashboard');
+      setTab(kind === 'routine' ? 'routine' : kind === 'goal-date' ? 'plan-goals' : 'dashboard');
       setPendingNotificationAction(null);
       return;
     }
@@ -355,6 +357,8 @@ export function App() {
       {tab === 'checkin' && <CheckIn days={days} onChange={refresh} />}
       {tab === 'food' && <Food />}
       {tab === 'goals' && <Goals days={days} onChange={refresh} />}
+      {tab === 'plan-goals' && <PlanGoals onNavigate={setTab} />}
+      {tab === 'bucket-list' && <BucketList onNavigate={setTab} />}
       {tab === 'exercise' && <Exercise />}
       {tab === 'health' && <Health days={days} />}
       {tab === 'phone' && <PhoneData days={days} onChange={refresh} />}

@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { AuraAvatar } from '../avatar/AuraAvatar';
 import { useMe } from '../avatar/AvatarContext';
 import type { AppTab } from '../components/AppShell';
 import type { ThemePreference } from '../lib/theme';
+import { loadCelebrationsEnabled, saveCelebrationsEnabled } from '../goals/personalGoals';
 
 const ROWS: { tab: AppTab; title: string; sub: string; emoji: string }[] = [
   { tab: 'profile', title: 'Profile & security', sub: 'Character, details, fingerprint, widget', emoji: '👤' },
@@ -23,6 +25,31 @@ export function Me({
   onLock: () => void;
 }) {
   const me = useMe();
+  const [celebrations, setCelebrations] = useState<boolean | null>(null);
+  const [celebrationError, setCelebrationError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    void loadCelebrationsEnabled().then((enabled) => {
+      if (active) setCelebrations(enabled);
+    }).catch((error: unknown) => {
+      if (active) setCelebrationError(error instanceof Error ? error.message : 'Could not load celebration settings.');
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function setCelebrationsEnabled(enabled: boolean) {
+    try {
+      await saveCelebrationsEnabled(enabled);
+      setCelebrations(enabled);
+      setCelebrationError('');
+    } catch (error) {
+      setCelebrationError(error instanceof Error ? error.message : 'Could not save this setting.');
+    }
+  }
+
   return (
     <section className="stack-lg">
       <button type="button" className="card row center-v gap me-hero" onClick={() => onOpen('profile')}>
@@ -56,6 +83,21 @@ export function Me({
       </div>
 
       <div className="card list-card">
+        <label className="list-row">
+          <span className="list-emoji" aria-hidden="true">✨</span>
+          <span className="list-text">
+            <strong>Celebrations</strong>
+            <span className="xs muted">Show a small moment when you reach a goal or dream</span>
+          </span>
+          <input
+            type="checkbox"
+            aria-label="Enable celebrations"
+            checked={celebrations ?? false}
+            disabled={celebrations === null}
+            onChange={(event) => void setCelebrationsEnabled(event.target.checked)}
+          />
+        </label>
+        {celebrationError && <p className="status-banner error" role="alert">{celebrationError}</p>}
         <label className="list-row">
           <span className="list-emoji" aria-hidden="true">🎨</span>
           <span className="list-text">

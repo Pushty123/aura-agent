@@ -23,6 +23,8 @@ export type AppTab =
   | 'routine'
   | 'food'
   | 'goals'
+  | 'plan-goals'
+  | 'bucket-list'
   | 'ask'
   | 'exercise'
   | 'health'
@@ -35,7 +37,7 @@ export type AppTab =
   | 'me';
 export type ThemeMode = 'dark' | 'light' | 'system';
 
-type GroupId = 'today' | 'track' | 'report' | 'goals' | 'usage' | 'ask' | 'me';
+type GroupId = 'today' | 'track' | 'report' | 'goals' | 'plan' | 'usage' | 'ask' | 'me';
 
 interface Group {
   id: GroupId;
@@ -49,12 +51,13 @@ export const GROUPS: Group[] = [
   { id: 'today', label: 'Home', icon: TodayIcon, tabs: ['dashboard'] },
   { id: 'track', label: 'Track', icon: CheckInIcon, tabs: ['checkin', 'food', 'exercise', 'health', 'routine'] },
   { id: 'report', label: 'Report', icon: ReportIcon, tabs: ['report'] },
-  { id: 'goals', label: 'Goals', icon: GoalsIcon, tabs: ['goals'] },
+  { id: 'goals', label: 'Targets', icon: GoalsIcon, tabs: ['goals'] },
   { id: 'ask', label: 'Ask', icon: AskIcon, tabs: ['ask'] },
 ];
 
 /** Screens opened from the left menu. */
 const MENU_GROUPS: Group[] = [
+  { id: 'plan', label: 'Plan', icon: GoalsIcon, tabs: ['plan-goals', 'bucket-list'] },
   { id: 'usage', label: 'Usage', icon: AppsIcon, tabs: ['apps', 'phone'] },
   { id: 'me', label: 'Me', icon: ProfileIcon, tabs: ['me', 'profile', 'permissions', 'vault', 'about'] },
 ];
@@ -75,7 +78,9 @@ const TITLES: Record<AppTab, string> = {
   food: 'Track',
   exercise: 'Track',
   health: 'Track',
-  goals: 'Goals',
+  goals: 'Daily targets',
+  'plan-goals': 'Goals',
+  'bucket-list': 'Bucket list',
   ask: 'Ask AURA',
   me: 'Settings',
   profile: 'Profile',
