@@ -101,3 +101,19 @@
 [data-theme='light'] .aw-label,
 [data-theme='light'] .aw-week-title { color: #3f3d7a; }
 [data-theme='light'] .aw-ring circle:first-of-type { stroke: rgba(99, 102, 241, 0.18); }
+
+.aw-thought {
+  display: flex; align-items: center; gap: 10px; margin: -4px 0 14px; padding: 10px 12px;
+  border-radius: 16px; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(165, 168, 230, 0.25);
+  backdrop-filter: blur(4px);
+}
+.aw-thought-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.aw-thought-label { font-size: 0.7rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--aw-sub); }
+.aw-thought q { font-style: italic; font-size: 0.98rem; line-height: 1.4; quotes: '“' '”'; }
+.aw-listen {
+  flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(165, 168, 230, 0.35);
+  background: rgba(255, 255, 255, 0.08); color: inherit; font-size: 1.1rem; cursor: pointer;
+}
+.aw-listen:focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
+[data-theme='light'] .aw-thought { background: rgba(255, 255, 255, 0.7); border-color: rgba(99, 102, 241, 0.2); }
+[data-theme='light'] .aw-listen { background: #fff; border-color: rgba(99, 102, 241, 0.25); }

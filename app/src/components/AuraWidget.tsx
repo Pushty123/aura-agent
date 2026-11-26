@@ -22,6 +22,10 @@ export interface AuraWidgetProps {
   moodLabel?: string;
   /** Line under the greeting. */
   subline?: string;
+  /** Thought for today, shown under the greeting. */
+  thought?: string;
+  onListen?: () => void;
+  listening?: boolean;
 }
 
 const MOODS = ['Low', 'Tired', 'Okay', 'Good', 'Great'];
@@ -92,6 +96,19 @@ export function AuraWidget(p: AuraWidgetProps) {
 
       <h3 className="aw-hello">{greeting(p.name)}</h3>
       <p className="aw-sub">{p.subline ?? "Let's check your wellness today"}</p>
+      {p.thought && (
+        <div className="aw-thought">
+          <span className="aw-thought-text">
+            <span className="aw-thought-label">💭 Thought for today</span>
+            <q>{p.thought}</q>
+          </span>
+          {p.onListen && (
+            <button type="button" className="aw-listen" onClick={p.onListen} aria-label={p.listening ? 'Stop' : 'Listen to your daily brief'}>
+              {p.listening ? '⏹' : '🔊'}
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="aw-tiles">
         <Tile icon="🌙" value={fmtMinutes(typeof p.sleepHours === 'number' ? p.sleepHours * 60 : undefined)} label="Sleep" onClick={open('sleep')} />

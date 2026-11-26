@@ -177,6 +177,9 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
         isDemo={latest.source === 'demo'}
         moodLabel={mood.label}
         subline={line}
+        thought={thought}
+        onListen={() => void listen()}
+        listening={speaking}
         ringContent={balance ? <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={88} /> : undefined}
         onRingClick={() => (me.choice.kind === 'character' ? setShowCharacter(true) : onNavigate?.('report'))}
         onOpen={(s) => onNavigate?.(s === 'sleep' || s === 'mood' ? 'checkin' : s === 'steps' ? 'phone' : s === 'screen' ? 'apps' : 'report')}
@@ -226,15 +229,6 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
         </div>
       )}
 
-      <div className="card thought-card stack-sm">
-        <div className="row between center-v">
-          <span className="xs muted">💭 Thought for today</span>
-          <button type="button" className="btn sm ghost" onClick={() => void listen()} aria-label={speaking ? 'Stop' : 'Listen to your daily brief'}>
-            {speaking ? '⏹ Stop' : '🔊 Listen'}
-          </button>
-        </div>
-        <blockquote>{thought}</blockquote>
-      </div>
 
       <StreakRow list={streakList} onOpen={() => onNavigate?.('report')} />
 
