@@ -28,6 +28,7 @@ import {
   type Period,
 } from '../health/cycle';
 import type { DayRecord, FoodEntry } from '../types';
+import { loadProfile } from '../profile/profile';
 
 const SEV = ['', 'Mild', 'Moderate', 'Strong'] as const;
 const fmt = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
@@ -42,8 +43,11 @@ export function Health({ days }: { days: DayRecord[] }) {
   const [notes, setNotes] = useState('');
   const [saved, setSaved] = useState<HealthEntry | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  /** Period features are shown only when the profile says Female. */
+  const [female, setFemale] = useState(false);
 
   const refresh = async () => {
+    setFemale((await loadProfile())?.sex === 'female');
     setEntries(await loadHealth());
     setFood(await loadFood());
   };
@@ -78,7 +82,7 @@ export function Health({ days }: { days: DayRecord[] }) {
             <p className="xs muted">Log what happened. AURA suggests food and self-care using your own recent data.</p>
           </div>
           <div className="row gap wrap">
-            {(Object.keys(GUIDES) as SymptomId[]).map((id) => (
+            {(Object.keys(GUIDES) as SymptomId[]).filter((id) => female || id !== 'cramps').map((id) => (
               <button
                 key={id}
                 type="button"
@@ -173,7 +177,7 @@ export function Health({ days }: { days: DayRecord[] }) {
           )}
         </div>
       </div>
-      <CycleCard />
+      {female && <CycleCard />}
     </section>
   );
 }
