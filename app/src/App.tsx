@@ -17,11 +17,11 @@ import { AvatarProvider } from './avatar/AvatarContext';
 import { syncWidget } from './widget/widget';
 import { loadDays } from './lib/store';
 import { startAutoLock } from './lib/autolock';
+import { getLockAfter, lockLabel } from './lib/security';
 import { AppShell, type AppTab, type ThemeMode } from './components/AppShell';
 import type { DayRecord } from './types';
 
 const THEME_STORAGE_KEY = 'aura-theme';
-const AUTO_LOCK_MS = 5 * 60 * 1000;
 
 function readInitialTheme(): ThemeMode {
   try {
@@ -69,13 +69,26 @@ export function App() {
 
   // Lock automatically after 5 minutes without activity, and drop the
   // decrypted data held in memory.
+  // Lock automatically after the chosen idle time (Profile → Security).
+  const [lockMs, setLockMs] = useState(0);
   useEffect(() => {
     if (!unlocked) return;
-    return startAutoLock(AUTO_LOCK_MS, () => {
-      setDays([]);
-      setIdleLocked(true);
-      setUnlocked(false);
+    let stop: (() => void) | undefined;
+    let cancelled = false;
+    void getLockAfter().then((ms) => {
+      if (cancelled) return;
+      setLockMs(ms);
+      if (ms === 0) return; // only when the app is closed
+      stop = startAutoLock(ms, () => {
+        setDays([]);
+        setIdleLocked(true);
+        setUnlocked(false);
+      });
     });
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
   }, [unlocked]);
 
   // Keep phone and band data fresh: sync when the vault opens and whenever the app
@@ -137,7 +150,7 @@ export function App() {
         exists={exists}
         theme={theme}
         onToggleTheme={toggleTheme}
-        notice={idleLocked ? 'Locked after 5 minutes of inactivity to protect your data.' : undefined}
+        notice={idleLocked ? `Locked after ${lockLabel(lockMs)} of inactivity to protect your data.` : undefined}
         onDone={() => {
           setIdleLocked(false);
           setExists(true);

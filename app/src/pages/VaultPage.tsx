@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { clearWidget } from '../native/bridge';
+import { biometricDisable, clearWidget } from '../native/bridge';
 import {
   SOURCES,
   audit,
@@ -392,6 +392,7 @@ export function VaultPage({
           setBusy(true);
           try {
             await clearWidget();
+            await biometricDisable();
             await deleteAll();
             setConfirmDeleteOpen(false);
             onDeleted();

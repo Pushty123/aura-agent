@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createVault, unlock, unlockWaitSeconds } from '../lib/vault';
+import { biometricDisable, biometricEnable, biometricStatus, biometricUnlock } from '../native/bridge';
+import { db } from '../lib/db';
 import { AuraLogoIcon, EyeIcon, EyeOffIcon, MoonIcon, SunIcon } from '../components/Icons';
 import type { ThemeMode } from '../components/AppShell';
 
@@ -19,6 +21,51 @@ export function Unlock({ exists, theme, onToggleTheme, onDone, notice }: UnlockP
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [waitSec, setWaitSec] = useState(0);
+  const [bioOn, setBioOn] = useState(false);
+  const [offer, setOffer] = useState<string | null>(null); // password kept briefly to turn fingerprint on
+
+  async function useFingerprint() {
+    if (busy || waitSec > 0) return;
+    setError('');
+    const r = await biometricUnlock();
+    if (r.ok && r.secret) {
+      setBusy(true);
+      try {
+        if (await unlock(r.secret)) return onDone();
+        await biometricDisable(); // stored secret no longer matches
+        setBioOn(false);
+        setError('Fingerprint unlock was reset. Please use your password.');
+      } finally {
+        setBusy(false);
+      }
+    } else if (r.reset) {
+      setBioOn(false);
+      setError(r.message ?? 'Fingerprint unlock was reset. Please use your password.');
+    }
+  }
+
+  // If fingerprint unlock is on, ask for it straight away.
+  useEffect(() => {
+    if (!exists) return;
+    void biometricStatus().then((b) => {
+      const on = b.enabled && b.state === 'ready';
+      setBioOn(on);
+      if (on) void useFingerprint();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exists]);
+
+  async function finishOffer(turnOn: boolean) {
+    const secret = offer;
+    setOffer(null);
+    if (turnOn && secret) {
+      const r = await biometricEnable(secret);
+      if (!r.ok) await db.meta.put({ key: 'bio-offer', value: 'no' });
+    } else {
+      await db.meta.put({ key: 'bio-offer', value: 'no' });
+    }
+    onDone();
+  }
 
   // After several wrong passwords the vault makes you wait. Show a live
   // countdown (it also survives a page reload, because it is stored).
@@ -49,8 +96,12 @@ export function Unlock({ exists, theme, onToggleTheme, onDone, notice }: UnlockP
     try {
       if (exists) {
         if (await unlock(pass)) {
+          const typed = pass;
           setPass('');
-          onDone();
+          const b = await biometricStatus();
+          const asked = (await db.meta.get('bio-offer'))?.value === 'no';
+          if (b.state === 'ready' && !b.enabled && !asked) setOffer(typed);
+          else onDone();
         } else {
           setError('That password is not right.');
           setWaitSec(await unlockWaitSeconds());
@@ -159,9 +210,34 @@ export function Unlock({ exists, theme, onToggleTheme, onDone, notice }: UnlockP
           </div>
         )}
 
-        <button type="submit" className="btn primary" disabled={busy || !pass || waitSec > 0}>
-          {busy ? 'Unlocking…' : exists ? 'Unlock vault' : 'Create encrypted vault'}
-        </button>
+        {offer !== null ? (
+          <div className="card-subtle stack-sm">
+            <strong>Unlock with your fingerprint next time?</strong>
+            <p className="xs muted">
+              Your password is locked inside this phone's secure hardware and only released after a fingerprint check.
+              You can turn this off any time in Profile → Security.
+            </p>
+            <div className="row gap">
+              <button type="button" className="btn primary" onClick={() => void finishOffer(true)}>
+                Turn on
+              </button>
+              <button type="button" className="btn ghost" onClick={() => void finishOffer(false)}>
+                Not now
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <button type="submit" className="btn primary" disabled={busy || !pass || waitSec > 0}>
+              {busy ? 'Unlocking…' : exists ? 'Unlock vault' : 'Create encrypted vault'}
+            </button>
+            {exists && bioOn && (
+              <button type="button" className="btn" onClick={() => void useFingerprint()} disabled={busy || waitSec > 0}>
+                Unlock with fingerprint
+              </button>
+            )}
+          </>
+        )}
 
         {!exists && (
           <p className="xs muted">

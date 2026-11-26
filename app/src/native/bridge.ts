@@ -48,6 +48,10 @@ interface AuraNativePlugin {
   openHealthConnect(): Promise<void>;
   getHealthData(opts: { days: number }): Promise<{ days: HealthDay[] }>;
   updateWidget(opts: WidgetSnapshot): Promise<void>;
+  biometricStatus(): Promise<{ state: 'ready' | 'not-enrolled' | 'unavailable'; enabled: boolean }>;
+  biometricEnable(opts: { secret: string }): Promise<{ ok: boolean; cancelled?: boolean; message?: string }>;
+  biometricUnlock(): Promise<{ ok: boolean; secret?: string; cancelled?: boolean; reset?: boolean; message?: string }>;
+  biometricDisable(): Promise<void>;
   clearWidget(): Promise<void>;
   setAlarm(opts: { hour: number; minute: number; label: string }): Promise<void>;
   addCalendarEvent(opts: { title: string; startMillis: number }): Promise<void>;
@@ -190,5 +194,44 @@ export async function clearWidget(): Promise<void> {
     await Native.clearWidget();
   } catch {
     // Widget not installed: nothing to clear.
+  }
+}
+
+export type BioState = 'web' | 'ready' | 'not-enrolled' | 'unavailable';
+
+export async function biometricStatus(): Promise<{ state: BioState; enabled: boolean }> {
+  if (!isNative()) return { state: 'web', enabled: false };
+  try {
+    return await Native.biometricStatus();
+  } catch {
+    return { state: 'unavailable', enabled: false };
+  }
+}
+
+export async function biometricEnable(secret: string): Promise<{ ok: boolean; message?: string }> {
+  if (!isNative()) return { ok: false, message: 'Fingerprint unlock needs the Android app.' };
+  try {
+    const r = await Native.biometricEnable({ secret });
+    return r.ok ? { ok: true } : { ok: false, message: r.cancelled ? 'Fingerprint setup was cancelled.' : r.message };
+  } catch {
+    return { ok: false, message: 'Could not set up fingerprint unlock on this phone.' };
+  }
+}
+
+export async function biometricUnlock(): Promise<{ ok: boolean; secret?: string; reset?: boolean; message?: string }> {
+  if (!isNative()) return { ok: false };
+  try {
+    return await Native.biometricUnlock();
+  } catch {
+    return { ok: false, message: 'Fingerprint unlock failed. Use your password.' };
+  }
+}
+
+export async function biometricDisable(): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await Native.biometricDisable();
+  } catch {
+    // Nothing stored.
   }
 }

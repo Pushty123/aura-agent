@@ -78,6 +78,8 @@ edit(
       t = t.replace(/\n(\s*)buildTypes \{/, `\n$1kotlinOptions {\n$1    jvmTarget = '17'\n$1}\n$1buildTypes {`);
     // connect-client 1.1.0 (stable) needs compileSdk 36; 1.1.0-alpha07 works with compileSdk 34 / AGP 8.2.
     t = t.replace(/androidx\.health\.connect:connect-client:[^"']+/, 'androidx.health.connect:connect-client:1.1.0-alpha07');
+    if (!t.includes('androidx.biometric'))
+      t = t.replace(/dependencies \{/, `dependencies {\n    implementation "androidx.biometric:biometric:1.1.0"`);
     if (!t.includes('connect-client'))
       t = t.replace(
         /dependencies \{/,
@@ -97,6 +99,7 @@ edit(
     const perms = [
       '<uses-permission android:name="android.permission.INTERNET" />',
       '<uses-permission android:name="android.permission.CAMERA" />',
+      '<uses-permission android:name="android.permission.USE_BIOMETRIC" />',
       '<uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />',
       '<uses-permission android:name="android.permission.health.READ_STEPS" />',
       '<uses-permission android:name="android.permission.health.READ_SLEEP" />',

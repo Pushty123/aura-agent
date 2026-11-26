@@ -22,6 +22,7 @@ npm run cap:open             # opens Android Studio, then press Run
 |---|---|
 | `hasUsageAccess`, `openUsageAccessSettings`, `getUsageStats` | Screen time per day and late-night use (23:00 to 04:00), computed exactly from usage events |
 | `healthStatus`, `requestHealthPermissions`, `openHealthConnect`, `getHealthData` | Steps, sleep, heart rate and exercise from **any app that writes to Health Connect** (any band whose app shares there), with the source app named |
+| `biometricStatus`, `biometricEnable`, `biometricUnlock`, `biometricDisable` | Fingerprint unlock: the vault password is encrypted with an AES-256-GCM key in Android Keystore that requires a strong biometric for every use and is invalidated if fingerprints change |
 | `setAlarm`, `addCalendarEvent` | Opens the system alarm / calendar screens (the user confirms again there) |
 
 Method names must match `app/src/native/bridge.ts`. Android does not let one app read another app's private files,

@@ -19,6 +19,7 @@ import { saveAvatarChoice, type AvatarChoice } from '../avatar/choice';
 import { Avatar } from '../components/Avatar';
 import { CHARACTERS } from '../avatar/characters';
 import { WidgetSettings } from '../widget/WidgetSettings';
+import { SecuritySettings } from './SecuritySettings';
 
 const EMPTY: ProfileData = {
   name: '',
@@ -343,6 +344,8 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
               <p className="small muted">Fill in age, height and weight to see your BMI and daily targets.</p>
             )}
           </article>
+
+          <SecuritySettings />
 
           <WidgetSettings />
 

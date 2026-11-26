@@ -8,7 +8,14 @@ import android.content.Intent
 import android.provider.AlarmClock
 import android.provider.CalendarContract
 import android.provider.Settings
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyPermanentlyInvalidatedException
+import android.security.keystore.KeyProperties
+import android.util.Base64
 import androidx.activity.result.ActivityResult
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
@@ -28,7 +35,12 @@ import com.getcapacitor.annotation.CapacitorPlugin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.security.KeyStore
 import java.time.LocalDate
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 import java.time.ZoneId
 
 /**
@@ -276,6 +288,118 @@ class AuraNativePlugin : Plugin() {
         context.getSharedPreferences(AuraWidgetProvider.PREFS, Context.MODE_PRIVATE).edit().clear().apply()
         AuraWidgetProvider.refreshAll(context)
         call.resolve()
+    }
+
+    // ------------------------------------------------------------ fingerprint unlock
+    //
+    // The vault secret is encrypted with an AES key that lives in Android's
+    // Keystore (secure hardware where available). The key can only be used after
+    // a strong biometric check, and is destroyed if fingerprints change.
+
+    private val bioAlias = "aura_vault_bio_key"
+    private val bioPrefs get() = context.getSharedPreferences("aura_bio", Context.MODE_PRIVATE)
+
+    private fun bioKey(create: Boolean): SecretKey? {
+        val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        (ks.getKey(bioAlias, null) as? SecretKey)?.let { return it }
+        if (!create) return null
+        val gen = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+        gen.init(
+            KeyGenParameterSpec.Builder(bioAlias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setKeySize(256)
+                .setUserAuthenticationRequired(true)
+                .setInvalidatedByBiometricEnrollment(true)
+                .build()
+        )
+        return gen.generateKey()
+    }
+
+    private fun dropBio() {
+        try { KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(bioAlias) } catch (_: Exception) {}
+        bioPrefs.edit().clear().apply()
+    }
+
+    private fun bioState(): String = when (BiometricManager.from(context).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)) {
+        BiometricManager.BIOMETRIC_SUCCESS -> "ready"
+        BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> "not-enrolled"
+        else -> "unavailable"
+    }
+
+    /** { state: "ready" | "not-enrolled" | "unavailable", enabled: boolean } */
+    @PluginMethod
+    fun biometricStatus(call: PluginCall) {
+        call.resolve(JSObject().put("state", bioState()).put("enabled", bioPrefs.contains("ct")))
+    }
+
+    private fun prompt(call: PluginCall, cipher: Cipher, subtitle: String, onOk: (Cipher) -> Unit) {
+        val act = activity ?: run { call.reject("no activity"); return }
+        act.runOnUiThread {
+            val bp = BiometricPrompt(act, ContextCompat.getMainExecutor(context), object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    val c = result.cryptoObject?.cipher
+                    if (c == null) call.reject("no cipher") else try { onOk(c) } catch (e: Exception) { call.reject("crypto failed") }
+                }
+                override fun onAuthenticationError(code: Int, msg: CharSequence) {
+                    call.resolve(JSObject().put("ok", false).put("cancelled", true).put("message", msg.toString()))
+                }
+            })
+            val info = BiometricPrompt.PromptInfo.Builder()
+                .setTitle("Unlock AURA")
+                .setSubtitle(subtitle)
+                .setNegativeButtonText("Use password")
+                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                .build()
+            bp.authenticate(info, BiometricPrompt.CryptoObject(cipher))
+        }
+    }
+
+    /** Stores the vault secret behind the fingerprint. { secret } -> { ok } */
+    @PluginMethod
+    fun biometricEnable(call: PluginCall) {
+        val secret = call.getString("secret") ?: run { call.reject("missing secret"); return }
+        if (bioState() != "ready") { call.reject("fingerprint not available"); return }
+        try {
+            dropBio()
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.ENCRYPT_MODE, bioKey(true))
+            prompt(call, cipher, "Confirm your fingerprint to turn it on") { c ->
+                val ct = c.doFinal(secret.toByteArray(Charsets.UTF_8))
+                bioPrefs.edit()
+                    .putString("ct", Base64.encodeToString(ct, Base64.NO_WRAP))
+                    .putString("iv", Base64.encodeToString(c.iv, Base64.NO_WRAP))
+                    .apply()
+                call.resolve(JSObject().put("ok", true))
+            }
+        } catch (e: Exception) {
+            dropBio(); call.reject("could not set up fingerprint unlock")
+        }
+    }
+
+    /** Asks for the fingerprint and returns { ok, secret? }. */
+    @PluginMethod
+    fun biometricUnlock(call: PluginCall) {
+        val ct = bioPrefs.getString("ct", null); val iv = bioPrefs.getString("iv", null)
+        if (ct == null || iv == null) { call.resolve(JSObject().put("ok", false).put("message", "not enabled")); return }
+        try {
+            val key = bioKey(false) ?: run { dropBio(); call.resolve(JSObject().put("ok", false).put("reset", true)); return }
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, Base64.decode(iv, Base64.NO_WRAP)))
+            prompt(call, cipher, "Touch the fingerprint sensor") { c ->
+                val secret = String(c.doFinal(Base64.decode(ct, Base64.NO_WRAP)), Charsets.UTF_8)
+                call.resolve(JSObject().put("ok", true).put("secret", secret))
+            }
+        } catch (e: KeyPermanentlyInvalidatedException) {
+            dropBio(); call.resolve(JSObject().put("ok", false).put("reset", true).put("message", "Fingerprints changed. Unlock with your password and turn fingerprint unlock on again."))
+        } catch (e: Exception) {
+            call.reject("fingerprint unlock failed")
+        }
+    }
+
+    @PluginMethod
+    fun biometricDisable(call: PluginCall) {
+        dropBio(); call.resolve()
     }
 
     // --------------------------------------------------------- alarm and calendar
