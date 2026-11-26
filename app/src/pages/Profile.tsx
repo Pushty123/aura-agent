@@ -17,7 +17,7 @@ import { AuraAvatar } from '../avatar/AuraAvatar';
 import { useMe } from '../avatar/AvatarContext';
 import { saveAvatarChoice, type AvatarChoice } from '../avatar/choice';
 import { Avatar } from '../components/Avatar';
-import { AVATAR_PRESETS } from '../assets/avatars/presets';
+import { CHARACTERS } from '../avatar/characters';
 import { WidgetSettings } from '../widget/WidgetSettings';
 
 const EMPTY: ProfileData = {
@@ -86,7 +86,7 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
   async function dropPhoto() {
     await removeProfilePhoto();
     setPhoto(null);
-    if (me.choice.kind === 'photo') await saveAvatarChoice({ kind: 'preset', id: AVATAR_PRESETS[0].id });
+    if (me.choice.kind === 'photo') await saveAvatarChoice({ kind: 'character', id: CHARACTERS[0].id });
     await me.reload();
   }
 
@@ -102,36 +102,39 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
       <div className="grid-2">
         <form className="card stack-md" onSubmit={save}>
           <div className="row center-v gap">
-            <AuraAvatar choice={me.choice} photo={photo} name={p.name} size={120} threeD />
+            <AuraAvatar choice={me.choice} photo={photo} name={p.name} size={96} />
             <div className="stack-sm">
               <h2 style={{ margin: 0 }}>{p.name ? p.name : 'Your profile'}</h2>
               {email && <p className="xs muted">{email}</p>}
-              <p className="xs muted">Your 3D avatar's face and glow change with your Balance Score. Drag it to turn it around.</p>
+              <p className="xs muted">Your character's glow follows your Balance Score, and it changes pose with your day.</p>
             </div>
           </div>
 
           <div className="stack-sm">
-            <strong className="small">Choose your avatar</strong>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(56px, 1fr))', gap: 8 }}>
-              {AVATAR_PRESETS.map((a) => {
-                const active = me.choice.kind === 'preset' && me.choice.id === a.id;
+            <strong className="small">Choose your character</strong>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
+              {CHARACTERS.map((c) => {
+                const active = me.choice.kind === 'character' && me.choice.id === c.id;
                 return (
                   <button
-                    key={a.id}
+                    key={c.id}
                     type="button"
-                    onClick={() => void pick({ kind: 'preset', id: a.id })}
+                    onClick={() => void pick({ kind: 'character', id: c.id })}
                     aria-pressed={active}
-                    aria-label={a.label}
-                    title={a.label}
+                    aria-label={`${c.name}, ${c.tagline}`}
+                    className="card-subtle"
                     style={{
-                      background: 'none',
-                      border: active ? '2px solid var(--aura-primary)' : '2px solid transparent',
-                      borderRadius: '50%',
-                      padding: 2,
+                      border: active ? '2px solid var(--aura-primary)' : '2px solid var(--aura-border)',
+                      borderRadius: 16,
+                      padding: '10px 6px 8px',
                       cursor: 'pointer',
+                      background: active ? 'var(--aura-primary-dim)' : undefined,
+                      textAlign: 'center',
                     }}
                   >
-                    <Avatar variant={a.id} size={48} ring={false} decorative />
+                    <img src={c.poses.standing} alt="" style={{ height: 150, width: 'auto', display: 'block', margin: '0 auto' }} />
+                    <div className="small" style={{ fontWeight: 700, marginTop: 6 }}>{c.name}</div>
+                    <div className="xs muted">{c.tagline}</div>
                   </button>
                 );
               })}
@@ -139,16 +142,19 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
                 type="button"
                 onClick={() => void pick({ kind: 'initials' })}
                 aria-pressed={me.choice.kind === 'initials'}
-                title="Initials"
+                className="card-subtle"
                 style={{
-                  background: 'none',
-                  border: me.choice.kind === 'initials' ? '2px solid var(--aura-primary)' : '2px solid transparent',
-                  borderRadius: '50%',
-                  padding: 2,
+                  border: me.choice.kind === 'initials' ? '2px solid var(--aura-primary)' : '2px solid var(--aura-border)',
+                  borderRadius: 16,
+                  padding: 8,
                   cursor: 'pointer',
+                  display: 'grid',
+                  placeItems: 'center',
+                  gap: 6,
                 }}
               >
-                <Avatar variant="initials" size={48} ring={false} name={p.name || 'AURA'} alt="Initials" />
+                <Avatar variant="initials" size={64} ring={false} name={p.name || 'AURA'} alt="" />
+                <div className="small" style={{ fontWeight: 700 }}>Initials</div>
               </button>
             </div>
             <div className="row gap wrap">

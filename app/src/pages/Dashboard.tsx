@@ -14,6 +14,8 @@ import { runInsights } from '../insights/engine';
 import { balanceScore } from '../insights/balance';
 import { weeklySummary } from '../summary/weekly';
 import { AuraAvatar } from '../avatar/AuraAvatar';
+import { CharacterStage } from '../avatar/CharacterStage';
+import { characterById } from '../avatar/characters';
 import { useMe } from '../avatar/AvatarContext';
 import { avatarMood } from '../avatar/mood';
 import { InsightCard } from '../components/InsightCard';
@@ -171,7 +173,19 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
                 style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}
                 className="stack-sm center"
               >
-                <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={132} score={balance.score} mood={mood} threeD />
+                {me.choice.kind === 'character' && characterById(me.choice.id) ? (
+                  <div className="row center-v gap">
+                    <CharacterStage
+                      character={characterById(me.choice.id)!}
+                      mood={mood}
+                      height={250}
+                      sleepy={latest.sleepHours !== undefined && latest.sleepHours < 6}
+                      active={(latest.steps ?? 0) >= 8000}
+                    />
+                  </div>
+                ) : (
+                  <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={132} score={balance.score} mood={mood} />
+                )}
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '2rem', fontWeight: 700, lineHeight: 1, color: mood.color }}>{balance.score}</div>
                   <div className="xs muted">{mood.label}</div>

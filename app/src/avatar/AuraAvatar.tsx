@@ -1,8 +1,5 @@
-import { lazy, Suspense } from 'react';
 import { Avatar } from '../components/Avatar';
-import { AVATAR_PRESETS } from '../assets/avatars/presets';
-
-const Avatar3D = lazy(() => import('./Avatar3D'));
+import { characterById } from './characters';
 import type { AvatarChoice } from './choice';
 import type { Mood } from './mood';
 
@@ -15,12 +12,10 @@ interface Props {
   score?: number | null;
   mood?: Mood;
   label?: string;
-  /** Show the live 3D character (presets only). */
-  threeD?: boolean;
 }
 
 /** The person's avatar inside a glowing ring that fills with the Balance Score. */
-export function AuraAvatar({ choice, photo, name, size = 96, score, mood, label, threeD = false }: Props) {
+export function AuraAvatar({ choice, photo, name, size = 96, score, mood, label }: Props) {
   const color = mood?.color ?? 'var(--aura-primary)';
   const stroke = Math.max(3, Math.round(size * 0.06));
   const pad = stroke + Math.round(size * 0.05);
@@ -39,38 +34,29 @@ export function AuraAvatar({ choice, photo, name, size = 96, score, mood, label,
         style={{ width: inner, height: inner, borderRadius: '50%', objectFit: 'cover', display: 'block' }}
       />
     );
-  } else if (choice.kind === 'preset') {
-    const flat = (
-      <Avatar
-        variant={choice.id}
-        size={inner}
-        ring={false}
-        expression={mood ? { eyes: mood.eyes, mouth: mood.mouth } : undefined}
-        alt={label}
-        name={name}
-      />
+  } else if (choice.kind === 'character' && characterById(choice.id)) {
+    const c = characterById(choice.id)!;
+    face = (
+      <div
+        role="img"
+        aria-label={label ?? `${c.name} avatar`}
+        style={{
+          width: inner,
+          height: inner,
+          borderRadius: '50%',
+          overflow: 'hidden',
+          background: 'radial-gradient(circle at 50% 35%, #3a3f55, #1F212C 70%)',
+          position: 'relative',
+        }}
+      >
+        <img
+          src={c.poses.standing}
+          alt=""
+          draggable={false}
+          style={{ position: 'absolute', height: inner * 4.2, width: 'auto', maxWidth: 'none', left: '50%', top: inner * 0.52 - c.faceY * inner * 4.2, transform: 'translateX(-50%)' }}
+        />
+      </div>
     );
-    const preset = AVATAR_PRESETS.find((p) => p.id === choice.id);
-    face =
-      threeD && preset ? (
-        <div
-          role="img"
-          aria-label={label ?? `${preset.label} 3D avatar. ${mood?.label ?? ''}`}
-          style={{
-            width: inner,
-            height: inner,
-            borderRadius: '50%',
-            overflow: 'hidden',
-            background: 'radial-gradient(circle at 38% 30%, #323848, #1F212C 60%, #070F0D)',
-          }}
-        >
-          <Suspense fallback={flat}>
-            <Avatar3D preset={preset} mood={mood} size={inner} halo={false} />
-          </Suspense>
-        </div>
-      ) : (
-        flat
-      );
   } else {
     face = <Avatar variant="initials" size={inner} ring={false} name={name || 'AURA'} alt={label} />;
   }

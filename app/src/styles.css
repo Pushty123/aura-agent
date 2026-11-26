@@ -913,3 +913,11 @@ p {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* Full-body avatar: gentle breathing */
+@keyframes aura-breathe {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  50% { transform: translateY(-2px) scale(1.006, 1.012); }
+}
+.aura-breathe { transform-origin: 50% 100%; animation: aura-breathe 4.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .aura-breathe { animation: none; } }

@@ -31,12 +31,12 @@ describe('avatar choice', () => {
   });
   it('defaults to the first preset and remembers a new choice, encrypted', async () => {
     expect(await loadAvatarChoice()).toEqual(DEFAULT_CHOICE);
-    await saveAvatarChoice({ kind: 'preset', id: '07-halo-crop' });
-    expect(await loadAvatarChoice()).toEqual({ kind: 'preset', id: '07-halo-crop' });
-    expect(JSON.stringify(await db.records.toArray())).not.toContain('halo-crop');
+    await saveAvatarChoice({ kind: 'character', id: 'arjun' });
+    expect(await loadAvatarChoice()).toEqual({ kind: 'character', id: 'arjun' });
+    expect(JSON.stringify(await db.records.toArray())).not.toContain('arjun');
   });
-  it('falls back to the default if a stored preset no longer exists', async () => {
-    await vault.putRecord('settings', 'avatar', { kind: 'preset', id: 'gone' });
+  it('moves old or unknown avatar choices to the default character', async () => {
+    await vault.putRecord('settings', 'avatar', { kind: 'preset', id: '07-halo-crop' });
     expect(await loadAvatarChoice()).toEqual(DEFAULT_CHOICE);
   });
 });
