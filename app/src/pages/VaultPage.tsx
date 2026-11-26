@@ -17,7 +17,7 @@ import { confirmCsvImport, previewCsvImport, type CsvImportPreview } from '../li
 import { saveDay } from '../lib/store';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { DataSource } from '../types';
-import type { AuditRow } from '../lib/db';
+import { db, type AuditRow, type RecordRow } from '../lib/db';
 
 export function VaultPage({
   onChange,
@@ -34,6 +34,8 @@ export function VaultPage({
   const [status, setStatus] = useState<{ kind: 'ok' | 'error' | 'info'; text: string } | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [diskSample, setDiskSample] = useState<RecordRow | null>(null);
+  const [showCiphertext, setShowCiphertext] = useState(false);
 
   // CSV import state
   const [csvName, setCsvName] = useState('');
@@ -151,7 +153,7 @@ export function VaultPage({
             </ul>
           )}
 
-          <div>
+          <div className="row gap-sm wrap">
             <button
               type="button"
               className="btn"
@@ -169,7 +171,35 @@ export function VaultPage({
             >
               Back up encrypted copy to relay (optional)
             </button>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={async () => {
+                const next = !showCiphertext;
+                setShowCiphertext(next);
+                if (next) {
+                  setDiskSample((await db.records.limit(1).first()) ?? null);
+                }
+              }}
+            >
+              {showCiphertext ? 'Hide disk ciphertext' : 'Inspect encrypted vault on disk'}
+            </button>
           </div>
+          {showCiphertext && (
+            <div className="card-subtle stack-sm">
+              <strong className="xs">Proof of encryption (raw IndexedDB record)</strong>
+              {diskSample ? (
+                <pre className="xs" style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: 'var(--aura-muted)' }}>
+                  {`id: ${diskSample.id}\nkind: ${diskSample.kind}\niv: ${diskSample.iv.slice(0, 24)}…\nct: ${diskSample.ct.slice(0, 96)}…`}
+                </pre>
+              ) : (
+                <p className="xs muted">No encrypted records saved yet.</p>
+              )}
+              <p className="xs muted" style={{ margin: 0 }}>
+                Only AES-GCM ciphertext is written to disk. Without your passphrase, it cannot be read.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Consent Controls */}

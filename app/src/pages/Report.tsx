@@ -27,6 +27,7 @@ import { useMe } from '../avatar/AvatarContext';
 import { avatarMood } from '../avatar/mood';
 import { WeekCharts } from '../components/WeekCharts';
 import { BadgeWall } from '../components/Streaks';
+import { BalanceSimulator } from '../components/BalanceSimulator';
 import { streaks } from '../goals/badges';
 import { today } from '../lib/dates';
 import { loadFood } from '../lib/store';
@@ -299,6 +300,8 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
           )}
         </button>
       </div>
+
+      <BalanceSimulator latest={latest} history={days.slice(0, -1)} />
 
       {/* Sleep vs Late-Screen Chart */}
       <div className="card stack-md">

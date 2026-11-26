@@ -1,6 +1,7 @@
 import type { DayRecord, FoodEntry } from '../types';
 import { streaks } from '../goals/badges';
 import { thoughtFor } from '../home/thoughts';
+import { bestAndWorst, compareWeeks } from '../summary/compare';
 
 /**
  * Built-in answers computed on the phone, used when smart replies are off,
@@ -70,6 +71,32 @@ export function localReply(q: string, days: DayRecord[], food: FoodEntry[], date
   if (/streak|badge/.test(t)) {
     const s = streaks(days, date).filter((x) => x.current > 0).sort((a, b) => b.current - a.current);
     return { text: s.length ? `Your streaks: ${s.map((x) => `${x.def.emoji} ${x.def.label} ${x.current} days`).join(', ')}. Don't break them!` : 'No streak running yet. Log your mood or drink 8 glasses today to start one.', meta };
+  }
+  if (/why|worst|lowest|best|highest|changed|compare|last week/.test(t)) {
+    if (/changed|compare|last week/.test(t)) {
+      const rows = compareWeeks(days, date).filter((r) => r.now !== null && r.change !== null);
+      if (rows.length) {
+        const highlights = rows.slice(0, 3).map((r) => {
+          const sign = (r.change ?? 0) > 0 ? '+' : '';
+          return `${r.label}: ${r.fmt(r.now!)} (${sign}${r.change}%)`;
+        });
+        return { text: `Compared with last week: ${highlights.join(', ')}. Open the Report tab for the full breakdown.`, meta };
+      }
+    }
+    const bw = bestAndWorst(days, date);
+    const target = /best|highest/.test(t) ? bw.best : bw.worst;
+    if (target) {
+      const clues: string[] = [];
+      if (target.sleepHours !== undefined) clues.push(`${target.sleepHours.toFixed(1)} h sleep`);
+      if (target.lateScreenMin !== undefined) clues.push(`${Math.round(target.lateScreenMin)} min late screen`);
+      if (target.steps !== undefined) clues.push(`${target.steps.toLocaleString()} steps`);
+      if (target.caffeineCups !== undefined && target.caffeineCups >= 3) clues.push(`${target.caffeineCups} coffees`);
+      const label = /best|highest/.test(t) ? 'best' : 'lowest';
+      return {
+        text: `Your ${label} day this week was ${target.date}${clues.length ? ` (${clues.join(', ')})` : ''}.`,
+        meta,
+      };
+    }
   }
   if (/how am i|how('?s| is) my|summary|overview|today|this week|report|doing/.test(t)) {
     const parts: string[] = [];

@@ -27,6 +27,12 @@ describe('built-in answers', () => {
     const food = [{ id: 'f', date: D, text: 'dal rice', kcal: 450, proteinG: 14, ts: 1 }] as never[];
     expect(localReply('calories today', days, food, D)?.text).toContain('450 kcal');
   });
+  it('explains best/worst days and week-over-week changes offline', () => {
+    const varied = days.map((d, idx) => (idx === 2 ? { ...d, sleepHours: 4.5, lateScreenMin: 120, caffeineCups: 3 } : d));
+    const why = localReply('why was my score lowest?', varied, [], D);
+    expect(why?.text).toContain('2026-11-22');
+    expect(why?.text).toContain('4.5 h sleep');
+  });
   it('returns null for things it cannot answer', () => {
     expect(localReply('who won the cricket match', days, [], D)).toBeNull();
   });
