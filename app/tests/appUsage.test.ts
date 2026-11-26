@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../src/lib/db';
 import * as vault from '../src/lib/vault';
 import { demoApps, fmtMin, limitState, loadLimits, saveLimits, setLimit } from '../src/apps/appUsage';
+import { resolveAppIconKey } from '../src/components/AppIcon';
 
 describe('app usage', () => {
   beforeEach(async () => {
@@ -40,5 +41,14 @@ describe('app usage', () => {
     const d = demoApps();
     expect(d.apps.length).toBeGreaterThan(3);
     expect(d.unlocks).toBeGreaterThan(0);
+  });
+
+  it('resolves dynamic app icons for demo apps and known packages/labels', () => {
+    for (const app of demoApps().apps) {
+      expect(resolveAppIconKey(app.pkg, app.label)).not.toBeNull();
+    }
+    expect(resolveAppIconKey('com.spotify.music', 'Spotify')).toBe('spotify');
+    expect(resolveAppIconKey('com.custom.pkg', 'Spotify Lite')).toBe('spotify');
+    expect(resolveAppIconKey('com.example.unknown', 'My Custom App')).toBeNull();
   });
 });

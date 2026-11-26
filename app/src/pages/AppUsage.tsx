@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getAppUsage, getUsage, isNative, notify, pushAppLimits, type AppLimit, type AppUse } from '../native/bridge';
 import { demoApps, fmtMin, limitState, loadLimits, saveLimits, setLimit } from '../apps/appUsage';
+import { AppIcon } from '../components/AppIcon';
 
 const COLORS = { none: 'var(--aura-blue)', ok: 'var(--aura-primary)', near: '#E8A33D', over: '#E2626B' } as const;
 const PRESETS = [15, 30, 45, 60, 90, 120];
@@ -125,13 +126,7 @@ export function AppUsage() {
             <div key={a.pkg} className="stack-sm" style={{ paddingBottom: 6, borderBottom: '1px solid var(--aura-border)' }}>
               <div className="row between center-v gap">
                 <div className="row center-v gap" style={{ minWidth: 0 }}>
-                  {a.icon ? (
-                    <img src={a.icon} alt="" style={{ width: 34, height: 34, borderRadius: 8 }} />
-                  ) : (
-                    <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--aura-primary-dim)', display: 'grid', placeItems: 'center', fontWeight: 700 }}>
-                      {a.label[0]}
-                    </div>
-                  )}
+                  <AppIcon pkg={a.pkg} label={a.label} icon={a.icon} size={34} />
                   <div style={{ minWidth: 0 }}>
                     <strong className="small">{a.label}</strong>
                     <div className="xs muted">
