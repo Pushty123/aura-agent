@@ -11,18 +11,22 @@ import time
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from auth import router as auth_router
+
 DB_PATH = os.environ.get("AURA_RELAY_DB", "relay.db")
 MAX_BLOB = 256 * 1024  # bytes per blob
 MAX_BLOBS_PER_MAILBOX = 5000
 ID_RE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 
-app = FastAPI(title="AURA blind relay", version="0.1.0")
+app = FastAPI(title="AURA relay and accounts", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:4173", "capacitor://localhost", "http://localhost"],
-    allow_methods=["GET", "PUT", "DELETE"],
+    allow_origins=["http://localhost:5173", "http://localhost:4173", "capacitor://localhost", "http://localhost", "https://localhost"],
+    allow_methods=["GET", "PUT", "POST", "DELETE"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 
 def conn() -> sqlite3.Connection:

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { isUnlocked, lock, vaultExists } from './lib/vault';
 import { Unlock } from './pages/Unlock';
+import { Account } from './pages/Account';
 import { Dashboard } from './pages/Dashboard';
 import { CheckIn } from './pages/CheckIn';
 import { Food } from './pages/Food';
@@ -80,6 +81,19 @@ export function App() {
       <div className="unlock-screen">
         <p className="muted">Loading AURA…</p>
       </div>
+    );
+  }
+
+  if (!exists) {
+    return (
+      <Account
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onDone={() => {
+          setExists(true);
+          setUnlocked(true);
+        }}
+      />
     );
   }
 

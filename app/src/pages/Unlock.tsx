@@ -20,7 +20,7 @@ export function Unlock({ exists, theme, onToggleTheme, onDone, notice }: UnlockP
   const [busy, setBusy] = useState(false);
   const [waitSec, setWaitSec] = useState(0);
 
-  // After several wrong passphrases the vault makes you wait. Show a live
+  // After several wrong passwords the vault makes you wait. Show a live
   // countdown (it also survives a page reload, because it is stored).
   useEffect(() => {
     if (!exists) return;
@@ -42,7 +42,7 @@ export function Unlock({ exists, theme, onToggleTheme, onDone, notice }: UnlockP
     if (busy || waitSec > 0) return;
     setError('');
     if (!exists && pass !== pass2) {
-      setError('The two passphrases do not match.');
+      setError('The two passwords do not match.');
       return;
     }
     setBusy(true);
@@ -52,7 +52,7 @@ export function Unlock({ exists, theme, onToggleTheme, onDone, notice }: UnlockP
           setPass('');
           onDone();
         } else {
-          setError('That passphrase is not right.');
+          setError('That password is not right.');
           setWaitSec(await unlockWaitSeconds());
         }
       } else {
@@ -94,20 +94,20 @@ export function Unlock({ exists, theme, onToggleTheme, onDone, notice }: UnlockP
 
         <p className="small muted">
           {exists
-            ? 'Your vault is locked. Enter your passphrase to decrypt your records on this device.'
-            : 'Create a passphrase (at least 8 characters). Everything AURA stores is encrypted with a key derived from it.'}
+            ? 'Your vault is locked. Enter your password to decrypt your records on this device.'
+            : 'Create a password (at least 8 characters). Everything AURA stores is encrypted with a key derived from it.'}
         </p>
 
         <div className="stack-sm">
-          <label htmlFor="vault-passphrase" className="small" style={{ fontWeight: 600 }}>
-            Passphrase
+          <label htmlFor="vault-password" className="small" style={{ fontWeight: 600 }}>
+            Password
           </label>
           <div className="pass-wrap">
             <input
-              id="vault-passphrase"
+              id="vault-password"
               className="input"
               type={showPass ? 'text' : 'password'}
-              placeholder="Enter passphrase"
+              placeholder="Enter password"
               value={pass}
               onChange={(e) => setPass(e.target.value)}
               autoFocus
@@ -117,7 +117,7 @@ export function Unlock({ exists, theme, onToggleTheme, onDone, notice }: UnlockP
               type="button"
               className="pass-toggle"
               onClick={() => setShowPass((s) => !s)}
-              aria-label={showPass ? 'Hide passphrase' : 'Show passphrase'}
+              aria-label={showPass ? 'Hide password' : 'Show password'}
             >
               {showPass ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
             </button>
@@ -126,14 +126,14 @@ export function Unlock({ exists, theme, onToggleTheme, onDone, notice }: UnlockP
 
         {!exists && (
           <div className="stack-sm">
-            <label htmlFor="vault-passphrase-confirm" className="small" style={{ fontWeight: 600 }}>
-              Repeat passphrase
+            <label htmlFor="vault-password-confirm" className="small" style={{ fontWeight: 600 }}>
+              Repeat password
             </label>
             <input
-              id="vault-passphrase-confirm"
+              id="vault-password-confirm"
               className="input"
               type={showPass ? 'text' : 'password'}
-              placeholder="Repeat passphrase"
+              placeholder="Repeat password"
               value={pass2}
               onChange={(e) => setPass2(e.target.value)}
               autoComplete="new-password"
@@ -165,7 +165,7 @@ export function Unlock({ exists, theme, onToggleTheme, onDone, notice }: UnlockP
 
         {!exists && (
           <p className="xs muted">
-            There is no password recovery server. If you forget your passphrase, your encrypted data
+            There is no password recovery server. If you forget your password, your encrypted data
             cannot be recovered.
           </p>
         )}
