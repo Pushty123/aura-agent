@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { DayRecord } from '../types';
 import { runInsights } from '../insights/engine';
 import { balanceScore } from '../insights/balance';
@@ -6,6 +6,10 @@ import { mean } from '../insights/stats';
 import { parseCommand, type Command } from '../commands/parse';
 import { runCommand } from '../native/bridge';
 import { today } from '../lib/dates';
+import { askSmart, buildContext, getAiConsent, setAiConsent, smartStatus, type Turn } from '../lib/ai';
+import { getSession } from '../lib/account';
+import { loadProfile, type Profile } from '../profile/profile';
+import { loadWorkouts, type Workout } from '../exercise/workouts';
 
 interface Message {
   id: string;
@@ -15,8 +19,10 @@ interface Message {
 }
 
 /**
- * Ask AURA: preset questions answered from your own numbers by local code
- * (no LLM in the MVP), plus typed commands that always require a Confirm tap.
+ * Ask AURA: a chat box. With "Smart replies" on (opt-in) a language model on the
+ * AURA server answers from a short summary of your patterns. With it off, or
+ * offline, preset questions are answered by local code. Typed commands always
+ * require a Confirm tap.
  */
 export function Ask({ days }: { days: DayRecord[] }) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -24,6 +30,26 @@ export function Ask({ days }: { days: DayRecord[] }) {
   const [pending, setPending] = useState<Command | null>(null);
   const [busy, setBusy] = useState(false);
   const [cmdResult, setCmdResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [text, setText] = useState('');
+  const [thinking, setThinking] = useState(false);
+  const [smartOn, setSmartOn] = useState(false);
+  const [serverReady, setServerReady] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+
+  useEffect(() => {
+    void (async () => {
+      setSmartOn(await getAiConsent());
+      setLoggedIn(!!(await getSession()));
+      setProfile((await loadProfile()) ?? null);
+      setWorkouts(await loadWorkouts());
+      setServerReady(await smartStatus());
+    })();
+  }, []);
+
+  const context = useMemo(() => buildContext(days, profile, workouts), [days, profile, workouts]);
+  const smartActive = smartOn && serverReady && loggedIn;
 
   const questions = useMemo(
     () => [
@@ -88,14 +114,79 @@ export function Ask({ days }: { days: DayRecord[] }) {
     [days],
   );
 
-  function askQuestion(q: string, answerFn: () => { text: string; meta: string }) {
-    const res = answerFn();
+  function addMessages(...m: Message[]) {
+    setMessages((prev) => [...prev, ...m]);
+  }
+
+  function localAnswer(q: string) {
+    const lower = q.toLowerCase();
+    const hit =
+      questions.find((x) => x.q.toLowerCase() === lower) ??
+      (/sleep|slept|bed/.test(lower) && /hurt|affect|bad|why|cause/.test(lower)
+        ? questions[1]
+        : /sleep|slept/.test(lower)
+          ? questions[0]
+          : /balance|score/.test(lower)
+            ? questions[2]
+            : /step|move|walk|active/.test(lower)
+              ? questions[3]
+              : null);
+    return hit ? hit.a() : null;
+  }
+
+  async function send(q: string) {
+    const question = q.trim();
+    if (!question || thinking) return;
+    setText('');
     const ts = Date.now();
-    setMessages((prev) => [
-      ...prev,
-      { id: `u-${ts}`, role: 'user', text: q },
-      { id: `a-${ts}`, role: 'aura', text: res.text, meta: res.meta },
-    ]);
+    const userMsg: Message = { id: `u-${ts}`, role: 'user', text: question };
+
+    // Typed actions always go through the Confirm card, never straight to a model.
+    const cmd = parseCommand(question, today());
+    if (cmd.type !== 'unknown') {
+      addMessages(userMsg, { id: `a-${ts}`, role: 'aura', text: 'I can do that. Please check the details and confirm below.' });
+      setCmdResult(null);
+      setPending(cmd);
+      return;
+    }
+
+    if (smartActive) {
+      addMessages(userMsg);
+      setThinking(true);
+      try {
+        const history: Turn[] = messages
+          .filter((m) => !m.meta?.startsWith('Built-in'))
+          .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));
+        const reply = await askSmart(question, history, context);
+        addMessages({ id: `a-${ts}`, role: 'aura', text: reply, meta: 'Smart reply · from a summary of your recent patterns' });
+      } catch (e) {
+        const fallback = localAnswer(question);
+        addMessages({
+          id: `a-${ts}`,
+          role: 'aura',
+          text: `${e instanceof Error ? e.message : 'Smart replies are unavailable.'}${fallback ? ` Here is the built-in answer: ${fallback.text}` : ''}`,
+          meta: 'Built-in answer',
+        });
+      } finally {
+        setThinking(false);
+      }
+      return;
+    }
+
+    const res = localAnswer(question);
+    addMessages(userMsg, {
+      id: `a-${ts}`,
+      role: 'aura',
+      text: res
+        ? res.text
+        : 'I can answer sleep, movement and Balance Score questions from your numbers. Turn on Smart replies above to chat about anything in your patterns.',
+      meta: res ? `Built-in answer · ${res.meta}` : 'Built-in answer',
+    });
+  }
+
+  async function toggleSmart(on: boolean) {
+    await setAiConsent(on);
+    setSmartOn(on);
   }
 
   return (
@@ -105,36 +196,54 @@ export function Ask({ days }: { days: DayRecord[] }) {
           <div>
             <h2>Ask AURA</h2>
             <p className="xs muted">
-              Answers are computed locally from your own encrypted numbers. No external AI model is used.
+              {smartActive
+                ? 'Smart replies are on: a language model answers from a short summary of your patterns. Your name, email and raw records are never sent.'
+                : 'Answers are computed on this phone from your own encrypted numbers.'}
             </p>
           </div>
-          <span className="pill primary">Local insights</span>
+          <span className={`pill ${smartActive ? 'primary' : ''}`}>{smartActive ? 'Smart replies' : 'Local insights'}</span>
+        </div>
+
+        <div className="card-subtle stack-sm">
+          <label className="row gap center-v">
+            <input
+              type="checkbox"
+              checked={smartOn}
+              onChange={(e) => void toggleSmart(e.target.checked)}
+              aria-label="Use smart replies"
+            />
+            <strong className="small">Use smart replies (optional)</strong>
+          </label>
+          <p className="xs muted">
+            Lets you chat in your own words. When on, a short summary of your recent patterns is sent through the AURA
+            server to a language model. Every request appears in My Data → network ledger.
+          </p>
+          {smartOn && !loggedIn && <p className="xs">Log in to your account to use smart replies.</p>}
+          {smartOn && loggedIn && !serverReady && (
+            <p className="xs">Smart replies are not available from the server right now, so built-in answers are used.</p>
+          )}
+          <details>
+            <summary className="xs">See exactly what would be sent</summary>
+            <pre className="xs" style={{ whiteSpace: 'pre-wrap', margin: '8px 0 0' }}>{context}</pre>
+          </details>
         </div>
 
         <div className="row gap wrap">
           {questions.map((item) => (
-            <button
-              key={item.q}
-              type="button"
-              className="btn sm"
-              onClick={() => askQuestion(item.q, item.a)}
-            >
+            <button key={item.q} type="button" className="btn sm" disabled={thinking} onClick={() => void send(item.q)}>
               {item.q}
             </button>
           ))}
         </div>
 
-        <div className="card-subtle stack-md" style={{ minHeight: 160 }}>
+        <div className="card-subtle stack-md" style={{ minHeight: 160 }} aria-live="polite">
           {messages.length === 0 ? (
             <p className="small muted">
-              Choose a suggested question above to inspect your sleep, Balance Score, or movement trends.
+              Ask a question below or tap a suggestion to inspect your sleep, Balance Score or movement.
             </p>
           ) : (
             messages.map((m) => (
-              <div
-                key={m.id}
-                className={m.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-aura'}
-              >
+              <div key={m.id} className={m.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-aura'}>
                 <p className="small">{m.text}</p>
                 {m.meta && (
                   <p className="xs muted" style={{ marginTop: 4 }}>
@@ -144,7 +253,28 @@ export function Ask({ days }: { days: DayRecord[] }) {
               </div>
             ))
           )}
+          {thinking && <p className="xs muted">AURA is thinking…</p>}
         </div>
+
+        <form
+          className="row gap"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void send(text);
+          }}
+        >
+          <input
+            className="input"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={smartActive ? 'Ask anything about your patterns…' : 'Ask about sleep, steps or your Balance Score…'}
+            aria-label="Message to AURA"
+            maxLength={500}
+          />
+          <button type="submit" className="btn primary" disabled={thinking || !text.trim()}>
+            Send
+          </button>
+        </form>
       </div>
 
       <div className="card stack-md">

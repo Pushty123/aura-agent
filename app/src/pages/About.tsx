@@ -39,6 +39,16 @@ export function About() {
         </article>
 
         <article className="card stack-sm">
+          <h3>Smart replies are optional</h3>
+          <p className="small muted">
+            Off by default. If you turn them on in <strong>Ask AURA</strong>, a short summary of your patterns
+            (weekly averages, insight sentences, age band and goal) is sent through the AURA server to a language
+            model so you can chat in your own words. Your name, email, allergies, blood group, photos and raw
+            records are never sent, and you can preview the exact summary first.
+          </p>
+        </article>
+
+        <article className="card stack-sm">
           <h3>Network ledger &amp; audit log</h3>
           <p className="small muted">
             Every outgoing network request made by AURA&apos;s own code is counted in{' '}

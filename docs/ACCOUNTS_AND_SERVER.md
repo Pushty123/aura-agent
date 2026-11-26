@@ -38,3 +38,18 @@ npm install
 npm run android:prepare
 ```
 Then run from Android Studio.
+
+## Smart replies (language model)
+The app never holds a model key. Set it once on the server:
+```
+set AURA_LLM_PROVIDER=gemini        # or anthropic, or openai (any OpenAI-compatible API such as Groq)
+set AURA_LLM_KEY=your-key-here
+set AURA_LLM_MODEL=gemini-2.0-flash # optional for gemini/anthropic; required for openai
+uvicorn main:app --host 0.0.0.0 --port 8787
+```
+- For `openai`-style providers also set `AURA_LLM_BASE_URL` (for example `https://api.groq.com/openai/v1`).
+- Never commit the key. It lives only in the server's environment.
+- Users opt in inside Ask AURA. Only a summary is sent (see `app/src/lib/ai.ts`): no name, email, allergies,
+  blood group, photos or raw records. The server removes emails and phone numbers again, adds the safety prompt
+  itself and limits each account to 30 requests an hour (`AURA_LLM_PER_HOUR`).
+- If the server has no key, the user is offline, or smart replies are off, Ask AURA falls back to built-in answers.

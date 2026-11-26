@@ -52,7 +52,7 @@ export async function deriveAuthKey(password: string, email: string): Promise<st
 
 export class AccountError extends Error {}
 
-async function call<T>(path: string, init: RequestInit & { label: string }): Promise<T> {
+export async function apiCall<T>(path: string, init: RequestInit & { label: string }): Promise<T> {
   const server = await getServer();
   let res: Response;
   try {
@@ -80,7 +80,7 @@ export interface RegisterResult {
 
 export async function register(email: string, password: string): Promise<RegisterResult> {
   const auth_key = await deriveAuthKey(password, email);
-  return call<RegisterResult>('/v1/auth/register', {
+  return apiCall<RegisterResult>('/v1/auth/register', {
     method: 'POST',
     body: JSON.stringify({ email, auth_key }),
     label: 'account-signup (login key only, never the password)',
@@ -88,7 +88,7 @@ export async function register(email: string, password: string): Promise<Registe
 }
 
 export async function verify(email: string, code: string): Promise<Session> {
-  const r = await call<Session>('/v1/auth/verify', {
+  const r = await apiCall<Session>('/v1/auth/verify', {
     method: 'POST',
     body: JSON.stringify({ email, code }),
     label: 'email-verification-code',
@@ -99,7 +99,7 @@ export async function verify(email: string, code: string): Promise<Session> {
 
 export async function login(email: string, password: string): Promise<Session> {
   const auth_key = await deriveAuthKey(password, email);
-  const r = await call<Session>('/v1/auth/login', {
+  const r = await apiCall<Session>('/v1/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, auth_key }),
     label: 'account-login (login key only, never the password)',
