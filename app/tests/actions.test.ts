@@ -4,7 +4,7 @@ import * as vault from '../src/lib/vault';
 import { applyQueuedActions, doneToday, queueAction } from '../src/reminders/actions';
 import { loadDays } from '../src/lib/store';
 import { today } from '../src/lib/dates';
-import { completeGoal, loadGoals, logCustom, newGoal, progressFor, saveGoal, validateGoal } from '../src/goals/goals';
+import { completeGoal, loadGoals, logCustom, newGoal, progressFor, saveGoal, validateGoal, type Goal } from '../src/goals/goals';
 import { actionFor, newReminder, TEMPLATES } from '../src/reminders/reminders';
 import { ALL_APPS, phoneLimit } from '../src/apps/appUsage';
 
@@ -47,7 +47,7 @@ describe('notification "Done" button', () => {
 describe('custom goals', () => {
   it('needs a unit and logs amounts per day', async () => {
     expect(validateGoal({ title: 'Read', metric: 'custom', target: 20 })).toMatch(/unit/);
-    let g = { ...newGoal('Read', 'custom', 20), unit: 'pages', log: {} };
+    let g: Goal = { ...newGoal('Read', 'custom', 20), unit: 'pages', log: {} };
     expect(validateGoal(g)).toBeNull();
     await saveGoal(g);
     g = await logCustom(g, '2026-11-26', 5);
