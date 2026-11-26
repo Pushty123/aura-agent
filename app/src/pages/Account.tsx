@@ -38,6 +38,25 @@ export function Account({ theme, onToggleTheme, onDone }: Props) {
     onDone();
   }
 
+  /** Local-only vault: no server, nothing leaves this device. */
+  async function tryLocal() {
+    setError('');
+    setInfo('');
+    if (pass.length < 8) return setError('Choose a password of at least 8 characters to protect the local vault.');
+    if (pass !== pass2) return setError('The two passwords do not match.');
+    setBusy(true);
+    try {
+      await createVault(pass);
+      setPass('');
+      setPass2('');
+      onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (busy) return;
@@ -214,6 +233,12 @@ export function Account({ theme, onToggleTheme, onDone }: Props) {
             }}
           >
             {mode === 'signup' ? 'I already have an account' : 'Create a new account'}
+          </button>
+        )}
+
+        {mode === 'signup' && (
+          <button type="button" className="btn ghost" disabled={busy || !pass} onClick={() => void tryLocal()}>
+            Try without an account (this device only)
           </button>
         )}
 
