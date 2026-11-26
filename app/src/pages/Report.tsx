@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CloudRain, Dumbbell, Droplet, Footprints, HeartPulse, MoonStar, Moon, Share2, Smartphone, Smile, Target, Trophy } from 'lucide-react';
+import { CloudRain, Download, Dumbbell, Droplet, Footprints, HeartPulse, MoonStar, Moon, Share2, Smartphone, Smile, Target, Trophy } from 'lucide-react';
 import type { CompareRow } from '../summary/compare';
 
 const COMPARE_ICON = { sleepHours: Moon, steps: Footprints, screenMinutes: Smartphone, lateScreenMin: MoonStar, mood: Smile, waterGlasses: Droplet, exerciseMinutes: Dumbbell };
@@ -21,6 +21,7 @@ import type { DayRecord } from '../types';
 import { balanceScore } from '../insights/balance';
 import { weeklySummary } from '../summary/weekly';
 import { bestAndWorst, compareWeeks, reportText } from '../summary/compare';
+import { buildPrivacySafeSummary, downloadSummaryCard } from '../summary/shareCard';
 import { AuraAvatar } from '../avatar/AuraAvatar';
 import { CharacterModal } from '../avatar/CharacterModal';
 import { useMe } from '../avatar/AvatarContext';
@@ -98,6 +99,29 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
     }
   }
 
+  async function downloadCard() {
+    const topStreak = streaks(days, latest?.date ?? date)
+      .filter((s) => s.current > 0)
+      .sort((a, b) => b.current - a.current)[0];
+    const winRow = rows.find((r) => r.better === true && r.change !== null);
+    const topWin = winRow
+      ? `${winRow.label} (${winRow.change! > 0 ? '+' : ''}${winRow.change}% vs last week)`
+      : bw.best
+        ? `Best day: ${bw.best.date}`
+        : 'Consistent wellness tracking';
+    await downloadSummaryCard(
+      buildPrivacySafeSummary({
+        score: balance?.score ?? null,
+        streakLabel: topStreak?.def.label,
+        streakDays: topStreak?.current,
+        topWin,
+        date: latest?.date ?? date,
+        isDemo,
+      }),
+    );
+    setShareMsg('Downloaded privacy-safe summary card (PNG).');
+  }
+
   if (!latest)
     return (
       <section className="card stack-sm">
@@ -114,9 +138,14 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
           <h2 style={{ margin: 0 }}>Your week</h2>
           <p className="xs muted">7 days ending {fmtDay(latest.date)}, compared with the 7 days before{isDemo ? ' · DEMO data' : ''}</p>
         </div>
-        <button type="button" className="btn primary" onClick={() => void share()}>
-          <Share2 size={16} /> Share report
-        </button>
+        <div className="row gap-sm wrap">
+          <button type="button" className="btn" onClick={() => void downloadCard()}>
+            <Download size={16} /> Download summary card
+          </button>
+          <button type="button" className="btn primary" onClick={() => void share()}>
+            <Share2 size={16} /> Share report
+          </button>
+        </div>
       </div>
       {shareMsg && <div className="status-banner ok" role="status">{shareMsg}</div>}
 
