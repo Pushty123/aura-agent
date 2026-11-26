@@ -67,7 +67,7 @@ class AuraWidgetProvider : AppWidgetProvider() {
             views.setTextViewText(R.id.aura_score, if (score >= 0) score.toString() else "–")
             views.setTextViewText(
                 R.id.aura_mood,
-                if (enabled) p.getString("mood", "AURA") else "Turn on in AURA → Profile"
+                if (enabled) p.getString("mood", "AURA") else "Open AURA to start"
             )
             views.setTextViewText(R.id.aura_sleep, if (enabled) p.getString("sleep", "–") else "–")
             views.setTextViewText(R.id.aura_steps, if (enabled) p.getString("steps", "–") else "–")

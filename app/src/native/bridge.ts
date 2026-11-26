@@ -73,6 +73,8 @@ interface AuraNativePlugin {
   biometricUnlock(): Promise<{ ok: boolean; secret?: string; cancelled?: boolean; reset?: boolean; message?: string }>;
   biometricDisable(): Promise<void>;
   clearWidget(): Promise<void>;
+  widgetStatus(): Promise<{ supported: boolean; placed: number }>;
+  pinWidget(): Promise<{ supported: boolean; asked: boolean }>;
   setAlarm(opts: { hour: number; minute: number; label: string }): Promise<void>;
   addCalendarEvent(opts: { title: string; startMillis: number }): Promise<void>;
 }
@@ -246,6 +248,26 @@ export async function updateWidget(snap: WidgetSnapshot): Promise<boolean> {
   try {
     await Native.updateWidget(snap);
     return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function widgetStatus(): Promise<{ supported: boolean; placed: number } | null> {
+  if (!isNative()) return null;
+  try {
+    return await Native.widgetStatus();
+  } catch {
+    return null; // older app build
+  }
+}
+
+/** Opens the launcher's "Add widget" dialog. Returns false if this launcher can't do it. */
+export async function pinWidget(): Promise<boolean> {
+  if (!isNative()) return false;
+  try {
+    const r = await Native.pinWidget();
+    return r.supported && r.asked;
   } catch {
     return false;
   }

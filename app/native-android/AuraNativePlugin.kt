@@ -1,6 +1,8 @@
 package `in`.phoenix.aura
 
 import android.app.AppOpsManager
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
@@ -396,6 +398,28 @@ class AuraNativePlugin : Plugin() {
         e.apply()
         AuraWidgetProvider.refreshAll(context)
         call.resolve()
+    }
+
+    /** { supported, placed }: can this launcher add widgets from inside the app, and how many AURA widgets are on screen. */
+    @PluginMethod
+    fun widgetStatus(call: PluginCall) {
+        val mgr = AppWidgetManager.getInstance(context)
+        val cn = ComponentName(context, AuraWidgetProvider::class.java)
+        val supported = Build.VERSION.SDK_INT >= 26 && mgr.isRequestPinAppWidgetSupported
+        call.resolve(JSObject().put("supported", supported).put("placed", mgr.getAppWidgetIds(cn).size))
+    }
+
+    /** Asks the launcher to place the AURA widget; the person confirms in the launcher's own dialog. */
+    @PluginMethod
+    fun pinWidget(call: PluginCall) {
+        val mgr = AppWidgetManager.getInstance(context)
+        val cn = ComponentName(context, AuraWidgetProvider::class.java)
+        if (Build.VERSION.SDK_INT >= 26 && mgr.isRequestPinAppWidgetSupported) {
+            val asked = try { mgr.requestPinAppWidget(cn, null, null) } catch (e: Exception) { false }
+            call.resolve(JSObject().put("supported", true).put("asked", asked))
+        } else {
+            call.resolve(JSObject().put("supported", false).put("asked", false))
+        }
     }
 
     @PluginMethod

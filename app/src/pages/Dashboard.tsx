@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { DayRecord } from '../types';
 import { runInsights } from '../insights/engine';
 import { balanceScore } from '../insights/balance';
@@ -14,6 +14,9 @@ import { StreakRow } from '../components/Streaks';
 import { streaks } from '../goals/badges';
 import { thoughtFor, todayLine } from '../home/thoughts';
 import { speak, stopSpeaking } from '../voice/voice';
+import { pinWidget, widgetStatus } from '../native/bridge';
+import { db } from '../lib/db';
+import { syncWidget } from '../widget/widget';
 import { generateDemoData } from '../lib/demoData';
 import { today } from '../lib/dates';
 import { patchDay, saveDay } from '../lib/store';
@@ -40,6 +43,14 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   const [showCharacter, setShowCharacter] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const streakList = useMemo(() => streaks(days, today()), [days]);
+  const [offerWidget, setOfferWidget] = useState(false);
+  useEffect(() => {
+    void (async () => {
+      const st = await widgetStatus();
+      const hidden = (await db.meta.get('widget-offer'))?.value === 'hide';
+      setOfferWidget(!!st && st.placed === 0 && !hidden);
+    })();
+  }, []);
 
   const latest = days[days.length - 1];
   const insights = useMemo(() => runInsights(days), [days]);
@@ -183,6 +194,36 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
             onNavigate?.('profile');
           }}
         />
+      )}
+
+      {offerWidget && (
+        <div className="card row between center-v gap wrap">
+          <span className="small">📲 Put AURA on your home screen to see your score without opening the app.</span>
+          <span className="row gap">
+            <button
+              type="button"
+              className="btn sm primary"
+              onClick={async () => {
+                await syncWidget(days);
+                const ok = await pinWidget();
+                setMsg(ok ? 'Tap "Add" in the box that opens.' : 'Long-press your home screen → Widgets → find AURA.');
+              }}
+            >
+              Add widget
+            </button>
+            <button
+              type="button"
+              className="btn sm ghost"
+              aria-label="Hide this"
+              onClick={() => {
+                setOfferWidget(false);
+                void db.meta.put({ key: 'widget-offer', value: 'hide' });
+              }}
+            >
+              ✕
+            </button>
+          </span>
+        </div>
       )}
 
       <div className="card thought-card stack-sm">
