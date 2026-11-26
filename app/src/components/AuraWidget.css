@@ -1,0 +1,77 @@
+.aw {
+  --aw-sub: #a5a8e6;
+  --aw-green: #4ade80;
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: 18px;
+  color: #fff;
+  background:
+    radial-gradient(120% 90% at 85% 15%, #4c3fa8 0%, transparent 55%),
+    linear-gradient(160deg, #1c1a45, #12142b);
+  border: 1px solid rgba(165, 168, 230, 0.35);
+  box-shadow: 0 10px 30px rgba(10, 10, 40, 0.45);
+}
+.aw > *:not(.aw-art) { position: relative; z-index: 1; }
+.aw-art {
+  position: absolute; right: 0; top: 78px; width: 48%; max-width: 280px;
+  opacity: 0.95; pointer-events: none; z-index: 0;
+}
+.aw-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.aw-brand { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 150px; }
+.aw-name { margin: 0; font-size: 1.4rem; font-weight: 700; line-height: 1.1; }
+.aw-tag { margin: 0; font-size: 0.75rem; color: var(--aw-sub); }
+.aw-badge {
+  padding: 6px 12px; border-radius: 999px; font-size: 0.7rem; line-height: 1.2;
+  color: var(--aw-green); background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(165, 168, 230, 0.35);
+}
+.aw-demo {
+  padding: 2px 8px; border-radius: 999px; font-size: 0.65rem; font-weight: 700;
+  background: #f59e0b; color: #1a1a1a;
+}
+.aw-gear {
+  background: none; border: 0; color: inherit; font-size: 1.4rem; cursor: pointer; padding: 4px;
+}
+.aw-hello { margin: 18px 0 0; font-size: 1.9rem; font-weight: 800; }
+.aw-sub { margin: 2px 0 14px; color: var(--aw-sub); }
+
+.aw-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+@media (min-width: 560px) { .aw-tiles { grid-template-columns: repeat(4, 1fr); } }
+.aw-tile {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 16px 8px 12px; border-radius: 20px; color: inherit; font: inherit; cursor: pointer;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(165, 168, 230, 0.3);
+}
+.aw-chev { position: absolute; top: 6px; right: 12px; color: var(--aw-sub); }
+.aw-icon { font-size: 1.6rem; }
+.aw-value { font-size: 1.25rem; font-weight: 700; }
+.aw-label { font-size: 0.85rem; color: #d8d9ff; }
+.aw-tile:focus-visible, .aw-week:focus-visible, .aw-gear:focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
+
+.aw-score {
+  margin-top: 12px; padding: 14px; border-radius: 22px; display: flex; align-items: center;
+  gap: 14px; flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(165, 168, 230, 0.3);
+}
+.aw-ring { position: relative; width: 110px; height: 110px; flex: none; }
+.aw-ring-text {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.aw-ring-text strong { font-size: 2rem; line-height: 1; }
+.aw-ring-text span { font-size: 0.8rem; color: var(--aw-sub); }
+.aw-score-info { flex: 1; min-width: 120px; }
+.aw-score-info h4 { margin: 0; font-size: 1.25rem; }
+.aw-score-info p { margin: 4px 0 0; color: var(--aw-sub); }
+.aw-up { color: var(--aw-green); font-weight: 700; }
+.aw-week {
+  flex: none; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+  background: none; border: 0; color: inherit; font: inherit; cursor: pointer;
+}
+.aw-week-title { font-size: 0.8rem; color: #d8d9ff; }
+.aw-bars { display: flex; align-items: flex-end; gap: 6px; height: 56px; }
+.aw-bars i {
+  display: block; width: 12px; border-radius: 4px;
+  background: linear-gradient(180deg, #818cf8, #a78bfa);
+}
