@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 128" fill="none">
+  <defs>
+    <radialGradient id="lockup-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#35CFC8" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#35CFC8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="lockup-ring" x1="18" y1="18" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#35CFC8"/>
+      <stop offset="70%" stop-color="#438CCB"/>
+      <stop offset="100%" stop-color="#8974E8"/>
+    </linearGradient>
+  </defs>
+  <!-- Mark -->
+  <circle cx="64" cy="64" r="50" fill="url(#lockup-glow)"/>
+  <circle cx="64" cy="64" r="42" stroke="#454B5C" stroke-opacity="0.35" stroke-width="8"/>
+  <path
+    d="M 64 22 A 42 42 0 1 1 25.4 80.5"
+    stroke="url(#lockup-ring)"
+    stroke-width="10"
+    stroke-linecap="round"
+  />
+  <circle cx="64" cy="64" r="14" fill="#35CFC8" fill-opacity="0.18"/>
+  <circle cx="64" cy="64" r="7.5" fill="#35CFC8"/>
+
+  <!-- Geometric vector wordmark "AURA" (font-independent paths) -->
+  <g stroke="#F4F5F7" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- A -->
+    <path d="M 148 92 L 169 36 L 190 92"/>
+    <path d="M 156 73 L 182 73"/>
+    <!-- U -->
+    <path d="M 212 36 L 212 72 C 212 85 222 93 234 93 C 246 93 256 85 256 72 L 256 36"/>
+    <!-- R -->
+    <path d="M 280 92 L 280 36 L 304 36 C 315 36 322 43 322 52 C 322 61 315 67 304 67 L 280 67"/>
+    <path d="M 301 67 L 323 92"/>
+    <!-- A -->
+    <path d="M 344 92 L 365 36 L 386 92"/>
+    <path d="M 352 73 L 378 73"/>
+  </g>
+</svg>

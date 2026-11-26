@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" fill="none">
+  <defs>
+    <linearGradient id="fg-ring" x1="27" y1="27" x2="81" y2="81" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#35CFC8"/>
+      <stop offset="68%" stop-color="#438CCB"/>
+      <stop offset="100%" stop-color="#8974E8"/>
+    </linearGradient>
+  </defs>
+  <circle cx="54" cy="54" r="24" stroke="#454B5C" stroke-opacity="0.35" stroke-width="5"/>
+  <path d="M 54 30 A 24 24 0 1 1 32 63.4" stroke="url(#fg-ring)" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="54" cy="54" r="8" fill="#35CFC8" fill-opacity="0.2"/>
+  <circle cx="54" cy="54" r="4.5" fill="#35CFC8"/>
+</svg>

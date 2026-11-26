@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Proposal for Backend A, not wired -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="88dp"
+  android:height="88dp"
+  android:viewportWidth="88"
+  android:viewportHeight="88">
+  <path
+    android:pathData="M44,10 A34,34 0 1,1 19.2,67.3"
+    android:strokeWidth="8"
+    android:strokeColor="@color/aura_primary"
+    android:strokeLineCap="round"
+    android:fillColor="@android:color/transparent" />
+</vector>
