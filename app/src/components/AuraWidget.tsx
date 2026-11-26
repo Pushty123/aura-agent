@@ -20,6 +20,8 @@ export interface AuraWidgetProps {
   onRingClick?: () => void;
   /** Short mood line under the score, e.g. "In balance today". */
   moodLabel?: string;
+  /** Line under the greeting. */
+  subline?: string;
 }
 
 const MOODS = ['Low', 'Tired', 'Okay', 'Good', 'Great'];
@@ -89,7 +91,7 @@ export function AuraWidget(p: AuraWidgetProps) {
       </div>
 
       <h3 className="aw-hello">{greeting(p.name)}</h3>
-      <p className="aw-sub">Let's check your wellness today</p>
+      <p className="aw-sub">{p.subline ?? "Let's check your wellness today"}</p>
 
       <div className="aw-tiles">
         <Tile icon="🌙" value={fmtMinutes(typeof p.sleepHours === 'number' ? p.sleepHours * 60 : undefined)} label="Sleep" onClick={open('sleep')} />

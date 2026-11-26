@@ -10,6 +10,10 @@ import { avatarMood } from '../avatar/mood';
 import { InsightCard } from '../components/InsightCard';
 import { StillLearningCard } from '../components/StillLearningCard';
 import { AuraWidget } from '../components/AuraWidget';
+import { StreakRow } from '../components/Streaks';
+import { streaks } from '../goals/badges';
+import { thoughtFor, todayLine } from '../home/thoughts';
+import { speak, stopSpeaking } from '../voice/voice';
 import { generateDemoData } from '../lib/demoData';
 import { today } from '../lib/dates';
 import { patchDay, saveDay } from '../lib/store';
@@ -34,6 +38,8 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [showCharacter, setShowCharacter] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const streakList = useMemo(() => streaks(days, today()), [days]);
 
   const latest = days[days.length - 1];
   const insights = useMemo(() => runInsights(days), [days]);
@@ -117,6 +123,30 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
 
   const weekScores = days.slice(-7).map((d, i, arr) => balanceScore(d, days.slice(0, days.length - arr.length + i)).score);
 
+  const thought = thoughtFor(today());
+  const line = todayLine(latest, balance?.score);
+
+  async function listen() {
+    if (speaking) {
+      await stopSpeaking();
+      setSpeaking(false);
+      return;
+    }
+    setSpeaking(true);
+    const h = new Date().getHours();
+    const hello = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    const name = me.name?.trim().split(' ')[0];
+    try {
+      await speak(
+        `${hello}${name ? `, ${name}` : ''}. ${line} Your balance score is ${balance?.score ?? 'not ready yet'}. Thought for today: ${thought}`,
+        me.choice.kind === 'character' ? me.choice.id : undefined,
+      );
+    } catch {
+      setMsg('Could not play the voice on this device.');
+    }
+    setSpeaking(false);
+  }
+
   async function addWater() {
     await patchDay(today(), { waterGlasses: ((days.find((d) => d.date === today())?.waterGlasses) ?? 0) + 1 });
     await onChange();
@@ -135,6 +165,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
         weekScores={weekScores}
         isDemo={latest.source === 'demo'}
         moodLabel={mood.label}
+        subline={line}
         ringContent={balance ? <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={88} /> : undefined}
         onRingClick={() => (me.choice.kind === 'character' ? setShowCharacter(true) : onNavigate?.('report'))}
         onOpen={(s) => onNavigate?.(s === 'sleep' || s === 'mood' ? 'checkin' : s === 'steps' ? 'phone' : s === 'screen' ? 'apps' : 'report')}
@@ -153,6 +184,18 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
           }}
         />
       )}
+
+      <div className="card thought-card stack-sm">
+        <div className="row between center-v">
+          <span className="xs muted">💭 Thought for today</span>
+          <button type="button" className="btn sm ghost" onClick={() => void listen()} aria-label={speaking ? 'Stop' : 'Listen to your daily brief'}>
+            {speaking ? '⏹ Stop' : '🔊 Listen'}
+          </button>
+        </div>
+        <blockquote>{thought}</blockquote>
+      </div>
+
+      <StreakRow list={streakList} onOpen={() => onNavigate?.('report')} />
 
       <div className="quick-actions" role="group" aria-label="Quick actions">
         <button type="button" className="quick-action" onClick={() => void addWater()}><span>💧</span>+1 water</button>

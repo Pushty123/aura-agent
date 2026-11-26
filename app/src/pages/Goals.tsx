@@ -44,6 +44,7 @@ const hhmm = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m
 
 /** Goals you set yourself, goals suggested from your own baseline, and on-screen reminders. */
 export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => Promise<void> | void }) {
+  const [view, setView] = useState<'goals' | 'plan' | 'reminders'>('goals');
   const date = today();
   const todayRec = days.find((d) => d.date === date);
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -183,8 +184,23 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
         </div>
       )}
 
-      <PlanCard days={days} onApplied={refresh} />
+      <div className="aura-segmented inline" role="tablist" aria-label="Goals sections">
+        {(
+          [
+            ['goals', '🎯 My goals'],
+            ['plan', '✨ Plan'],
+            ['reminders', '⏰ Reminders'],
+          ] as const
+        ).map(([id, label]) => (
+          <button key={id} type="button" role="tab" aria-selected={view === id} className={view === id ? 'active' : ''} onClick={() => setView(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
 
+      {view === 'plan' && <PlanCard days={days} onApplied={async () => { await refresh(); }} />}
+
+      {view === 'goals' && (<>
       {/* ---------------- My goals ---------------- */}
       <div className="card stack-md">
         <div className="row between wrap">
@@ -385,6 +401,9 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
         </div>
       )}
 
+      </>)}
+
+      {view === 'reminders' && (<>
       {/* ---------------- Reminders ---------------- */}
       <div className="card stack-md">
         <div className="row between wrap">
@@ -507,6 +526,7 @@ export function Goals({ days, onChange }: { days: DayRecord[]; onChange?: () => 
           condition).
         </p>
       </div>
+      </>)}
     </section>
   );
 }

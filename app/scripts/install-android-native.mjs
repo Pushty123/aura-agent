@@ -104,6 +104,9 @@ edit(
       '<uses-permission android:name="android.permission.USE_BIOMETRIC" />',
       '<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />',
       '<uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />',
+      '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
+      '<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />',
+      '<uses-feature android:name="android.hardware.microphone" android:required="false" />',
       '<uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />',
       '<uses-permission android:name="android.permission.health.READ_STEPS" />',
       '<uses-permission android:name="android.permission.health.READ_SLEEP" />',
@@ -120,6 +123,9 @@ edit(
     // See other apps' names and icons for the App usage screen (Android 11+ package visibility).
     if (!x.includes('android.intent.category.LAUNCHER" /></intent>'))
       x = x.replace('</manifest>', `    <queries>\n        <intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent>\n    </queries>\n</manifest>`);
+    // Voice: the phone's speech recogniser and text-to-speech engine (Android 11+ package visibility).
+    if (!x.includes('android.speech.RecognitionService'))
+      x = x.replace('</manifest>', `    <queries>\n        <intent><action android:name="android.speech.RecognitionService" /></intent>\n        <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>\n    </queries>\n</manifest>`);
     if (!x.includes('com.google.android.apps.healthdata'))
       x = x.replace('</manifest>', `    <queries>\n        <package android:name="com.google.android.apps.healthdata" />\n    </queries>\n</manifest>`);
     // Home-screen widget. Always rewritten so older installs get the fixed entry:

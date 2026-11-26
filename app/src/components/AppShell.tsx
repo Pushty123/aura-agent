@@ -209,7 +209,7 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
         )}
 
         <main className="aura-content">
-          {hasDemo && (
+          {hasDemo && (tab === 'dashboard' || tab === 'report') && (
             <button type="button" className="demo-strip" onClick={() => onTabChange('vault')}>
               <span className="pill demo">DEMO</span>
               <span>Showing sample data</span>

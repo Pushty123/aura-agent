@@ -161,7 +161,7 @@ export function buildPlan(p: ParsedGoal, ctx: PlanContext): Plan {
       out.limits.push({ pkg: a.pkg, label: a.label, minutes: m });
       out.reasons.push(`${a.label}: ${a.minutes} min today → limit ${m} min.`);
     }
-    if (!top.length) out.tips.push('Allow App usage access (Me → App usage) so AURA can also set limits on your most distracting apps.');
+    if (!top.length) out.tips.push('Allow App usage access (☰ Menu → App usage) so AURA can also set limits on your most distracting apps.');
   };
 
   if (p.kind === 'exam') {

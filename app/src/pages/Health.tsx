@@ -182,7 +182,7 @@ export function Health({ days }: { days: DayRecord[] }) {
       </div>
       {female && <CycleCard />}
       {sexUnset && (
-        <p className="xs muted">🌸 A private period calendar is available. Set Sex to Female in Me → Profile to show it here.</p>
+        <p className="xs muted">🌸 A private period calendar is available. Set Sex to Female in ☰ Menu → Profile to show it here.</p>
       )}
     </section>
   );

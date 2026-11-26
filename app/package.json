@@ -19,6 +19,8 @@
     "android:prepare": "npm run build && cap sync android && node scripts/patch-android-manifest.mjs && node scripts/install-android-native.mjs"
   },
   "dependencies": {
+    "@capacitor-community/speech-recognition": "^6.0.1",
+    "@capacitor-community/text-to-speech": "^4.1.1",
     "@capacitor/camera": "^6.1.3",
     "@capacitor/core": "^6.1.2",
     "@capacitor/local-notifications": "^6.1.0",

@@ -81,3 +81,15 @@ describe('period calendar', () => {
     await expect(savePeriod(p('2026-11-10', '2026-11-08'))).rejects.toThrow();
   });
 });
+
+import { detectSymptom } from '../src/health/symptoms';
+describe('symptom detection from speech', () => {
+  it('understands plain and Hinglish phrases', () => {
+    expect(detectSymptom('I have a headache since morning')).toBe('headache');
+    expect(detectSymptom('mujhe bukhar hai')).toBe('fever');
+    expect(detectSymptom('feeling very tired today')).toBe('fatigue');
+    expect(detectSymptom('I have period cramps', false)).toBeNull();
+    expect(detectSymptom('How did I sleep this week?')).toBeNull();
+    expect(detectSymptom('what is the cold war history about in general terms')).toBeNull();
+  });
+});

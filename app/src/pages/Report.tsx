@@ -18,6 +18,8 @@ import { CharacterModal } from '../avatar/CharacterModal';
 import { useMe } from '../avatar/AvatarContext';
 import { avatarMood } from '../avatar/mood';
 import { WeekCharts } from '../components/WeekCharts';
+import { BadgeWall } from '../components/Streaks';
+import { streaks } from '../goals/badges';
 import { today } from '../lib/dates';
 import { loadFood } from '../lib/store';
 import { loadWorkouts } from '../exercise/workouts';
@@ -124,6 +126,8 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
           ))}
         </div>
       )}
+
+      <BadgeWall list={streaks(days, latest.date)} />
 
       <div className="dashboard-hero-grid">
         <div className="card stack-md">

@@ -1122,3 +1122,37 @@ p {
 .quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .quick-action { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px; border-radius: 16px; border: 1px solid var(--aura-border); background: var(--aura-surface); color: var(--aura-text); font: inherit; font-size: 0.78rem; cursor: pointer; }
 .quick-action > span { font-size: 1.4rem; }
+
+/* Streaks and badges */
+.streak-row { text-align: left; color: var(--aura-text); font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 10px; }
+.streak-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.streak-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1.5px solid var(--aura-border); background: var(--aura-surface-2); white-space: nowrap; }
+.badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.badge-card { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 16px; border: 1.5px solid var(--aura-border); background: var(--aura-surface-2); opacity: 0.75; }
+.badge-card.earned { opacity: 1; }
+.badge-medal { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 1.4rem; box-shadow: inset 0 -3px 0 rgba(0,0,0,.2); }
+
+/* Thought of the day */
+.thought-card { position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(167,139,250,.18), rgba(45,212,191,.12)); }
+.thought-card blockquote { margin: 0; font-size: 1.05rem; line-height: 1.5; font-style: italic; }
+.aura-segmented.inline { display: flex; width: 100%; padding: 4px; border-radius: 14px; background: var(--aura-surface-2); }
+.aura-segmented.inline > button { flex: 1; }
+
+/* Ask: one chat screen */
+.ask-page { display: flex; flex-direction: column; gap: 12px; }
+.ask-head { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
+.ask-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--aura-muted); flex: none; }
+.ask-dot[data-on='true'] { background: #34d399; box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.2); }
+.ask-chat { display: flex; flex-direction: column; gap: 10px; min-height: 240px; padding: 4px; }
+.ask-empty { padding: 24px 12px; text-align: center; border: 1px dashed var(--aura-border); border-radius: 16px; }
+.ask-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.ask-chips .pill { white-space: nowrap; cursor: pointer; border: 1px solid var(--aura-border); background: var(--aura-surface); color: var(--aura-text); padding: 8px 12px; }
+.ask-input { display: flex; gap: 8px; align-items: center; position: sticky; bottom: 76px; background: var(--aura-bg, transparent); padding: 6px 0; }
+.ask-input .input { flex: 1; min-width: 0; }
+.switch { position: relative; width: 46px; height: 26px; flex: none; }
+.switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.switch span { position: absolute; inset: 0; border-radius: 999px; background: var(--aura-surface-2); border: 1px solid var(--aura-border); transition: background 0.2s; cursor: pointer; }
+.switch span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+.switch input:checked + span { background: var(--aura-primary); }
+.switch input:checked + span::after { transform: translateX(20px); }
+.switch input:focus-visible + span { outline: 2px solid var(--aura-primary); outline-offset: 2px; }

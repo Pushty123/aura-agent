@@ -187,7 +187,7 @@ export function CheckIn({ days, onChange }: { days: DayRecord[]; onChange: () =>
               </p>
             ) : (
               <p className="xs muted">
-                Filled in automatically once you allow it in Me → Phone &amp; band data. You can also type it here.
+                Filled in automatically once you allow it in ☰ Menu → Phone &amp; band data. You can also type it here.
               </p>
             )}
           </div>

@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from auth import router as auth_router
 from llm import router as llm_router
+from voice import router as voice_router
 
 DB_PATH = os.environ.get("AURA_RELAY_DB", "relay.db")
 MAX_BLOB = 256 * 1024  # bytes per blob
@@ -29,6 +30,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(llm_router)
+app.include_router(voice_router)
 
 
 def conn() -> sqlite3.Connection:

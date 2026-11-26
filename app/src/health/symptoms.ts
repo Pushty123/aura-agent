@@ -199,3 +199,25 @@ export async function saveHealth(e: HealthEntry): Promise<void> {
 export async function deleteHealth(id: string): Promise<void> {
   await db.records.delete(`health:${id}`);
 }
+
+const WORDS: [SymptomId, RegExp][] = [
+  ['headache', /head ?ache|migraine|head (is )?(hurting|paining)|sar dard|sir dard/],
+  ['fever', /fever|temperature|bukhar|feverish/],
+  ['cold', /\bcold\b|cough|sneez|runny nose|blocked nose|sore throat|khansi|zukam/],
+  ['acidity', /acidity|heartburn|acid reflux|gas trouble/],
+  ['stomach', /stomach|loose motion|diarr|vomit|nause|pet dard|tummy/],
+  ['cramps', /cramp|period pain/],
+  ['backpain', /back ?pain|back is hurting|kamar dard/],
+  ['stress', /stress|anxious|anxiety|panic|tension|overwhelm/],
+  ['sleep', /can'?t sleep|cannot sleep|insomnia|slept badly|no sleep|poor sleep/],
+  ['fatigue', /tired|fatigue|exhausted|no energy|weak(ness)?\b|thakan/],
+  ['allergy', /allerg|itch|rash|hives/],
+];
+
+/** Finds a symptom in what the person typed or said (English and common Hindi words). */
+export function detectSymptom(text: string, allowCramps = true): SymptomId | null {
+  const t = text.toLowerCase();
+  if (!/\b(i|i'm|im|i am|my|me|feel|feeling|having|have|got|mujhe|mera|meri)\b/.test(t) && t.split(/\s+/).length > 4) return null;
+  for (const [id, re] of WORDS) if (re.test(t) && (allowCramps || id !== 'cramps')) return id;
+  return null;
+}
