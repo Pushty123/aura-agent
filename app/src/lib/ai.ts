@@ -106,7 +106,7 @@ export interface Turn {
 
 export async function smartStatus(): Promise<boolean> {
   try {
-    return (await apiCall<{ enabled: boolean }>('/v1/chat/status', { method: 'GET', label: 'smart-reply-status' })).enabled;
+    return (await apiCall<{ enabled: boolean }>('/v1/chat/status', { method: 'GET', label: 'smart-reply-status', timeoutMs: 4000 })).enabled;
   } catch {
     return false;
   }
@@ -120,6 +120,7 @@ export async function askSmart(question: string, history: Turn[], context: strin
     headers: { Authorization: `Bearer ${session.token}` },
     body: JSON.stringify({ question, context, history: history.slice(-6) }),
     label: 'smart-reply (summary of patterns only: no raw records, no identity)',
+    timeoutMs: 25_000,
   });
   await audit('smart-reply', `Asked a question (${question.length} chars) with a ${context.length}-char summary`);
   return r.reply;

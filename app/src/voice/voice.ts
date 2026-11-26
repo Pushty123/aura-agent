@@ -44,7 +44,7 @@ export function speakable(text: string): string {
     .slice(0, 650);
 }
 
-let serverVoice: { on: boolean; at: number } | null = null;
+let serverVoice: { on: boolean; at: number; reachable: boolean } | null = null;
 let current: HTMLAudioElement | null = null;
 /** Why the last reply used the phone voice instead of ElevenLabs (shown in Ask). */
 let lastIssue: string | null = null;
@@ -58,14 +58,15 @@ export async function cloudVoiceReady(): Promise<boolean> {
   // Re-check every minute, so turning the server on later works without restarting AURA.
   if (!serverVoice || Date.now() - serverVoice.at > 60_000) {
     try {
-      const on = (await apiCall<{ enabled: boolean }>('/v1/voice/status', { method: 'GET', label: 'voice-status' })).enabled;
-      serverVoice = { on, at: Date.now() };
+      const on = (await apiCall<{ enabled: boolean }>('/v1/voice/status', { method: 'GET', label: 'voice-status', timeoutMs: 4000 })).enabled;
+      serverVoice = { on, at: Date.now(), reachable: true };
     } catch {
-      lastIssue = 'The AURA server is not reachable (same Wi-Fi? server running?). Using your phone voice.';
-      return false;
+      // Remember for a minute, so the next replies use the phone voice straight away.
+      serverVoice = { on: false, at: Date.now(), reachable: false };
     }
   }
-  if (!serverVoice.on) lastIssue = 'ElevenLabs key is not set on the server (AURA_ELEVEN_KEY). Using your phone voice.';
+  if (!serverVoice.reachable) lastIssue = 'The AURA server is not reachable (same Wi-Fi? server running?). Using your phone voice.';
+  else if (!serverVoice.on) lastIssue = 'ElevenLabs key is not set on the server (AURA_ELEVEN_KEY). Using your phone voice.';
   return serverVoice.on;
 }
 
@@ -131,6 +132,7 @@ export async function speak(text: string, characterId?: string): Promise<'eleven
         headers: { Authorization: `Bearer ${session!.token}` },
         body: JSON.stringify({ text: say, voice: s.eleven }),
         label: 'voice-speak (only the reply text)',
+        timeoutMs: 12_000,
       });
       const audio = new Audio(`data:${r.mime};base64,${r.audio}`);
       current = audio;
@@ -215,6 +217,7 @@ async function cloudListen(maxSeconds: number): Promise<Listener> {
       headers: { Authorization: `Bearer ${session!.token}` },
       body: JSON.stringify({ audio: await blobToBase64(blob), mime: blob.type.split(';')[0] }),
       label: 'voice-transcribe (a short voice clip)',
+      timeoutMs: 20_000,
     });
     await audit('voice', `Turned a ${Math.round(blob.size / 1024)} KB voice clip into text with ElevenLabs`);
     return r.text;

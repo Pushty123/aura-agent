@@ -52,17 +52,35 @@ export async function deriveAuthKey(password: string, email: string): Promise<st
 
 export class AccountError extends Error {}
 
-export async function apiCall<T>(path: string, init: RequestInit & { label: string }): Promise<T> {
+/**
+ * Calls the AURA server. Every call has a time limit, so a laptop server that is
+ * off or on another Wi-Fi never leaves the app waiting for minutes.
+ */
+export async function apiCall<T>(path: string, init: RequestInit & { label: string; timeoutMs?: number }): Promise<T> {
   const server = await getServer();
+  const { timeoutMs = 15_000, ...rest } = init;
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   let res: Response;
   try {
-    res = await ledgerFetch(`${server}${path}`, {
-      ...init,
-      headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
-    });
+    res = await Promise.race([
+      ledgerFetch(`${server}${path}`, {
+        ...rest,
+        signal: ctrl?.signal,
+        headers: { 'Content-Type': 'application/json', ...(rest.headers ?? {}) },
+      }),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          ctrl?.abort();
+          reject(new Error(`no answer in ${Math.round(timeoutMs / 1000)} s`));
+        }, timeoutMs);
+      }),
+    ]);
   } catch (e) {
     const why = e instanceof Error && e.message ? ` (${e.message.slice(0, 120)})` : '';
     throw new AccountError(`Could not reach the AURA server at ${server}. Check the Wi-Fi and the server address.${why}`);
+  } finally {
+    clearTimeout(timer);
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
