@@ -9,11 +9,12 @@ import {
   InfoIcon,
   LockIcon,
   MoonIcon,
+  ProfileIcon,
   SunIcon,
   TodayIcon,
 } from './Icons';
 
-export type AppTab = 'dashboard' | 'checkin' | 'food' | 'goals' | 'ask' | 'vault' | 'about';
+export type AppTab = 'dashboard' | 'checkin' | 'food' | 'goals' | 'ask' | 'vault' | 'profile' | 'about';
 export type ThemeMode = 'dark' | 'light';
 
 interface NavItem {
@@ -31,6 +32,13 @@ const PRIMARY_NAV: NavItem[] = [
   { id: 'ask', label: 'Ask AURA', subtitle: 'Evidence-backed answers & confirmed actions', icon: AskIcon },
   { id: 'vault', label: 'My Data', subtitle: 'Consent, network ledger, CSV import & vault', icon: DataIcon },
 ];
+
+const PROFILE_NAV: NavItem = {
+  id: 'profile',
+  label: 'Profile',
+  subtitle: 'Your details, BMI and daily targets',
+  icon: ProfileIcon,
+};
 
 const ABOUT_NAV: NavItem = {
   id: 'about',
@@ -58,7 +66,7 @@ export function AppShell({
   hasDemo,
   children,
 }: AppShellProps) {
-  const activeItem = [...PRIMARY_NAV, ABOUT_NAV].find((item) => item.id === tab) ?? PRIMARY_NAV[0];
+  const activeItem = [...PRIMARY_NAV, PROFILE_NAV, ABOUT_NAV].find((item) => item.id === tab) ?? PRIMARY_NAV[0];
 
   return (
     <div className="aura-shell">
@@ -95,6 +103,15 @@ export function AppShell({
         <div className="aura-sidebar-footer">
           <button
             type="button"
+            className={`aura-nav-btn ${tab === 'profile' ? 'active' : ''}`}
+            aria-current={tab === 'profile' ? 'page' : undefined}
+            onClick={() => onTabChange('profile')}
+          >
+            <ProfileIcon size={18} />
+            <span>Profile</span>
+          </button>
+          <button
+            type="button"
             className={`aura-nav-btn ${tab === 'about' ? 'active' : ''}`}
             aria-current={tab === 'about' ? 'page' : undefined}
             onClick={() => onTabChange('about')}
@@ -122,6 +139,15 @@ export function AppShell({
             <span className="pill primary" title="Data is encrypted on this device with your passphrase">
               Encrypted
             </span>
+            <button
+              type="button"
+              className="btn ghost icon-only"
+              onClick={() => onTabChange('profile')}
+              aria-label="Profile"
+              title="Profile"
+            >
+              <ProfileIcon size={18} />
+            </button>
             <button
               type="button"
               className="btn ghost icon-only"

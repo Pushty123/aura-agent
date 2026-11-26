@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { parseFood, foodTip } from '../food/parse';
 import { loadFood, saveFood } from '../lib/store';
 import { today } from '../lib/dates';
+import { computeTargets, loadProfile, validateProfile, type Targets } from '../profile/profile';
 import type { FoodEntry } from '../types';
 
 export function Food() {
@@ -9,12 +10,14 @@ export function Food() {
   const [entries, setEntries] = useState<FoodEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [target, setTarget] = useState<Targets | null>(null);
   const date = today();
 
   const refresh = async () => setEntries((await loadFood()).filter((e) => e.date === date));
 
   useEffect(() => {
     void refresh();
+    void loadProfile().then((pr) => setTarget(pr && !validateProfile(pr) ? computeTargets(pr) : null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -119,7 +122,7 @@ export function Food() {
             </div>
             {entries.length > 0 && (
               <span className="pill primary">
-                ~{totalKcal} kcal · ~{totalProtein.toFixed(0)} g protein
+                ~{totalKcal}{target ? ` of ~${target.kcal}` : ''} kcal · ~{totalProtein.toFixed(0)}{target ? ` of ~${target.proteinG}` : ''} g protein
               </span>
             )}
           </div>

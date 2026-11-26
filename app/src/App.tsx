@@ -9,6 +9,7 @@ import { Goals } from './pages/Goals';
 import { Ask } from './pages/Ask';
 import { VaultPage } from './pages/VaultPage';
 import { About } from './pages/About';
+import { Profile } from './pages/Profile';
 import { loadDays } from './lib/store';
 import { startAutoLock } from './lib/autolock';
 import { AppShell, type AppTab, type ThemeMode } from './components/AppShell';
@@ -143,6 +144,7 @@ export function App() {
           }}
         />
       )}
+      {tab === 'profile' && <Profile />}
       {tab === 'about' && <About />}
     </AppShell>
   );

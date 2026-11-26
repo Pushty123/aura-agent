@@ -150,3 +150,12 @@ export function ChevronIcon({ open, ...props }: IconProps & { open?: boolean }) 
     </IconBase>
   );
 }
+
+export function ProfileIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="8" r="3.6" />
+      <path d="M4.5 20c.9-3.6 3.9-5.5 7.5-5.5s6.6 1.9 7.5 5.5" />
+    </IconBase>
+  );
+}
