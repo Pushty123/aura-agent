@@ -1,103 +1,351 @@
 import { useMemo, useState } from 'react';
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import type { DayRecord } from '../types';
 import { runInsights } from '../insights/engine';
 import { balanceScore } from '../insights/balance';
+import { weeklySummary } from '../summary/weekly';
 import { Ring } from '../components/Ring';
 import { InsightCard } from '../components/InsightCard';
+import { MetricCard } from '../components/MetricCard';
 import { generateDemoData } from '../lib/demoData';
 import { today } from '../lib/dates';
 import { patchDay, saveDay } from '../lib/store';
 import { setConsent } from '../lib/vault';
 import { getUsage, notify } from '../native/bridge';
+import type { AppTab } from '../components/AppShell';
 
-export function Dashboard({ days, onChange }: { days: DayRecord[]; onChange: () => Promise<void> }) {
+const MOOD_LABELS: Record<NonNullable<DayRecord['mood']>, string> = {
+  1: 'Low (1/5)',
+  2: 'Tired (2/5)',
+  3: 'Okay (3/5)',
+  4: 'Good (4/5)',
+  5: 'Great (5/5)',
+};
+
+interface DashboardProps {
+  days: DayRecord[];
+  onChange: () => Promise<void>;
+  onNavigate?: (tab: AppTab) => void;
+}
+
+export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [range, setRange] = useState<7 | 14 | 30>(30);
+  const [showScoreDetails, setShowScoreDetails] = useState(false);
+
   const latest = days[days.length - 1];
   const insights = useMemo(() => runInsights(days), [days]);
-  const balance = useMemo(() => (latest ? balanceScore(latest, days.slice(0, -1)) : null), [latest, days]);
+  const balance = useMemo(
+    () => (latest ? balanceScore(latest, days.slice(0, -1)) : null),
+    [latest, days],
+  );
+  const weekly = useMemo(() => weeklySummary(days), [days]);
+
   const chart = useMemo(
-    () => days.slice(-30).map((d) => ({ date: d.date.slice(5), Sleep: d.sleepHours, 'Late screen (hrs)': d.lateScreenMin !== undefined ? Math.round((d.lateScreenMin / 60) * 100) / 100 : undefined })),
-    [days],
+    () =>
+      days.slice(-range).map((d) => ({
+        date: d.date.slice(5),
+        Sleep: d.sleepHours,
+        'Late screen (hrs)':
+          d.lateScreenMin !== undefined
+            ? Math.round((d.lateScreenMin / 60) * 100) / 100
+            : undefined,
+      })),
+    [days, range],
   );
 
   async function loadDemo() {
-    await setConsent('demo', true);
-    for (const d of generateDemoData(today())) await saveDay(d);
-    await onChange();
-    setMsg('Loaded 30 days of DEMO data (clearly labelled as sample data).');
+    setBusy(true);
+    try {
+      await setConsent('demo', true);
+      for (const d of generateDemoData(today())) await saveDay(d);
+      await onChange();
+      setMsg('Loaded 30 days of DEMO data (clearly labelled as sample data).');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function readPhone() {
-    const r = await getUsage(7);
-    if (!r.ok) return setMsg(r.message);
-    await setConsent('device', true);
-    for (const u of r.days) await patchDay(u.date, { screenMinutes: u.screenMinutes, lateScreenMin: u.lateScreenMin, source: 'device' }, 'device');
-    await onChange();
-    setMsg(`Read ${r.days.length} days of screen time from this phone.`);
+    setBusy(true);
+    try {
+      const r = await getUsage(7);
+      if (!r.ok) {
+        setMsg(r.message);
+        return;
+      }
+      await setConsent('device', true);
+      for (const u of r.days) {
+        await patchDay(
+          u.date,
+          { screenMinutes: u.screenMinutes, lateScreenMin: u.lateScreenMin, source: 'device' },
+          'device',
+        );
+      }
+      await onChange();
+      setMsg(`Read ${r.days.length} days of screen time from this phone.`);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function testNudge() {
-    const r = await notify('AURA', 'Late screens cost you sleep. Try putting the phone down by 11 pm.', 5);
+    const r = await notify(
+      'AURA',
+      'Late screens cost you sleep. Try putting the phone down by 11 pm.',
+      5,
+    );
     setMsg(r.message);
   }
 
   if (!latest) {
     return (
-      <section className="card">
-        <h2>Welcome to AURA</h2>
-        <p>No data yet. To try AURA, load clearly-labelled demo data, or read real screen time on Android, or add a check-in.</p>
-        <div className="row gap wrap">
-          <button className="primary" onClick={loadDemo}>Load demo data</button>
-          <button onClick={readPhone}>Read my screen time (Android)</button>
+      <section className="stack-lg">
+        <div className="card stack-md">
+          <div>
+            <h2>Welcome to AURA</h2>
+            <p className="muted small">
+              Your vault is unlocked, and there is no wellness data yet. Start with clearly labelled
+              demo data, read Android screen time, or record a quick check-in.
+            </p>
+          </div>
+          <div className="row gap wrap">
+            <button type="button" className="btn primary" onClick={loadDemo} disabled={busy}>
+              Load 30-day DEMO data
+            </button>
+            <button type="button" className="btn" onClick={readPhone} disabled={busy}>
+              Read my screen time (Android)
+            </button>
+            {onNavigate && (
+              <button type="button" className="btn" onClick={() => onNavigate('checkin')}>
+                Go to Check-in
+              </button>
+            )}
+          </div>
+          {msg && <p className="status-banner">{msg}</p>}
         </div>
-        {msg && <p className="muted">{msg}</p>}
       </section>
     );
   }
 
   return (
-    <section>
-      <div className="card row gap center-v wrap">
-        {balance && <Ring value={balance.score} />}
-        <div className="grow">
-          <h2>Balance Score · {latest.date}</h2>
-          <ul className="reasons">
-            {balance?.reasons.map((r) => (
-              <li key={r.label}>
-                <strong>{r.label}</strong> {r.points}/{r.max} <span className="muted">· {r.note}</span>
-              </li>
+    <section className="stack-lg">
+      {/* Top Hero: Balance Score + Weekly Summary */}
+      <div className="dashboard-hero-grid">
+        <div className="card stack-md">
+          <div className="row between wrap">
+            <div>
+              <h2>Balance Score</h2>
+              <p className="xs muted">Latest day: {latest.date}</p>
+            </div>
+            <div className="row gap-sm center-v">
+              {latest.source === 'demo' && <span className="pill demo">DEMO</span>}
+              <button
+                type="button"
+                className="btn sm"
+                onClick={() => setShowScoreDetails((s) => !s)}
+                aria-expanded={showScoreDetails}
+              >
+                {showScoreDetails ? 'Hide breakdown' : 'Score details'}
+              </button>
+            </div>
+          </div>
+
+          <div className="row gap center-v wrap">
+            {balance && (
+              <Ring
+                value={balance.score}
+                onClick={() => setShowScoreDetails((s) => !s)}
+              />
+            )}
+            <div className="grow">
+              <ul className="reasons-list">
+                {balance?.reasons.map((r) => {
+                  const pct = Math.round((r.points / r.max) * 100);
+                  return (
+                    <li key={r.label} className="reason-row">
+                      <div className="row between small">
+                        <strong>{r.label}</strong>
+                        <span className="muted">
+                          {r.points}/{r.max} pts
+                        </span>
+                      </div>
+                      <div className="bar" aria-hidden="true">
+                        <div style={{ width: `${pct}%` }} />
+                      </div>
+                      {showScoreDetails && <span className="xs muted">{r.note}</span>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="card stack-md">
+          <div className="row between">
+            <div>
+              <h2>Weekly Summary</h2>
+              <p className="xs muted">
+                Last {weekly.daysCount} day{weekly.daysCount === 1 ? '' : 's'}
+              </p>
+            </div>
+            <span className="pill primary">7-day view</span>
+          </div>
+
+          <div className="stack-sm">
+            {weekly.sentences.map((s) => (
+              <p key={s} className="small" style={{ lineHeight: 1.55 }}>
+                {s}
+              </p>
             ))}
-          </ul>
+          </div>
+
+          <div className="suggest-box" style={{ marginTop: 'auto' }}>
+            <strong>Suggestion:</strong> {weekly.suggestion}
+          </div>
         </div>
       </div>
 
-      <h3>What AURA noticed</h3>
-      {insights.map((i) => (
-        <InsightCard key={i.id} insight={i} />
-      ))}
-
-      <h3>Sleep and late-night screen time (last 30 days)</h3>
-      <div className="card chart">
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={chart} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e6dcc6" />
-            <XAxis dataKey="date" fontSize={11} />
-            <YAxis fontSize={11} />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="Sleep" stroke="#1a1a6e" strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="Late screen (hrs)" stroke="#e8832a" strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+      {/* Daily Snapshot Metric Cards */}
+      <div className="grid-4">
+        <MetricCard
+          label="Sleep"
+          value={latest.sleepHours !== undefined ? `${latest.sleepHours.toFixed(1)} h` : '—'}
+          sub={latest.sleepHours !== undefined ? 'Last logged night' : 'Tap to log sleep'}
+          accent="purple"
+          onClick={() => onNavigate?.('checkin')}
+        />
+        <MetricCard
+          label="Movement"
+          value={latest.steps !== undefined ? latest.steps.toLocaleString() : '—'}
+          sub={latest.steps !== undefined ? 'Steps on latest day' : 'Not recorded yet'}
+          accent="blue"
+          onClick={() => onNavigate?.('goals')}
+        />
+        <MetricCard
+          label="Screen time"
+          value={
+            latest.screenMinutes !== undefined
+              ? `${(latest.screenMinutes / 60).toFixed(1)} h`
+              : '—'
+          }
+          sub={
+            latest.lateScreenMin !== undefined
+              ? `${Math.round(latest.lateScreenMin)} min after 23:00`
+              : 'Tap to manage sources'
+          }
+          accent="coral"
+          onClick={() => onNavigate?.('vault')}
+        />
+        <MetricCard
+          label="Mood"
+          value={latest.mood !== undefined ? MOOD_LABELS[latest.mood] : '—'}
+          sub={latest.mood !== undefined ? 'Latest check-in' : 'Tap to check in'}
+          accent="primary"
+          onClick={() => onNavigate?.('checkin')}
+        />
       </div>
 
-      <div className="row gap wrap">
-        <button onClick={readPhone}>Read my screen time (Android)</button>
-        <button onClick={testNudge}>Send a test nudge</button>
-        <button onClick={loadDemo}>Reload demo data</button>
+      {/* Ranked Insights */}
+      <div className="stack-sm">
+        <div className="section-heading">
+          <h3>What AURA noticed</h3>
+          <span className="xs muted">Ranked by statistical signal</span>
+        </div>
+        <div className="grid-2">
+          {insights.map((insight, idx) => (
+            <InsightCard key={insight.id} insight={insight} rank={idx + 1} />
+          ))}
+        </div>
       </div>
-      {msg && <p className="muted">{msg}</p>}
+
+      {/* Sleep vs Late-Screen Chart */}
+      <div className="card stack-md">
+        <div className="row between wrap">
+          <div>
+            <h3>Sleep vs. late-night screen time</h3>
+            <p className="xs muted">
+              Comparing hours slept against screen time after 23:00 (correlation does not imply causation)
+            </p>
+          </div>
+          <div className="row gap-sm">
+            {([7, 14, 30] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                className={`btn sm ${range === r ? 'primary' : ''}`}
+                onClick={() => setRange(r)}
+              >
+                {r}d
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ width: '100%', height: 260 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chart} margin={{ top: 8, right: 12, bottom: 0, left: -16 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--aura-border)" strokeOpacity={0.5} />
+              <XAxis dataKey="date" fontSize={11} stroke="var(--aura-muted)" />
+              <YAxis fontSize={11} stroke="var(--aura-muted)" />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'var(--aura-shell)',
+                  borderColor: 'var(--aura-border)',
+                  borderRadius: 10,
+                  color: 'var(--aura-text)',
+                }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="Sleep"
+                name="Sleep (hrs)"
+                stroke="var(--aura-primary)"
+                strokeWidth={2.5}
+                dot={false}
+                activeDot={{ r: 5 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="Late screen (hrs)"
+                name="Late screen (hrs)"
+                stroke="var(--aura-coral)"
+                strokeWidth={2.2}
+                dot={false}
+                activeDot={{ r: 5 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="card row between wrap">
+        <div className="row gap wrap">
+          <button type="button" className="btn" onClick={readPhone} disabled={busy}>
+            Read screen time (Android)
+          </button>
+          <button type="button" className="btn" onClick={testNudge} disabled={busy}>
+            Send test nudge
+          </button>
+          <button type="button" className="btn" onClick={loadDemo} disabled={busy}>
+            Reload DEMO data
+          </button>
+        </div>
+        {msg && <span className="small muted">{msg}</span>}
+      </div>
     </section>
   );
 }

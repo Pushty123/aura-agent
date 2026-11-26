@@ -1,61 +1,62 @@
-/** About / Privacy: explains in plain words how AURA protects your data. */
 export function About() {
   return (
-    <section>
-      <h2>About and privacy</h2>
-
-      <div className="card">
-        <h3>Your data is encrypted on your device</h3>
-        <p>
-          Everything AURA stores is locked with your passphrase. Only you hold the key.
-          If you forget it, nobody can recover it, and that is what keeps your data private.
+    <section className="stack-lg">
+      <div className="card stack-sm">
+        <h2>About AURA &amp; Privacy</h2>
+        <p className="small muted">
+          AURA turns your daily patterns (sleep, movement, screen time, food, and mood) into
+          plain-language insights backed by transparent statistics—without sending your readable
+          health data to third-party servers.
         </p>
       </div>
 
-      <div className="card">
-        <h3>You choose what AURA uses</h3>
-        <p>
-          Each data source (sleep, steps, screen time, food, mood) has its own switch.
-          Turn one off and AURA stops using it.
-        </p>
+      <div className="grid-2">
+        <article className="card stack-sm">
+          <h3>Encrypted on your device</h3>
+          <p className="small muted">
+            All day records, food logs, goals, and settings are encrypted locally using a key
+            derived from your passphrase before being saved to IndexedDB. Only consent flags and the
+            tamper-evident audit log are stored unencrypted, and neither contains health values.
+          </p>
+        </article>
+
+        <article className="card stack-sm">
+          <h3>You control every data source</h3>
+          <p className="small muted">
+            In <strong>My Data</strong>, you decide which sources are enabled (Phone data, Check-ins,
+            CSV imports, or Demo data). Switching off a non-manual source removes its stored day
+            records from your vault.
+          </p>
+        </article>
+
+        <article className="card stack-sm">
+          <h3>Optional encrypted backup</h3>
+          <p className="small muted">
+            AURA works completely without a backup server. If you choose to press{' '}
+            <strong>Back up encrypted copy to relay</strong>, the server receives only encrypted
+            ciphertext blobs and your salt—never your passphrase, key, or readable health records.
+          </p>
+        </article>
+
+        <article className="card stack-sm">
+          <h3>Network ledger &amp; audit log</h3>
+          <p className="small muted">
+            Every outgoing network request made by AURA&apos;s own code is counted in{' '}
+            <strong>What left this device</strong>. Vault actions (creation, unlocks, exports,
+            consent changes, and backups) are recorded in a SHA-256 hash-chained audit log.
+          </p>
+        </article>
       </div>
 
-      <div className="card">
-        <h3>You can see what leaves your device</h3>
-        <p>
-          AURA shows you every network request it makes, so nothing is sent without
-          you being able to see it.
+      <div className="card stack-sm">
+        <h3>Delete everything &amp; honest limits</h3>
+        <p className="small muted">
+          You can export your data as JSON or use <strong>Delete everything</strong> in My Data to
+          permanently wipe your encryption salt and all stored rows on this device.
         </p>
-      </div>
-
-      <div className="card">
-        <h3>Delete everything</h3>
-        <p>
-          You can wipe all your AURA data from this device at any time. This cannot be undone.
-        </p>
-      </div>
-
-      <div className="card">
-        <h3>Optional backup</h3>
-        <p>
-          If you choose to back up, the backup server only receives encrypted data.
-          It cannot read it. AURA works fine without the backup.
-        </p>
-      </div>
-
-      <div className="card">
-        <h3>Demo data</h3>
-        <p>
-          Sample data used to show how AURA works is always labelled DEMO.
-          It is never your real data.
-        </p>
-      </div>
-
-      <div className="card">
-        <h3>Good to know</h3>
-        <p className="muted small">
-          AURA is a wellness tool, not medical advice. Calorie values are approximate.
-          Insights are patterns in your own data, not diagnoses.
+        <p className="xs muted">
+          AURA is a personal wellness tool, not medical advice. Food calorie and protein values are
+          approximate. Demo data is always labelled <code>DEMO</code>.
         </p>
       </div>
     </section>
