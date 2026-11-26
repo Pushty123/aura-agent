@@ -24,6 +24,18 @@ export interface HealthDay {
   origins: { steps: string[]; sleep: string[]; heartRate: string[]; exercise: string[] };
 }
 
+/** What the Android home-screen widget shows. All strings are ready to display. */
+export interface WidgetSnapshot {
+  score: number; // -1 = no score
+  mood: string;
+  color: string; // ring colour, #RRGGBB
+  sleep: string;
+  steps: string;
+  screen: string;
+  updated: string;
+  demo: boolean;
+}
+
 export type HealthState = 'web' | 'unavailable' | 'needs-update' | 'needs-permission' | 'ready';
 export type UsageState = 'web' | 'needs-permission' | 'ready';
 
@@ -35,6 +47,8 @@ interface AuraNativePlugin {
   requestHealthPermissions(): Promise<{ granted: boolean }>;
   openHealthConnect(): Promise<void>;
   getHealthData(opts: { days: number }): Promise<{ days: HealthDay[] }>;
+  updateWidget(opts: WidgetSnapshot): Promise<void>;
+  clearWidget(): Promise<void>;
   setAlarm(opts: { hour: number; minute: number; label: string }): Promise<void>;
   addCalendarEvent(opts: { title: string; startMillis: number }): Promise<void>;
 }
@@ -156,5 +170,25 @@ export async function notify(title: string, body: string, inSeconds = 5): Promis
     return { ok: true, message: `Notification scheduled in ${inSeconds} seconds.` };
   } catch {
     return { ok: false, message: 'Could not schedule the notification.' };
+  }
+}
+
+/** Push the latest numbers to the home-screen widget (Android only; no-op elsewhere). */
+export async function updateWidget(snap: WidgetSnapshot): Promise<boolean> {
+  if (!isNative()) return false;
+  try {
+    await Native.updateWidget(snap);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function clearWidget(): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await Native.clearWidget();
+  } catch {
+    // Widget not installed: nothing to clear.
   }
 }

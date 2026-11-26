@@ -3,7 +3,7 @@
 //  - turns on Kotlin, adds Health Connect, raises minSdk to 26 (needed by Health Connect)
 //  - adds the permissions and Health Connect entries to AndroidManifest.xml
 // Safe to run many times.
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -32,8 +32,9 @@ function edit(file, fn, note) {
 // 1. Plugin source + MainActivity
 const pkgDir = join(android, 'app', 'src', 'main', 'java', 'in', 'phoenix', 'aura');
 mkdirSync(pkgDir, { recursive: true });
-copyFileSync(join(root, 'native-android', 'AuraNativePlugin.kt'), join(pkgDir, 'AuraNativePlugin.kt'));
-log.push('copied AuraNativePlugin.kt');
+for (const f of ['AuraNativePlugin.kt', 'AuraWidgetProvider.kt']) copyFileSync(join(root, 'native-android', f), join(pkgDir, f));
+cpSync(join(root, 'native-android', 'res'), join(android, 'app', 'src', 'main', 'res'), { recursive: true });
+log.push('copied AuraNativePlugin.kt, AuraWidgetProvider.kt and widget resources');
 const mainActivity = `package in.phoenix.aura;
 
 import android.os.Bundle;
@@ -111,6 +112,17 @@ edit(
       x = x.replace('<application', '<application android:usesCleartextTraffic="true"');
     if (!x.includes('com.google.android.apps.healthdata'))
       x = x.replace('</manifest>', `    <queries>\n        <package android:name="com.google.android.apps.healthdata" />\n    </queries>\n</manifest>`);
+    if (!x.includes('AuraWidgetProvider'))
+      x = x.replace(
+        '</application>',
+        `    <receiver android:name=".AuraWidgetProvider" android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/aura_widget_info" />
+        </receiver>
+    </application>`,
+      );
     if (!x.includes('SHOW_PERMISSIONS_RATIONALE'))
       x = x.replace(
         '</application>',

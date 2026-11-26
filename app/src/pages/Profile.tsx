@@ -13,6 +13,12 @@ import {
 } from '../profile/profile';
 import { getSession } from '../lib/account';
 import { getPhoto, loadProfilePhoto, removeProfilePhoto, saveProfilePhoto } from '../lib/camera';
+import { AuraAvatar } from '../avatar/AuraAvatar';
+import { useMe } from '../avatar/AvatarContext';
+import { saveAvatarChoice, type AvatarChoice } from '../avatar/choice';
+import { Avatar } from '../components/Avatar';
+import { AVATAR_PRESETS } from '../assets/avatars/presets';
+import { WidgetSettings } from '../widget/WidgetSettings';
 
 const EMPTY: ProfileData = {
   name: '',
@@ -33,6 +39,7 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
   const [p, setP] = useState<ProfileData>(EMPTY);
   const [email, setEmail] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
+  const me = useMe();
   const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
@@ -58,6 +65,7 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
     }
     await saveProfile(p);
     setStatus({ kind: 'ok', text: 'Profile saved and encrypted on this device.' });
+    await me.reload();
     onSaved?.();
   }
 
@@ -67,6 +75,8 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
       if (!img) return;
       await saveProfilePhoto(img);
       setPhoto(img);
+      await saveAvatarChoice({ kind: 'photo' });
+      await me.reload();
       setStatus({ kind: 'ok', text: 'Photo saved and encrypted on this device.' });
     } catch (e) {
       setStatus({ kind: 'error', text: e instanceof Error ? e.message : 'Could not get the photo.' });
@@ -76,6 +86,13 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
   async function dropPhoto() {
     await removeProfilePhoto();
     setPhoto(null);
+    if (me.choice.kind === 'photo') await saveAvatarChoice({ kind: 'preset', id: AVATAR_PRESETS[0].id });
+    await me.reload();
+  }
+
+  async function pick(c: AvatarChoice) {
+    await saveAvatarChoice(c);
+    await me.reload();
   }
 
   if (!loaded) return <p className="muted">Loading…</p>;
@@ -85,42 +102,72 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
       <div className="grid-2">
         <form className="card stack-md" onSubmit={save}>
           <div className="row center-v gap">
-            <div
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: '50%',
-                overflow: 'hidden',
-                flex: '0 0 auto',
-                display: 'grid',
-                placeItems: 'center',
-                background: 'var(--aura-primary-dim)',
-                fontWeight: 700,
-                fontSize: '1.6rem',
-              }}
-            >
-              {photo ? (
-                <img src={photo} alt="Your profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                (p.name.trim()[0] ?? '?').toUpperCase()
-              )}
-            </div>
+            <AuraAvatar choice={me.choice} photo={photo} name={p.name} size={84} />
             <div className="stack-sm">
               <h2 style={{ margin: 0 }}>{p.name ? p.name : 'Your profile'}</h2>
               {email && <p className="xs muted">{email}</p>}
-              <div className="row gap wrap">
-                <button type="button" className="btn sm" onClick={() => void changePhoto('camera')}>
-                  Take photo
-                </button>
-                <button type="button" className="btn sm ghost" onClick={() => void changePhoto('gallery')}>
-                  Choose photo
-                </button>
-                {photo && (
-                  <button type="button" className="btn sm ghost" onClick={() => void dropPhoto()}>
-                    Remove
+              <p className="xs muted">Your avatar's face and glow change with your Balance Score.</p>
+            </div>
+          </div>
+
+          <div className="stack-sm">
+            <strong className="small">Choose your avatar</strong>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(56px, 1fr))', gap: 8 }}>
+              {AVATAR_PRESETS.map((a) => {
+                const active = me.choice.kind === 'preset' && me.choice.id === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => void pick({ kind: 'preset', id: a.id })}
+                    aria-pressed={active}
+                    aria-label={a.label}
+                    title={a.label}
+                    style={{
+                      background: 'none',
+                      border: active ? '2px solid var(--aura-primary)' : '2px solid transparent',
+                      borderRadius: '50%',
+                      padding: 2,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Avatar variant={a.id} size={48} ring={false} decorative />
                   </button>
-                )}
-              </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => void pick({ kind: 'initials' })}
+                aria-pressed={me.choice.kind === 'initials'}
+                title="Initials"
+                style={{
+                  background: 'none',
+                  border: me.choice.kind === 'initials' ? '2px solid var(--aura-primary)' : '2px solid transparent',
+                  borderRadius: '50%',
+                  padding: 2,
+                  cursor: 'pointer',
+                }}
+              >
+                <Avatar variant="initials" size={48} ring={false} name={p.name || 'AURA'} alt="Initials" />
+              </button>
+            </div>
+            <div className="row gap wrap">
+              <button type="button" className="btn sm" onClick={() => void changePhoto('camera')}>
+                Take photo
+              </button>
+              <button type="button" className="btn sm ghost" onClick={() => void changePhoto('gallery')}>
+                Choose photo
+              </button>
+              {photo && me.choice.kind !== 'photo' && (
+                <button type="button" className="btn sm ghost" onClick={() => void pick({ kind: 'photo' })}>
+                  Use my photo
+                </button>
+              )}
+              {photo && (
+                <button type="button" className="btn sm ghost" onClick={() => void dropPhoto()}>
+                  Remove photo
+                </button>
+              )}
             </div>
           </div>
 
@@ -290,6 +337,8 @@ export function Profile({ onSaved }: { onSaved?: () => void }) {
               <p className="small muted">Fill in age, height and weight to see your BMI and daily targets.</p>
             )}
           </article>
+
+          <WidgetSettings />
 
           {p.bloodGroup !== 'Unknown' || p.allergies ? (
             <article className="card stack-sm">

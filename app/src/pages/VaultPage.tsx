@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { clearWidget } from '../native/bridge';
 import {
   SOURCES,
   audit,
@@ -390,6 +391,7 @@ export function VaultPage({
         onConfirm={async () => {
           setBusy(true);
           try {
+            await clearWidget();
             await deleteAll();
             setConfirmDeleteOpen(false);
             onDeleted();

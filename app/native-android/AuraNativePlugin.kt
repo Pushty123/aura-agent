@@ -255,6 +255,29 @@ class AuraNativePlugin : Plugin() {
         }
     }
 
+    // ------------------------------------------------------------ home-screen widget
+
+    @PluginMethod
+    fun updateWidget(call: PluginCall) {
+        val e = context.getSharedPreferences(AuraWidgetProvider.PREFS, Context.MODE_PRIVATE).edit()
+        e.putBoolean("enabled", true)
+        e.putInt("score", call.getInt("score") ?: -1)
+        for (k in listOf("mood", "color", "sleep", "steps", "screen", "updated")) {
+            e.putString(k, call.getString(k) ?: "–")
+        }
+        e.putBoolean("demo", call.getBoolean("demo") ?: false)
+        e.apply()
+        AuraWidgetProvider.refreshAll(context)
+        call.resolve()
+    }
+
+    @PluginMethod
+    fun clearWidget(call: PluginCall) {
+        context.getSharedPreferences(AuraWidgetProvider.PREFS, Context.MODE_PRIVATE).edit().clear().apply()
+        AuraWidgetProvider.refreshAll(context)
+        call.resolve()
+    }
+
     // --------------------------------------------------------- alarm and calendar
 
     @PluginMethod

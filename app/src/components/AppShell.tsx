@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Avatar } from './Avatar';
+import { AuraAvatar } from '../avatar/AuraAvatar';
+import { useMe } from '../avatar/AvatarContext';
 import {
   AskIcon,
   AuraLogoIcon,
@@ -71,6 +72,7 @@ export function AppShell({
   hasDemo,
   children,
 }: AppShellProps) {
+  const me = useMe();
   const activeItem = [...PRIMARY_NAV, PROFILE_NAV, ABOUT_NAV].find((item) => item.id === tab) ?? PRIMARY_NAV[0];
 
   return (
@@ -107,9 +109,9 @@ export function AppShell({
 
         <div className="aura-sidebar-footer">
           <div className="row center-v gap-sm" style={{ padding: '6px 10px 10px' }}>
-            <Avatar variant="01-sunny-curls" size={32} name="AURA" ring />
+            <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={30} />
             <div style={{ minWidth: 0 }}>
-              <div className="small" style={{ fontWeight: 600 }}>Local Vault</div>
+              <div className="small" style={{ fontWeight: 600 }}>{me.name || 'Local Vault'}</div>
               <div className="xs muted">Encrypted on device</div>
             </div>
           </div>

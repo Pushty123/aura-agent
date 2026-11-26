@@ -13,7 +13,9 @@ import type { DayRecord } from '../types';
 import { runInsights } from '../insights/engine';
 import { balanceScore } from '../insights/balance';
 import { weeklySummary } from '../summary/weekly';
-import { Ring } from '../components/Ring';
+import { AuraAvatar } from '../avatar/AuraAvatar';
+import { useMe } from '../avatar/AvatarContext';
+import { avatarMood } from '../avatar/mood';
 import { InsightCard } from '../components/InsightCard';
 import { MetricCard } from '../components/MetricCard';
 import { generateDemoData } from '../lib/demoData';
@@ -51,6 +53,8 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
     [latest, days],
   );
   const weekly = useMemo(() => weeklySummary(days), [days]);
+  const me = useMe();
+  const mood = avatarMood(latest, balance?.score);
 
   const chart = useMemo(
     () =>
@@ -160,10 +164,19 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
 
           <div className="row gap center-v wrap">
             {balance && (
-              <Ring
-                value={balance.score}
+              <button
+                type="button"
                 onClick={() => setShowScoreDetails((s) => !s)}
-              />
+                aria-label={`Balance Score ${balance.score} out of 100. ${mood.label}. Show breakdown.`}
+                style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}
+                className="stack-sm center"
+              >
+                <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={112} score={balance.score} mood={mood} />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '2rem', fontWeight: 700, lineHeight: 1, color: mood.color }}>{balance.score}</div>
+                  <div className="xs muted">{mood.label}</div>
+                </div>
+              </button>
             )}
             <div className="grow">
               <ul className="reasons-list">

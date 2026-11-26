@@ -13,6 +13,8 @@ import { Profile } from './pages/Profile';
 import { Exercise } from './pages/Exercise';
 import { PhoneData } from './pages/PhoneData';
 import { syncPhoneData } from './sync/phoneSync';
+import { AvatarProvider } from './avatar/AvatarContext';
+import { syncWidget } from './widget/widget';
 import { loadDays } from './lib/store';
 import { startAutoLock } from './lib/autolock';
 import { AppShell, type AppTab, type ThemeMode } from './components/AppShell';
@@ -98,6 +100,12 @@ export function App() {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [unlocked, refresh]);
 
+  // Keep the home-screen widget in step with the latest data (only if turned on).
+  useEffect(() => {
+    if (!unlocked) return;
+    void syncWidget(days).catch(() => undefined);
+  }, [unlocked, days]);
+
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   }, []);
@@ -142,6 +150,7 @@ export function App() {
   const hasDemo = days.some((d) => d.source === 'demo');
 
   return (
+    <AvatarProvider>
     <AppShell
       tab={tab}
       onTabChange={setTab}
@@ -174,5 +183,6 @@ export function App() {
       {tab === 'profile' && <Profile />}
       {tab === 'about' && <About />}
     </AppShell>
+    </AvatarProvider>
   );
 }

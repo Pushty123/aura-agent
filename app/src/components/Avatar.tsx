@@ -1,5 +1,5 @@
 import { useId, type CSSProperties } from 'react';
-import { AVATAR_PRESETS, type AvatarPresetId } from '../assets/avatars/presets';
+import { AVATAR_PRESETS, type AvatarPreset, type AvatarPresetId } from '../assets/avatars/presets';
 import { buildAvatarSvgInner } from '../assets/avatars/kit';
 
 export type AvatarVariant = AvatarPresetId | 'initials';
@@ -10,6 +10,8 @@ interface AvatarProps {
   name?: string;
   alt?: string;
   ring?: boolean;
+  /** Override the preset's eyes and mouth (used for the mood-reactive avatar). */
+  expression?: Partial<Pick<AvatarPreset, 'eyes' | 'mouth'>>;
   decorative?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -28,6 +30,7 @@ export function Avatar({
   name,
   alt,
   ring = true,
+  expression,
   decorative = false,
   className = '',
   style,
@@ -65,7 +68,7 @@ export function Avatar({
     );
   }
 
-  const innerSvg = buildAvatarSvgInner(preset, uid);
+  const innerSvg = buildAvatarSvgInner(expression ? { ...preset, ...expression } : preset, uid);
 
   return (
     <svg
