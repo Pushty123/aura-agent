@@ -1,14 +1,13 @@
-import { useRef, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { AuraAvatar } from '../avatar/AuraAvatar';
 import { useMe } from '../avatar/AvatarContext';
-import { SideDrawer } from './SideDrawer';
 import {
   AskIcon,
   AuraLogoIcon,
   CheckInIcon,
   GoalsIcon,
   LockIcon,
-  MenuIcon,
+  AppsIcon,
   MoonIcon,
   ProfileIcon,
   SunIcon,
@@ -31,7 +30,7 @@ export type AppTab =
   | 'me';
 export type ThemeMode = 'dark' | 'light';
 
-type GroupId = 'today' | 'track' | 'goals' | 'ask' | 'me';
+type GroupId = 'today' | 'track' | 'goals' | 'usage' | 'ask' | 'me';
 
 interface Group {
   id: GroupId;
@@ -40,13 +39,14 @@ interface Group {
   tabs: AppTab[];
 }
 
-/** Five bottom tabs, like most well-known apps. Related screens live inside a tab. */
+/** Bottom tabs. Related screens live inside a tab as a segmented control. */
 export const GROUPS: Group[] = [
   { id: 'today', label: 'Home', icon: TodayIcon, tabs: ['dashboard'] },
   { id: 'track', label: 'Track', icon: CheckInIcon, tabs: ['checkin', 'food', 'exercise', 'health'] },
   { id: 'goals', label: 'Goals', icon: GoalsIcon, tabs: ['goals'] },
+  { id: 'usage', label: 'Usage', icon: AppsIcon, tabs: ['apps', 'phone'] },
   { id: 'ask', label: 'Ask', icon: AskIcon, tabs: ['ask'] },
-  { id: 'me', label: 'Me', icon: ProfileIcon, tabs: ['me', 'profile', 'phone', 'apps', 'vault', 'about'] },
+  { id: 'me', label: 'Me', icon: ProfileIcon, tabs: ['me', 'profile', 'vault', 'about'] },
 ];
 
 const TITLES: Record<AppTab, string> = {
@@ -59,18 +59,24 @@ const TITLES: Record<AppTab, string> = {
   ask: 'Ask AURA',
   me: 'Me',
   profile: 'Profile',
-  phone: 'Phone & band data',
-  apps: 'App usage',
+  phone: 'Usage',
+  apps: 'Usage',
   vault: 'My data & privacy',
   about: 'About AURA',
 };
 
-const TRACK_TABS: { id: AppTab; label: string }[] = [
-  { id: 'checkin', label: 'Check-in' },
-  { id: 'food', label: 'Food' },
-  { id: 'exercise', label: 'Exercise' },
-  { id: 'health', label: 'Health' },
-];
+const SUB_TABS: Partial<Record<GroupId, { id: AppTab; label: string }[]>> = {
+  track: [
+    { id: 'checkin', label: 'Check-in' },
+    { id: 'food', label: 'Food' },
+    { id: 'exercise', label: 'Exercise' },
+    { id: 'health', label: 'Health' },
+  ],
+  usage: [
+    { id: 'apps', label: 'Apps & limits' },
+    { id: 'phone', label: 'Phone & band data' },
+  ],
+};
 
 export const groupOf = (tab: AppTab): Group => GROUPS.find((g) => g.tabs.includes(tab)) ?? GROUPS[0];
 
@@ -88,8 +94,7 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
   const me = useMe();
   const group = groupOf(tab);
   const isMeSub = group.id === 'me' && tab !== 'me';
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const subTabs = SUB_TABS[group.id];
 
   const navButton = (g: Group, cls: string) => {
     const Icon = g.icon;
@@ -142,16 +147,6 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
       <div className="aura-main-col">
         <header className="aura-topbar">
           <div className="aura-topbar-left">
-            <button
-              ref={menuTriggerRef}
-              type="button"
-              className="btn ghost icon-only aura-mobile-menu-btn"
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Open menu"
-              aria-expanded={drawerOpen}
-            >
-              <MenuIcon size={20} />
-            </button>
             {isMeSub && (
               <button
                 type="button"
@@ -178,13 +173,16 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
             >
               <LockIcon size={18} />
             </button>
+            <button type="button" className="btn ghost icon-only" onClick={() => onTabChange('me')} aria-label="Me" title="Me" style={{ padding: 2 }}>
+              <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={30} />
+            </button>
           </div>
         </header>
 
-        {group.id === 'track' && (
+        {subTabs && (
           <div className="aura-segmented-wrap">
-            <div className="aura-segmented" role="tablist" aria-label="Track">
-              {TRACK_TABS.map((t) => (
+            <div className="aura-segmented" role="tablist" aria-label={group.label}>
+              {subTabs.map((t) => (
                 <button
                   key={t.id}
                   type="button"
@@ -216,16 +214,6 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
         {GROUPS.map((g) => navButton(g, 'aura-mobile-nav-btn'))}
       </nav>
 
-      <SideDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        tab={tab}
-        onNavigate={onTabChange}
-        theme={theme}
-        onToggleTheme={onToggleTheme}
-        onLock={onLock}
-        triggerRef={menuTriggerRef}
-      />
     </div>
   );
 }

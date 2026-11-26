@@ -181,9 +181,15 @@ export function CheckIn({ days, onChange }: { days: DayRecord[]; onChange: () =>
         <div className="card stack-md">
           <div>
             <h3>Sleep last night (hours)</h3>
-            <p className="xs muted">
-              Log manually if your phone or wearable does not provide sleep data.
-            </p>
+            {rec?.sleepHours !== undefined && rec.source === 'device' ? (
+              <p className="small">
+                📱 <strong>{rec.sleepHours} h</strong> filled in automatically from your phone or band. Change it only if it&apos;s wrong.
+              </p>
+            ) : (
+              <p className="xs muted">
+                Filled in automatically once you allow it in Me → Phone &amp; band data. You can also type it here.
+              </p>
+            )}
           </div>
 
           <form
@@ -195,7 +201,7 @@ export function CheckIn({ days, onChange }: { days: DayRecord[]; onChange: () =>
                 setStatus({ kind: 'error', text: 'Enter sleep hours between 0.25 and 16.' });
                 return;
               }
-              void save({ sleepHours: v }, `Sleep (${v} h) saved.`);
+              void save({ sleepHours: v, manualFields: [...new Set([...(rec?.manualFields ?? []), 'sleepHours'])] }, `Sleep (${v} h) saved.`);
             }}
           >
             <label htmlFor="sleep-hours-input" className="small" style={{ fontWeight: 600 }}>

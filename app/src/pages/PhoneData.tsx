@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DayRecord } from '../types';
+import { allowPhoneSteps, phoneSensorStatus, type PhoneSensors } from '../native/bridge';
 import {
   connectHealth,
   getHealthState,
@@ -53,12 +54,14 @@ export function PhoneData({ days, onChange }: { days: DayRecord[]; onChange: () 
   const [last, setLast] = useState<SyncReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [sensors, setSensors] = useState<PhoneSensors | null>(null);
 
   const refreshStates = useCallback(async () => {
     setUsage(await getUsageState());
     setHealth(await getHealthState());
     setPrefs(await getSyncPrefs());
     setLast(await loadLastSync());
+    setSensors(await phoneSensorStatus());
   }, []);
 
   useEffect(() => {
@@ -84,6 +87,18 @@ export function PhoneData({ days, onChange }: { days: DayRecord[]; onChange: () 
           : r.screen.message || r.health.message || 'Nothing was synced. Allow a source below first.',
       );
       await refreshStates();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function allowSteps() {
+    setBusy(true);
+    try {
+      const ok = await allowPhoneSteps();
+      setMsg(ok ? 'Step counting is on. Steps are counted from now on, even when AURA is closed.' : 'Allow "Physical activity" for AURA in Android settings to count steps.');
+      await refreshStates();
+      if (ok) await syncNow();
     } finally {
       setBusy(false);
     }
@@ -147,6 +162,37 @@ export function PhoneData({ days, onChange }: { days: DayRecord[]; onChange: () 
           have allowed a source. Nothing leaves your phone.
         </p>
       </div>
+
+      {isNative() && (
+        <article className="card stack-sm">
+          <div className="row between">
+            <h3 style={{ margin: 0 }}>📱 This phone (no band needed)</h3>
+            <span className={`pill ${sensors?.stepsAllowed && sensors?.usageAllowed ? 'ok' : ''}`}>
+              {sensors?.stepsAllowed && sensors?.usageAllowed ? 'On' : 'Needs permission'}
+            </span>
+          </div>
+          <p className="small muted">
+            <strong>Steps</strong> from the phone&apos;s own step counter, and <strong>sleep</strong> estimated from the
+            longest time your screen was off at night. No band or fitness app needed. A band&apos;s data is used first when
+            you have one.
+          </p>
+          {sensors && !sensors.stepSensor && <p className="xs muted">This phone has no step counter sensor. Use a band or Google Fit instead.</p>}
+          <div className="row gap wrap">
+            {sensors?.stepSensor && !sensors.stepsAllowed && (
+              <button type="button" className="btn primary" onClick={() => void allowSteps()} disabled={busy}>
+                Allow step counting
+              </button>
+            )}
+            {sensors && !sensors.usageAllowed && (
+              <button type="button" className="btn" onClick={() => void allowUsage()}>
+                Allow usage access (for sleep)
+              </button>
+            )}
+          </div>
+          {sensors?.stepsAllowed && <p className="xs muted">Steps are counted from the day you turned this on. Sleep is an estimate; you can correct it in Check-in.</p>}
+          {sensors === null && <p className="xs muted">Update the app (rebuild) to use this.</p>}
+        </article>
+      )}
 
       <div className="grid-2">
         <article className="card stack-sm">

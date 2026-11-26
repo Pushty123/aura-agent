@@ -32,6 +32,11 @@ import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.ActivityCallback
 import com.getcapacitor.annotation.CapacitorPlugin
+import com.getcapacitor.annotation.Permission
+import com.getcapacitor.annotation.PermissionCallback
+import com.getcapacitor.PermissionState
+import android.Manifest
+import android.os.Build
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -48,7 +53,10 @@ import java.time.ZoneId
  * to the app, which stores it encrypted. Method names must match
  * app/src/native/bridge.ts.
  */
-@CapacitorPlugin(name = "AuraNative")
+@CapacitorPlugin(
+    name = "AuraNative",
+    permissions = [Permission(alias = "activity", strings = [Manifest.permission.ACTIVITY_RECOGNITION])]
+)
 class AuraNativePlugin : Plugin() {
 
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -129,6 +137,68 @@ class AuraNativePlugin : Plugin() {
                 call.resolve(JSObject().put("days", out))
             } catch (e: Exception) {
                 call.reject("could not read usage stats")
+            }
+        }
+    }
+
+    // ------------------------------------------------------- phone's own sensors
+
+    private fun activityAllowed(): Boolean =
+        Build.VERSION.SDK_INT < 29 || getPermissionState("activity") == PermissionState.GRANTED
+
+    /** { stepSensor, stepsAllowed, usageAllowed } */
+    @PluginMethod
+    fun phoneSensorStatus(call: PluginCall) {
+        call.resolve(
+            JSObject().put("stepSensor", StepStore.hasSensor(context))
+                .put("stepsAllowed", activityAllowed())
+                .put("usageAllowed", usageAllowed())
+        )
+    }
+
+    @PluginMethod
+    fun requestStepPermission(call: PluginCall) {
+        if (activityAllowed()) { startSteps(); call.resolve(JSObject().put("granted", true)); return }
+        requestPermissionForAlias("activity", call, "stepPermResult")
+    }
+
+    @PermissionCallback
+    private fun stepPermResult(call: PluginCall) {
+        val ok = activityAllowed()
+        if (ok) startSteps()
+        call.resolve(JSObject().put("granted", ok))
+    }
+
+    private fun startSteps() {
+        StepWorker.schedule(context)
+        scope.launch { try { StepStore.sample(context) } catch (e: Exception) {} }
+    }
+
+    /**
+     * { days: [{ date, steps?, sleepMinutes?, sleepStart?, sleepEnd? }] }
+     * Steps come from the phone's step counter (only from the day it was turned on);
+     * sleep is estimated from screen-off time (needs usage access).
+     */
+    @PluginMethod
+    fun getPhoneData(call: PluginCall) {
+        val n = (call.getInt("days") ?: 7).coerceIn(1, 30)
+        scope.launch {
+            try {
+                if (activityAllowed()) { StepWorker.schedule(context); StepStore.sample(context) }
+                val today = LocalDate.now(zone)
+                val out = JSArray()
+                for (back in n - 1 downTo 0) {
+                    val d = today.minusDays(back.toLong())
+                    val o = JSObject().put("date", d.toString())
+                    StepStore.steps(context, d.toString())?.let { o.put("steps", it) }
+                    if (usageAllowed()) SleepEstimate.forDate(context, d, zone)?.let {
+                        o.put("sleepMinutes", it.minutes).put("sleepStart", it.start).put("sleepEnd", it.end)
+                    }
+                    out.put(o)
+                }
+                call.resolve(JSObject().put("days", out))
+            } catch (e: Exception) {
+                call.reject("could not read phone data")
             }
         }
     }

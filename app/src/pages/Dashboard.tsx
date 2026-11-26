@@ -20,6 +20,7 @@ import { avatarMood } from '../avatar/mood';
 import { InsightCard } from '../components/InsightCard';
 import { MetricCard } from '../components/MetricCard';
 import { StillLearningCard } from '../components/StillLearningCard';
+import { WeekCharts } from '../components/WeekCharts';
 import { MoodIcon, PhoneIcon, SleepIcon, StepsIcon } from '../components/Icons';
 import { generateDemoData } from '../lib/demoData';
 import { today } from '../lib/dates';
@@ -334,7 +335,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
           accent="coral"
           icon={<PhoneIcon size={18} />}
           series={screenSeries}
-          onClick={() => onNavigate?.('phone')}
+          onClick={() => onNavigate?.('apps')}
         />
         <MetricCard
           label="Mood"
@@ -349,6 +350,8 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
           onClick={() => onNavigate?.('checkin')}
         />
       </div>
+
+      <WeekCharts days={days} hasDemo={days.some((d) => d.source === 'demo')} onNavigate={onNavigate} />
 
       {/* Ranked Insights */}
       <div className="stack-sm">

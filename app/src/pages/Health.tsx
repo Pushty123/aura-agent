@@ -45,9 +45,12 @@ export function Health({ days }: { days: DayRecord[] }) {
   const [msg, setMsg] = useState<string | null>(null);
   /** Period features are shown only when the profile says Female. */
   const [female, setFemale] = useState(false);
+  const [sexUnset, setSexUnset] = useState(false);
 
   const refresh = async () => {
-    setFemale((await loadProfile())?.sex === 'female');
+    const prof = await loadProfile();
+    setFemale(prof?.sex === 'female');
+    setSexUnset(!prof?.sex);
     setEntries(await loadHealth());
     setFood(await loadFood());
   };
@@ -178,6 +181,9 @@ export function Health({ days }: { days: DayRecord[] }) {
         </div>
       </div>
       {female && <CycleCard />}
+      {sexUnset && (
+        <p className="xs muted">🌸 A private period calendar is available. Set Sex to Female in Me → Profile to show it here.</p>
+      )}
     </section>
   );
 }

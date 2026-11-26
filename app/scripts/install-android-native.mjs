@@ -32,9 +32,9 @@ function edit(file, fn, note) {
 // 1. Plugin source + MainActivity
 const pkgDir = join(android, 'app', 'src', 'main', 'java', 'in', 'phoenix', 'aura');
 mkdirSync(pkgDir, { recursive: true });
-for (const f of ['AuraNativePlugin.kt', 'AuraWidgetProvider.kt', 'AppLimits.kt']) copyFileSync(join(root, 'native-android', f), join(pkgDir, f));
+for (const f of ['AuraNativePlugin.kt', 'AuraWidgetProvider.kt', 'AppLimits.kt', 'PhoneSensors.kt']) copyFileSync(join(root, 'native-android', f), join(pkgDir, f));
 cpSync(join(root, 'native-android', 'res'), join(android, 'app', 'src', 'main', 'res'), { recursive: true });
-log.push('copied AuraNativePlugin.kt, AuraWidgetProvider.kt, AppLimits.kt and widget resources');
+log.push('copied AuraNativePlugin.kt, AuraWidgetProvider.kt, AppLimits.kt, PhoneSensors.kt and widget resources');
 const mainActivity = `package in.phoenix.aura;
 
 import android.os.Bundle;
@@ -102,6 +102,8 @@ edit(
       '<uses-permission android:name="android.permission.INTERNET" />',
       '<uses-permission android:name="android.permission.CAMERA" />',
       '<uses-permission android:name="android.permission.USE_BIOMETRIC" />',
+      '<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />',
+      '<uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />',
       '<uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />',
       '<uses-permission android:name="android.permission.health.READ_STEPS" />',
       '<uses-permission android:name="android.permission.health.READ_SLEEP" />',
@@ -120,17 +122,19 @@ edit(
       x = x.replace('</manifest>', `    <queries>\n        <intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent>\n    </queries>\n</manifest>`);
     if (!x.includes('com.google.android.apps.healthdata'))
       x = x.replace('</manifest>', `    <queries>\n        <package android:name="com.google.android.apps.healthdata" />\n    </queries>\n</manifest>`);
-    if (!x.includes('AuraWidgetProvider'))
-      x = x.replace(
-        '</application>',
-        `    <receiver android:name=".AuraWidgetProvider" android:exported="false">
+    // Home-screen widget. Always rewritten so older installs get the fixed entry:
+    // exported + label + preview image, which Xiaomi/HyperOS launchers need to list it.
+    x = x.replace(/\s*<receiver android:name="\.AuraWidgetProvider"[\s\S]*?<\/receiver>/, '');
+    x = x.replace(
+      '</application>',
+      `    <receiver android:name=".AuraWidgetProvider" android:exported="true" android:label="AURA Balance">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/aura_widget_info" />
         </receiver>
     </application>`,
-      );
+    );
     if (!x.includes('SHOW_PERMISSIONS_RATIONALE'))
       x = x.replace(
         '</application>',

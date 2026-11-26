@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../src/native/bridge', () => ({
   getUsage: vi.fn(),
   getHealth: vi.fn(),
+  getPhoneDays: vi.fn(async () => []),
 }));
 
 import { db } from '../src/lib/db';
@@ -120,5 +121,18 @@ describe('syncPhoneData', () => {
     const r = await syncPhoneData({ interactive: true });
     expect(usage).not.toHaveBeenCalled();
     expect(r.screen.state).toBe('off');
+  });
+});
+
+import { phoneToPatch } from '../src/sync/phoneSync';
+describe('phone sensors fill gaps', () => {
+  it('uses phone steps and sleep only where the band gave nothing', () => {
+    expect(phoneToPatch({ date: 'd', steps: 4200, sleepMinutes: 430 })).toEqual({ steps: 4200, sleepHours: 7.2 });
+    expect(phoneToPatch({ date: 'd', steps: 4200, sleepMinutes: 430 }, { steps: 9000 })).toEqual({ sleepHours: 7.2 });
+    expect(phoneToPatch({ date: 'd', sleepMinutes: 120 })).toEqual({});
+  });
+  it('never overwrites a value the person corrected', () => {
+    const day = { date: 'd', source: 'device' as const, sleepHours: 6, steps: 100, manualFields: ['sleepHours'] };
+    expect(mergeDeviceDay('d', day, { sleepHours: 8, steps: 3000 })).toMatchObject({ sleepHours: 6, steps: 3000 });
   });
 });

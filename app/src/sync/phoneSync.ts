@@ -1,7 +1,7 @@
 import { db } from '../lib/db';
 import { getConsent, putRecord, getRecord, setConsent, audit } from '../lib/vault';
 import { loadDays, saveDay } from '../lib/store';
-import { getHealth, getUsage, type HealthDay, type UsageDay } from '../native/bridge';
+import { getHealth, getPhoneDays, getUsage, type HealthDay, type PhoneDay, type UsageDay } from '../native/bridge';
 import type { DayRecord } from '../types';
 
 /**
@@ -12,6 +12,10 @@ import type { DayRecord } from '../types';
  * demo day; empty values are skipped instead of stored as zeros.
  */
 export type SyncPrefs = { screen: boolean; health: boolean };
+/** Labels for what the phone measured itself. */
+export const PHONE_STEPS = 'phone-step-sensor';
+export const PHONE_SLEEP = 'phone-sleep-estimate';
+
 export type OriginKind = 'steps' | 'sleep' | 'heartRate' | 'exercise';
 export type Origins = Record<OriginKind, string[]>;
 
@@ -42,6 +46,8 @@ const LABELS: Record<string, string> = {
   'com.heytap.health': 'HeyTap Health',
   'com.google.android.apps.healthdata': 'Health Connect',
   'com.android.healthconnect.controller': 'Health Connect',
+  [PHONE_STEPS]: "This phone's step counter",
+  [PHONE_SLEEP]: 'Estimated from screen-off time',
 };
 
 export function originLabel(pkg: string): string {
@@ -58,6 +64,15 @@ export function healthToPatch(h: HealthDay): Partial<DayRecord> {
   if (h.avgHeartRate && h.avgHeartRate > 0) p.avgHeartRate = Math.round(h.avgHeartRate);
   if (h.exerciseMinutes && h.exerciseMinutes > 0) p.exerciseMinutes = Math.round(h.exerciseMinutes);
   return p;
+}
+
+/** Phone's own measurements. Only used where a band / Health Connect gave nothing. */
+export function phoneToPatch(p: PhoneDay, have: Partial<DayRecord> = {}): Partial<DayRecord> {
+  const out: Partial<DayRecord> = {};
+  if (have.steps === undefined && p.steps && p.steps > 0) out.steps = Math.round(p.steps);
+  if (have.sleepHours === undefined && p.sleepMinutes && p.sleepMinutes >= 180 && p.sleepMinutes <= 16 * 60)
+    out.sleepHours = round(p.sleepMinutes / 60, 1);
+  return out;
 }
 
 export function usageToPatch(u: UsageDay): Partial<DayRecord> {
@@ -80,7 +95,8 @@ export function mergeDeviceDay(date: string, existing: DayRecord | undefined, pa
   const keepOwn = existing.source === 'manual';
   for (const [k, v] of Object.entries(patch) as [keyof DayRecord, never][]) {
     if (v === undefined || k === 'date' || k === 'source') continue;
-    if (keepOwn && existing[k] !== undefined) continue;
+    if (existing.manualFields?.includes(k)) continue;
+    if (keepOwn && !existing.manualFields && existing[k] !== undefined) continue;
     (out as unknown as Record<string, unknown>)[k] = v;
   }
   return out;
@@ -142,6 +158,21 @@ export async function syncPhoneData(opts: { days?: number; interactive?: boolean
       };
     }
   }
+
+  // The phone's own step counter and sleep estimate fill whatever the band did not.
+  let phoneUsed = false;
+  for (const p of await getPhoneDays(days)) {
+    const patch = phoneToPatch(p, patches.get(p.date));
+    if (Object.keys(patch).length) {
+      phoneUsed = true;
+      add(p.date, patch);
+      if (patch.steps !== undefined && !health.origins.steps.includes(PHONE_STEPS))
+        health = { ...health, origins: { ...health.origins, steps: [...health.origins.steps, PHONE_STEPS] } };
+      if (patch.sleepHours !== undefined && !health.origins.sleep.includes(PHONE_SLEEP))
+        health = { ...health, origins: { ...health.origins, sleep: [...health.origins.sleep, PHONE_SLEEP] } };
+    }
+  }
+  if (phoneUsed && health.state !== 'synced') health = { ...health, state: 'synced', days: Math.max(health.days, 1), message: undefined };
 
   if (patches.size) {
     const existing = new Map((await loadDays()).map((d) => [d.date, d]));

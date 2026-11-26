@@ -62,6 +62,9 @@ interface AuraNativePlugin {
   requestHealthPermissions(): Promise<{ granted: boolean }>;
   openHealthConnect(): Promise<void>;
   getHealthData(opts: { days: number }): Promise<{ days: HealthDay[] }>;
+  phoneSensorStatus(): Promise<{ stepSensor: boolean; stepsAllowed: boolean; usageAllowed: boolean }>;
+  requestStepPermission(): Promise<{ granted: boolean }>;
+  getPhoneData(opts: { days: number }): Promise<{ days: PhoneDay[] }>;
   updateWidget(opts: WidgetSnapshot): Promise<void>;
   getAppUsage(): Promise<{ apps: AppUse[]; unlocks: number }>;
   setAppLimits(opts: { limits: AppLimit[] }): Promise<void>;
@@ -135,6 +138,49 @@ export async function connectHealth(): Promise<NativeResult> {
       : { ok: false, message: 'Permission was not given. You can allow it from the Phone data screen any time.' };
   } catch {
     return { ok: false, message: 'Could not open the Health Connect permission screen.' };
+  }
+}
+
+/** What the phone measures by itself: step counter, and sleep estimated from screen-off time. */
+export interface PhoneDay {
+  date: string;
+  steps?: number;
+  sleepMinutes?: number;
+  sleepStart?: number;
+  sleepEnd?: number;
+}
+
+export interface PhoneSensors {
+  stepSensor: boolean;
+  stepsAllowed: boolean;
+  usageAllowed: boolean;
+}
+
+export async function phoneSensorStatus(): Promise<PhoneSensors | null> {
+  if (!isNative()) return null;
+  try {
+    return await Native.phoneSensorStatus();
+  } catch {
+    return null; // older app build without this method
+  }
+}
+
+/** Asks for "Physical activity" so AURA can count steps with the phone's own sensor. */
+export async function allowPhoneSteps(): Promise<boolean> {
+  if (!isNative()) return false;
+  try {
+    return (await Native.requestStepPermission()).granted;
+  } catch {
+    return false;
+  }
+}
+
+export async function getPhoneDays(days = 7): Promise<PhoneDay[]> {
+  if (!isNative()) return [];
+  try {
+    return (await Native.getPhoneData({ days })).days;
+  } catch {
+    return [];
   }
 }
 

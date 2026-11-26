@@ -4,8 +4,6 @@ import type { AppTab, ThemeMode } from '../components/AppShell';
 
 const ROWS: { tab: AppTab; title: string; sub: string; emoji: string }[] = [
   { tab: 'profile', title: 'Profile & security', sub: 'Character, details, fingerprint, widget', emoji: '👤' },
-  { tab: 'phone', title: 'Phone & band data', sub: 'Screen time, steps, sleep, heart rate', emoji: '⌚' },
-  { tab: 'apps', title: 'App usage', sub: 'Time per app and daily limits', emoji: '📱' },
   { tab: 'vault', title: 'My data & privacy', sub: 'Consent, export, delete, network log', emoji: '🔐' },
   { tab: 'about', title: 'About AURA', sub: 'How your data is protected', emoji: 'ℹ️' },
 ];

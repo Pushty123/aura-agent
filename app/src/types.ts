@@ -20,6 +20,8 @@ export interface DayRecord {
   avgHeartRate?: number;
   /** Minutes of recorded exercise sessions. */
   exerciseMinutes?: number;
+  /** Fields the person typed themselves; phone sync never overwrites these. */
+  manualFields?: string[];
   source: DataSource;
 }
 
