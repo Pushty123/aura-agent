@@ -3,6 +3,7 @@ import ananyaStanding from '../assets/characters/ananya-standing.webp';
 import kabirStanding from '../assets/characters/kabir-standing.webp';
 import meeraStanding from '../assets/characters/meera-standing.webp';
 import priyaStanding from '../assets/characters/priya-standing.webp';
+import rahulStanding from '../assets/characters/rahul-standing.webp';
 import kamalaStanding from '../assets/characters/kamala-standing.webp';
 import rameshStanding from '../assets/characters/ramesh-standing.webp';
 
@@ -29,6 +30,7 @@ export const CHARACTERS: Character[] = [
   { id: 'meera', name: 'Meera', tagline: 'Stylish and focused', poses: { standing: meeraStanding }, faceY: 0.13 },
   { id: 'kabir', name: 'Kabir', tagline: 'Cool and confident', poses: { standing: kabirStanding }, faceY: 0.1 },
   { id: 'priya', name: 'Priya', tagline: 'Warm and organised', poses: { standing: priyaStanding }, faceY: 0.11 },
+  { id: 'rahul', name: 'Rahul', tagline: 'Practical and kind', poses: { standing: rahulStanding }, faceY: 0.09 },
   { id: 'kamala', name: 'Kamala', tagline: 'Gentle and wise', poses: { standing: kamalaStanding }, faceY: 0.1 },
   { id: 'ramesh', name: 'Ramesh', tagline: 'Steady and cheerful', poses: { standing: rameshStanding }, faceY: 0.09 },
 ];
