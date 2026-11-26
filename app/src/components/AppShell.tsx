@@ -5,55 +5,69 @@ import {
   AskIcon,
   AuraLogoIcon,
   CheckInIcon,
-  AppsIcon,
-  DataIcon,
-  ExerciseIcon,
-  FoodIcon,
   GoalsIcon,
-  InfoIcon,
   LockIcon,
   MoonIcon,
-  PhoneIcon,
   ProfileIcon,
   SunIcon,
   TodayIcon,
 } from './Icons';
 
-export type AppTab = 'dashboard' | 'checkin' | 'food' | 'goals' | 'ask' | 'exercise' | 'phone' | 'apps' | 'vault' | 'profile' | 'about';
+export type AppTab =
+  | 'dashboard'
+  | 'checkin'
+  | 'food'
+  | 'goals'
+  | 'ask'
+  | 'exercise'
+  | 'phone'
+  | 'apps'
+  | 'vault'
+  | 'profile'
+  | 'about'
+  | 'me';
 export type ThemeMode = 'dark' | 'light';
 
-interface NavItem {
-  id: AppTab;
+type GroupId = 'today' | 'track' | 'goals' | 'ask' | 'me';
+
+interface Group {
+  id: GroupId;
   label: string;
-  subtitle: string;
   icon: (props: { size?: number }) => JSX.Element;
+  tabs: AppTab[];
 }
 
-const PRIMARY_NAV: NavItem[] = [
-  { id: 'dashboard', label: 'Today', subtitle: 'Your daily balance, insights and trends', icon: TodayIcon },
-  { id: 'checkin', label: 'Check-in', subtitle: 'Quick mood, sleep and daily habits', icon: CheckInIcon },
-  { id: 'goals', label: 'Goals', subtitle: 'Personal baselines from your own history', icon: GoalsIcon },
-  { id: 'food', label: 'Food', subtitle: 'Approximate daily nutrition log', icon: FoodIcon },
-  { id: 'exercise', label: 'Exercise', subtitle: 'Count reps with your camera, on this phone', icon: ExerciseIcon },
-  { id: 'ask', label: 'Ask AURA', subtitle: 'Evidence-backed answers & confirmed actions', icon: AskIcon },
-  { id: 'phone', label: 'Phone data', subtitle: 'Screen time and fitness band data, synced to this phone', icon: PhoneIcon },
-  { id: 'apps', label: 'App usage', subtitle: 'Time and opens per app, with daily limits', icon: AppsIcon },
-  { id: 'vault', label: 'My Data', subtitle: 'Consent, network ledger, CSV import & vault', icon: DataIcon },
+/** Five bottom tabs, like most well-known apps. Related screens live inside a tab. */
+export const GROUPS: Group[] = [
+  { id: 'today', label: 'Today', icon: TodayIcon, tabs: ['dashboard'] },
+  { id: 'track', label: 'Track', icon: CheckInIcon, tabs: ['checkin', 'food', 'exercise'] },
+  { id: 'goals', label: 'Goals', icon: GoalsIcon, tabs: ['goals'] },
+  { id: 'ask', label: 'Ask', icon: AskIcon, tabs: ['ask'] },
+  { id: 'me', label: 'Me', icon: ProfileIcon, tabs: ['me', 'profile', 'phone', 'apps', 'vault', 'about'] },
 ];
 
-const PROFILE_NAV: NavItem = {
-  id: 'profile',
-  label: 'Profile',
-  subtitle: 'Your details, BMI and daily targets',
-  icon: ProfileIcon,
+const TITLES: Record<AppTab, string> = {
+  dashboard: 'Today',
+  checkin: 'Track',
+  food: 'Track',
+  exercise: 'Track',
+  goals: 'Goals',
+  ask: 'Ask AURA',
+  me: 'Me',
+  profile: 'Profile',
+  phone: 'Phone & band data',
+  apps: 'App usage',
+  vault: 'My data & privacy',
+  about: 'About AURA',
 };
 
-const ABOUT_NAV: NavItem = {
-  id: 'about',
-  label: 'About / Privacy',
-  subtitle: 'How AURA encrypts and protects your data',
-  icon: InfoIcon,
-};
+const TRACK_TABS: { id: AppTab; label: string }[] = [
+  { id: 'checkin', label: 'Check-in' },
+  { id: 'food', label: 'Food' },
+  { id: 'exercise', label: 'Exercise' },
+];
+
+export const groupOf = (tab: AppTab): Group => GROUPS.find((g) => g.tabs.includes(tab)) ?? GROUPS[0];
 
 interface AppShellProps {
   tab: AppTab;
@@ -65,17 +79,33 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-export function AppShell({
-  tab,
-  onTabChange,
-  theme,
-  onToggleTheme,
-  onLock,
-  hasDemo,
-  children,
-}: AppShellProps) {
+export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDemo, children }: AppShellProps) {
   const me = useMe();
-  const activeItem = [...PRIMARY_NAV, PROFILE_NAV, ABOUT_NAV].find((item) => item.id === tab) ?? PRIMARY_NAV[0];
+  const group = groupOf(tab);
+  const isMeSub = group.id === 'me' && tab !== 'me';
+
+  const navButton = (g: Group, cls: string) => {
+    const Icon = g.icon;
+    const active = g.id === group.id;
+    return (
+      <button
+        key={g.id}
+        type="button"
+        className={`${cls} ${active ? 'active' : ''}`}
+        aria-current={active ? 'page' : undefined}
+        onClick={() => onTabChange(g.tabs[0])}
+      >
+        {g.id === 'me' ? (
+          <span style={{ display: 'inline-flex', borderRadius: '50%', outline: active ? '2px solid var(--aura-primary)' : 'none' }}>
+            <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={20} />
+          </span>
+        ) : (
+          <Icon size={20} />
+        )}
+        <span>{g.label}</span>
+      </button>
+    );
+  };
 
   return (
     <div className="aura-shell">
@@ -89,55 +119,15 @@ export function AppShell({
             <span className="aura-brand-tag">Personal Intelligence</span>
           </div>
         </div>
-
-        <nav className="aura-nav">
-          {PRIMARY_NAV.map((item) => {
-            const Icon = item.icon;
-            const active = tab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={`aura-nav-btn ${active ? 'active' : ''}`}
-                aria-current={active ? 'page' : undefined}
-                onClick={() => onTabChange(item.id)}
-              >
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-
+        <nav className="aura-nav">{GROUPS.map((g) => navButton(g, 'aura-nav-btn'))}</nav>
         <div className="aura-sidebar-footer">
-          <div className="row center-v gap-sm" style={{ padding: '6px 10px 10px' }}>
-            <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={30} />
-            <div style={{ minWidth: 0 }}>
-              <div className="small" style={{ fontWeight: 600 }}>{me.name || 'Local Vault'}</div>
-              <div className="xs muted">Encrypted on device</div>
-            </div>
-          </div>
-          <button
-            type="button"
-            className={`aura-nav-btn ${tab === 'profile' ? 'active' : ''}`}
-            aria-current={tab === 'profile' ? 'page' : undefined}
-            onClick={() => onTabChange('profile')}
-          >
-            <ProfileIcon size={18} />
-            <span>Profile</span>
-          </button>
-          <button
-            type="button"
-            className={`aura-nav-btn ${tab === 'about' ? 'active' : ''}`}
-            aria-current={tab === 'about' ? 'page' : undefined}
-            onClick={() => onTabChange('about')}
-          >
-            <InfoIcon size={18} />
-            <span>About / Privacy</span>
+          <button type="button" className="aura-nav-btn" onClick={onToggleTheme}>
+            {theme === 'dark' ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+            <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
           </button>
           <button type="button" className="aura-nav-btn" onClick={onLock}>
             <LockIcon size={18} />
-            <span>Lock vault</span>
+            <span>Lock</span>
           </button>
         </div>
       </aside>
@@ -145,84 +135,63 @@ export function AppShell({
       <div className="aura-main-col">
         <header className="aura-topbar">
           <div className="aura-topbar-left">
-            <div>
-              <h1 className="aura-page-title">{activeItem.label}</h1>
-              <p className="aura-page-sub">{activeItem.subtitle}</p>
-            </div>
+            {isMeSub && (
+              <button type="button" className="btn ghost icon-only" onClick={() => onTabChange('me')} aria-label="Back to Me">
+                ‹
+              </button>
+            )}
+            <h1 className="aura-page-title">{TITLES[tab]}</h1>
           </div>
-
           <div className="aura-topbar-actions">
-            <span className="pill primary" title="Data is encrypted on this device with your passphrase">
-              Encrypted
-            </span>
+            <button type="button" className="btn ghost icon-only" onClick={onLock} aria-label="Lock AURA" title="Lock">
+              <LockIcon size={18} />
+            </button>
             <button
               type="button"
               className="btn ghost icon-only"
-              onClick={() => onTabChange('profile')}
-              aria-label="Profile"
-              title="Profile"
+              onClick={() => onTabChange('me')}
+              aria-label="Me"
+              title="Me"
               style={{ padding: 2 }}
             >
-              <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={26} />
-            </button>
-            <button
-              type="button"
-              className="btn ghost icon-only"
-              onClick={() => onTabChange('about')}
-              aria-label="About and Privacy"
-              title="About / Privacy"
-            >
-              <InfoIcon size={18} />
-            </button>
-            <button
-              type="button"
-              className="btn ghost icon-only"
-              onClick={onToggleTheme}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
-            >
-              {theme === 'dark' ? <SunIcon size={18} /> : <MoonIcon size={18} />}
-            </button>
-            <button type="button" className="btn sm" onClick={onLock}>
-              <LockIcon size={15} />
-              <span>Lock</span>
+              <AuraAvatar choice={me.choice} photo={me.photo} name={me.name} size={30} />
             </button>
           </div>
         </header>
 
+        {group.id === 'track' && (
+          <div className="aura-segmented-wrap">
+            <div className="aura-segmented" role="tablist" aria-label="Track">
+              {TRACK_TABS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === t.id}
+                  className={tab === t.id ? 'active' : ''}
+                  onClick={() => onTabChange(t.id)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <main className="aura-content">
           {hasDemo && (
-            <div className="demo-banner" role="status">
-              <div className="row center-v gap-sm wrap">
-                <span className="pill demo">DEMO</span>
-                <span>Demo data is active. These numbers are sample data, not a real person.</span>
-              </div>
-              <button type="button" className="btn sm" onClick={() => onTabChange('vault')}>
-                Manage in My Data
-              </button>
-            </div>
+            <button type="button" className="demo-strip" onClick={() => onTabChange('vault')}>
+              <span className="pill demo">DEMO</span>
+              <span>Showing sample data</span>
+              <span className="muted">Manage ›</span>
+            </button>
           )}
           {children}
         </main>
       </div>
 
-      <nav className="aura-mobile-nav" aria-label="Mobile navigation">
-        {PRIMARY_NAV.map((item) => {
-          const Icon = item.icon;
-          const active = tab === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className={`aura-mobile-nav-btn ${active ? 'active' : ''}`}
-              aria-current={active ? 'page' : undefined}
-              onClick={() => onTabChange(item.id)}
-            >
-              <Icon size={18} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
+      <nav className="aura-mobile-nav" aria-label="Main">
+        {GROUPS.map((g) => navButton(g, 'aura-mobile-nav-btn'))}
       </nav>
     </div>
   );

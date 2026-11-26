@@ -13,6 +13,7 @@ import { Profile } from './pages/Profile';
 import { Exercise } from './pages/Exercise';
 import { PhoneData } from './pages/PhoneData';
 import { AppUsage } from './pages/AppUsage';
+import { Me } from './pages/Me';
 import { syncPhoneData } from './sync/phoneSync';
 import { AvatarProvider } from './avatar/AvatarContext';
 import { syncWidget } from './widget/widget';
@@ -183,6 +184,17 @@ export function App() {
       {tab === 'exercise' && <Exercise />}
       {tab === 'phone' && <PhoneData days={days} onChange={refresh} />}
       {tab === 'apps' && <AppUsage />}
+      {tab === 'me' && (
+        <Me
+          onOpen={setTab}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onLock={() => {
+            lock();
+            setUnlocked(false);
+          }}
+        />
+      )}
       {tab === 'ask' && <Ask days={days} />}
       {tab === 'vault' && (
         <VaultPage

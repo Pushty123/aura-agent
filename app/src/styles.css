@@ -921,3 +921,25 @@ p {
 }
 .aura-breathe { transform-origin: 50% 100%; animation: aura-breathe 4.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .aura-breathe { animation: none; } }
+
+/* ---------- Grouped navigation (5 tabs) ---------- */
+@media (max-width: 860px) {
+  .aura-mobile-nav { grid-template-columns: repeat(5, 1fr); grid-auto-flow: row; overflow: visible; }
+  .aura-mobile-nav-btn { font-size: 0.72rem; padding: 6px 2px 4px; }
+  .aura-mobile-nav-btn.active { background: transparent; }
+  .aura-topbar { padding: 10px 16px; }
+}
+.aura-page-title { font-size: 1.35rem; }
+.aura-segmented-wrap { position: sticky; top: 57px; z-index: 15; background: var(--aura-shell); padding: 8px 16px 10px; border-bottom: 1px solid var(--aura-border); }
+.aura-segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--aura-surface-2); max-width: 520px; margin: 0 auto; }
+.aura-segmented button { border: 0; background: transparent; color: var(--aura-muted); padding: 8px 6px; border-radius: 9px; font-weight: 600; font-size: 0.85rem; cursor: pointer; }
+.aura-segmented button.active { background: var(--aura-surface); color: var(--aura-text); box-shadow: var(--aura-shadow); }
+.demo-strip { display: flex; align-items: center; gap: 8px; width: 100%; border: 1px solid rgba(251, 191, 36, 0.35); background: var(--aura-warn-dim); color: var(--aura-text); border-radius: 10px; padding: 6px 10px; margin-bottom: 14px; font-size: 0.8rem; cursor: pointer; text-align: left; }
+.demo-strip .muted { margin-left: auto; }
+.me-hero { width: 100%; border: 1px solid var(--aura-border); cursor: pointer; color: inherit; text-align: left; }
+.list-card { padding: 4px 0; }
+.list-row { display: flex; align-items: center; gap: 12px; width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--aura-border); padding: 14px 18px; color: inherit; cursor: pointer; text-align: left; }
+.list-row:last-child { border-bottom: 0; }
+.list-row:hover { background: var(--aura-surface-2); }
+.list-emoji { font-size: 1.25rem; width: 28px; text-align: center; }
+.list-text { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 2px; }
