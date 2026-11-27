@@ -1,4 +1,4 @@
-export function About() {
+export function About({ onReplayIntro }: { onReplayIntro?: () => void } = {}) {
   return (
     <section className="stack-lg">
       <div className="card stack-sm">
@@ -8,6 +8,9 @@ export function About() {
           plain-language insights backed by transparent statistics—without sending your readable
           health data to third-party servers by default.
         </p>
+        {onReplayIntro && (
+          <button type="button" className="btn" onClick={onReplayIntro}>Watch the intro again</button>
+        )}
       </div>
 
       <div className="grid-2">

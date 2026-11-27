@@ -70,6 +70,7 @@ export function App() {
     }
   });
   const [unlocked, setUnlocked] = useState(false);
+  const [replayIntro, setReplayIntro] = useState(false);
   const [idleLocked, setIdleLocked] = useState(false);
   const [tab, setTab] = useState<AppTab>('dashboard');
   const [days, setDays] = useState<DayRecord[]>([]);
@@ -345,6 +346,10 @@ export function App() {
     );
   }
 
+  if (replayIntro) {
+    return <Onboarding onDone={() => setReplayIntro(false)} />;
+  }
+
   if (!exists && !introSeen) {
     return (
       <Onboarding
@@ -442,7 +447,7 @@ export function App() {
       {tab === 'permissions' && <PermissionsPage onChanged={refresh} />}
       {tab === 'routine' && <Routine onOpenPermissions={() => setTab('permissions')} />}
       {notificationError && <div className="status-banner error" role="alert">{notificationError}</div>}
-      {tab === 'about' && <About />}
+      {tab === 'about' && <About onReplayIntro={() => setReplayIntro(true)} />}
     </AppShell>
     <Toast />
     </AvatarProvider>
