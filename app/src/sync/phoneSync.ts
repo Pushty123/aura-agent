@@ -1,5 +1,6 @@
 import { db } from '../lib/db';
-import { getConsent, putRecord, getRecord, setConsent, audit } from '../lib/vault';
+import { putRecord, getRecord, audit } from '../lib/vault';
+import { getPermissions } from '../lib/permissions';
 import { loadDays, saveDay } from '../lib/store';
 import { getHealth, getPhoneDays, getUsage, type HealthDay, type PhoneDay, type UsageDay } from '../native/bridge';
 import type { DayRecord } from '../types';
@@ -62,6 +63,10 @@ export function healthToPatch(h: HealthDay): Partial<DayRecord> {
   if (h.steps && h.steps > 0) p.steps = Math.round(h.steps);
   if (h.sleepMinutes && h.sleepMinutes >= 120) p.sleepHours = round(h.sleepMinutes / 60, 1);
   if (h.avgHeartRate && h.avgHeartRate > 0) p.avgHeartRate = Math.round(h.avgHeartRate);
+  if (h.avgBloodPressureSystolic && h.avgBloodPressureSystolic > 0)
+    p.bloodPressureSystolic = Math.round(h.avgBloodPressureSystolic);
+  if (h.avgBloodPressureDiastolic && h.avgBloodPressureDiastolic > 0)
+    p.bloodPressureDiastolic = Math.round(h.avgBloodPressureDiastolic);
   if (h.exerciseMinutes && h.exerciseMinutes > 0) p.exerciseMinutes = Math.round(h.exerciseMinutes);
   return p;
 }
@@ -120,11 +125,15 @@ const off = (): SourceReport => ({ state: 'off', days: 0 });
 export async function syncPhoneData(opts: { days?: number; interactive?: boolean } = {}): Promise<SyncReport> {
   const days = opts.days ?? 7;
   const interactive = opts.interactive ?? false;
-  const consent = await getConsent();
-  if (!consent.device && !interactive) {
+  const permissions = await getPermissions();
+  const healthFields = [
+    ...(permissions.steps ? ['steps', 'exercise'] as const : []),
+    ...(permissions.sleep ? ['sleep'] as const : []),
+    ...(permissions.heartRate ? ['heartRate', 'bloodPressure'] as const : []),
+  ];
+  if (!permissions.usage && healthFields.length === 0) {
     return { at: Date.now(), screen: off(), health: { ...off(), origins: NO_ORIGINS } };
   }
-  if (interactive && !consent.device) await setConsent('device', true);
 
   const prefs = await getSyncPrefs();
   const patches = new Map<string, Partial<DayRecord>>();
@@ -133,7 +142,7 @@ export async function syncPhoneData(opts: { days?: number; interactive?: boolean
   };
 
   let screen: SourceReport = off();
-  if (prefs.screen) {
+  if (prefs.screen && permissions.usage) {
     const r = await getUsage(days, interactive);
     if (r.ok) {
       for (const u of r.days) add(u.date, usageToPatch(u));
@@ -144,10 +153,23 @@ export async function syncPhoneData(opts: { days?: number; interactive?: boolean
   }
 
   let health: SourceReport & { origins: Origins } = { ...off(), origins: NO_ORIGINS };
-  if (prefs.health) {
-    const r = await getHealth(days);
+  if (prefs.health && healthFields.length) {
+    const r = await getHealth(days, [...new Set(healthFields)]);
     if (r.ok) {
-      for (const h of r.days) add(h.date, healthToPatch(h));
+      for (const h of r.days) {
+        const patch = healthToPatch(h);
+        if (!permissions.steps) {
+          delete patch.steps;
+          delete patch.exerciseMinutes;
+        }
+        if (!permissions.sleep) delete patch.sleepHours;
+        if (!permissions.heartRate) {
+          delete patch.avgHeartRate;
+          delete patch.bloodPressureSystolic;
+          delete patch.bloodPressureDiastolic;
+        }
+        add(h.date, patch);
+      }
       health = { state: 'synced', days: r.days.length, origins: unionOrigins(r.days) };
     } else {
       health = {
@@ -163,6 +185,8 @@ export async function syncPhoneData(opts: { days?: number; interactive?: boolean
   let phoneUsed = false;
   for (const p of await getPhoneDays(days)) {
     const patch = phoneToPatch(p, patches.get(p.date));
+    if (!permissions.steps) delete patch.steps;
+    if (!permissions.sleep || !permissions.usage) delete patch.sleepHours;
     if (Object.keys(patch).length) {
       phoneUsed = true;
       add(p.date, patch);

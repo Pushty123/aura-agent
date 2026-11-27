@@ -1065,7 +1065,7 @@ p {
 .aura-page-title { font-size: 1.35rem; }
 .aura-segmented-wrap { position: sticky; top: 57px; z-index: 15; background: var(--aura-shell); padding: 8px 16px 10px; border-bottom: 1px solid var(--aura-border); }
 .aura-segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--aura-surface-2); max-width: 520px; margin: 0 auto; }
-.aura-segmented button { border: 0; background: transparent; color: var(--aura-muted); padding: 8px 6px; border-radius: 9px; font-weight: 600; font-size: 0.85rem; cursor: pointer; }
+.aura-segmented button { border: 0; background: transparent; color: var(--aura-muted); padding: 8px 2px; border-radius: 9px; font-weight: 600; font-size: 0.8rem; cursor: pointer; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.01em; }
 .aura-segmented button.active { background: var(--aura-surface); color: var(--aura-text); box-shadow: var(--aura-shadow); }
 .demo-strip { display: flex; align-items: center; gap: 8px; width: 100%; border: 1px solid rgba(251, 191, 36, 0.35); background: var(--aura-warn-dim); color: var(--aura-text); border-radius: 10px; padding: 6px 10px; margin-bottom: 14px; font-size: 0.8rem; cursor: pointer; text-align: left; }
 .demo-strip .muted { margin-left: auto; }
@@ -1219,6 +1219,8 @@ p {
 .setup-item { display: flex; align-items: center; gap: 12px; padding: 14px 10px; border: 0; border-radius: 14px; background: none; color: var(--aura-text); font: inherit; text-align: left; cursor: pointer; }
 .setup-item + .setup-item { border-top: 1px solid var(--aura-border); border-radius: 0; }
 .setup-item:hover { background: var(--aura-surface-2); }
+.setup-item.perm-nudge { width: 100%; background: var(--aura-surface); border: 1px solid var(--aura-border); border-radius: 14px; padding: 14px 16px; }
+.perm-nudge .setup-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .setup-num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 0.8rem; font-weight: 700; border: 1.5px solid var(--aura-border); color: var(--aura-muted); flex: none; }
 .setup-num.done { background: var(--aura-primary); border-color: var(--aura-primary); color: #06201d; }
 .setup-icon { color: var(--aura-primary); display: grid; place-items: center; flex: none; }

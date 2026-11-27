@@ -9,8 +9,10 @@ import {
   getUsageState,
   isNative,
   type HealthState,
+  type HealthField,
   type UsageState,
 } from '../native/bridge';
+import { getPermissions, type Permissions } from '../lib/permissions';
 import {
   getSyncPrefs,
   loadLastSync,
@@ -56,10 +58,18 @@ export function PhoneData({ days, onChange }: { days: DayRecord[]; onChange: () 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [sensors, setSensors] = useState<PhoneSensors | null>(null);
+  const [permissions, setPermissions] = useState<Permissions | null>(null);
 
   const refreshStates = useCallback(async () => {
+    const allowed = await getPermissions();
+    setPermissions(allowed);
     setUsage(await getUsageState());
-    setHealth(await getHealthState());
+    const fields: HealthField[] = [
+      ...(allowed.steps ? ['steps', 'exercise'] as const : []),
+      ...(allowed.sleep ? ['sleep'] as const : []),
+      ...(allowed.heartRate ? ['heartRate', 'bloodPressure'] as const : []),
+    ];
+    setHealth(fields.length ? await getHealthState(fields) : 'needs-permission');
     setPrefs(await getSyncPrefs());
     setLast(await loadLastSync());
     setSensors(await phoneSensorStatus());
@@ -113,7 +123,12 @@ export function PhoneData({ days, onChange }: { days: DayRecord[]; onChange: () 
   async function connect() {
     setBusy(true);
     try {
-      const r = await connectHealth();
+      const fields: HealthField[] = [
+        ...(permissions?.steps ? ['steps', 'exercise'] as const : []),
+        ...(permissions?.sleep ? ['sleep'] as const : []),
+        ...(permissions?.heartRate ? ['heartRate', 'bloodPressure'] as const : []),
+      ];
+      const r = await connectHealth(fields);
       setMsg(r.message);
       await refreshStates();
       if (r.ok) await syncNow();
@@ -139,8 +154,7 @@ export function PhoneData({ days, onChange }: { days: DayRecord[]; onChange: () 
           <div>
             <h2 style={{ margin: 0 }}>Phone and band data</h2>
             <p className="xs muted">
-              AURA reads screen time from your phone and steps, sleep, heart rate and workouts from your fitness band
-              (through Android Health Connect), saves them encrypted on this phone and uses them for your insights.
+              AURA reads only the sources enabled in Settings → Permissions and stores synced values encrypted in your vault.
             </p>
           </div>
           <button type="button" className="btn primary" onClick={() => void syncNow()} disabled={busy || !isNative()}>
@@ -180,11 +194,11 @@ export function PhoneData({ days, onChange }: { days: DayRecord[]; onChange: () 
           {sensors && !sensors.stepSensor && <p className="xs muted">This phone has no step counter sensor. Use a band or Google Fit instead.</p>}
           <div className="row gap wrap">
             {sensors?.stepSensor && !sensors.stepsAllowed && (
-              <button type="button" className="btn primary" onClick={() => void allowSteps()} disabled={busy}>
+              <button type="button" className="btn primary" onClick={() => void allowSteps()} disabled={busy || !permissions?.steps}>
                 Allow step counting
               </button>
             )}
-            {sensors && !sensors.usageAllowed && (
+            {sensors && !sensors.usageAllowed && permissions?.sleep && permissions.usage && (
               <button type="button" className="btn" onClick={() => void allowUsage()}>
                 Allow usage access (for sleep)
               </button>
@@ -222,9 +236,8 @@ export function PhoneData({ days, onChange }: { days: DayRecord[]; onChange: () 
             <span className={`pill ${health === 'ready' ? 'ok' : ''}`}>{HEALTH_TEXT[health]}</span>
           </div>
           <p className="small muted">
-            Works with any band whose app shares to Health Connect (Mi Fitness, Zepp, Google Fit, Samsung Health and
-            others). In your band's app, open Settings and look for "Health Connect", then allow it to share steps, sleep,
-            heart rate and exercise.
+            Works with bands that share selected data to Health Connect. Enable each source in Settings → Permissions,
+            then allow the same read access in Health Connect.
           </p>
           {health !== 'ready' && health !== 'web' && (
             <button type="button" className="btn" onClick={() => void connect()} disabled={busy}>

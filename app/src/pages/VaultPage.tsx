@@ -213,7 +213,7 @@ export function VaultPage({
 
           <div>
             {consent &&
-              SOURCES.map((s) => (
+              SOURCES.filter((s) => s.id !== 'device').map((s) => (
                 <label key={s.id} className="toggle-row">
                   <input
                     type="checkbox"

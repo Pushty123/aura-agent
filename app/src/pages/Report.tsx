@@ -36,6 +36,7 @@ import { loadWorkouts } from '../exercise/workouts';
 import { buildDayValues, loadGoals, weekProgress, type Goal } from '../goals/goals';
 import { loadHealth, recentCounts } from '../health/symptoms';
 import type { AppTab } from '../components/AppShell';
+import { hasPermission } from '../lib/permissions';
 
 const fmtDay = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' });
 
@@ -49,6 +50,7 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
   const [goals, setGoals] = useState<{ g: Goal; met: number; of: number }[]>([]);
   const [health, setHealth] = useState<{ label: string; n: number }[]>([]);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
+  const [familySharing, setFamilySharing] = useState(false);
   const me = useMe();
 
   const latest = days[days.length - 1];
@@ -65,6 +67,7 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
       const gs = (await loadGoals()).filter((g) => !g.endsOn || g.endsOn >= date);
       setGoals(gs.map((g) => ({ g, ...weekProgress(g, values, date) })));
       setHealth(recentCounts(await loadHealth(), date, 7));
+      setFamilySharing(await hasPermission('familySharing'));
     })();
   }, [days, date]);
 
@@ -79,6 +82,11 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
   );
 
   async function share() {
+    if (!(await hasPermission('familySharing'))) {
+      setFamilySharing(false);
+      setShareMsg('Enable Family sharing in Settings → Permissions before sharing a report.');
+      return;
+    }
     const extra = [
       ...(balance ? [`Balance Score today: ${balance.score}/100`] : []),
       ...goals.map(({ g, met, of }) => `${g.icon ?? '🎯'} ${g.title}: ${met}/${of} days`),
@@ -164,6 +172,7 @@ export function Report({ days, onNavigate }: { days: DayRecord[]; onNavigate?: (
             <Share2 size={16} /> Share report
           </button>
         </div>
+        {!familySharing && <p className="xs muted">Turn on Family sharing in Settings → Permissions to share your report.</p>}
       </div>
       {shareMsg && <div className="status-banner ok" role="status">{shareMsg}</div>}
 

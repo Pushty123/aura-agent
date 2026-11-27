@@ -1,5 +1,17 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import type { PluginListenerHandle } from '@capacitor/core';
+import type { LocalNotificationSchema } from '@capacitor/local-notifications';
 import type { Command } from '../commands/parse';
+import { hasPermission, type PermissionKey } from '../lib/permissions';
+
+export type HealthField = 'steps' | 'sleep' | 'heartRate' | 'bloodPressure' | 'exercise';
+const HEALTH_PERMISSION: Record<HealthField, PermissionKey> = {
+  steps: 'steps',
+  sleep: 'sleep',
+  heartRate: 'heartRate',
+  bloodPressure: 'heartRate',
+  exercise: 'steps',
+};
 
 /**
  * One interface for everything that needs Android. On the web (or if a native
@@ -19,6 +31,8 @@ export interface HealthDay {
   steps?: number;
   sleepMinutes?: number;
   avgHeartRate?: number;
+  avgBloodPressureSystolic?: number;
+  avgBloodPressureDiastolic?: number;
   exerciseMinutes?: number;
   /** Android package names of the apps that wrote each kind of data (e.g. a band's app). */
   origins: { steps: string[]; sleep: string[]; heartRate: string[]; exercise: string[] };
@@ -58,13 +72,14 @@ interface AuraNativePlugin {
   hasUsageAccess(): Promise<{ granted: boolean }>;
   openUsageAccessSettings(): Promise<void>;
   getUsageStats(opts: { days: number }): Promise<{ days: UsageDay[] }>;
-  healthStatus(): Promise<{ status: 'available' | 'needs-update' | 'unavailable'; granted: boolean }>;
-  requestHealthPermissions(): Promise<{ granted: boolean }>;
+  healthStatus(opts: { fields: HealthField[] }): Promise<{ status: 'available' | 'needs-update' | 'unavailable'; granted: boolean }>;
+  requestHealthPermissions(opts: { fields: HealthField[] }): Promise<{ granted: boolean }>;
   openHealthConnect(): Promise<void>;
-  getHealthData(opts: { days: number }): Promise<{ days: HealthDay[] }>;
+  getHealthData(opts: { days: number; fields: HealthField[] }): Promise<{ days: HealthDay[] }>;
   phoneSensorStatus(): Promise<{ stepSensor: boolean; stepsAllowed: boolean; usageAllowed: boolean }>;
   requestStepPermission(): Promise<{ granted: boolean }>;
-  getPhoneData(opts: { days: number }): Promise<{ days: PhoneDay[] }>;
+  getPhoneData(opts: { days: number; steps: boolean; sleep: boolean }): Promise<{ days: PhoneDay[] }>;
+  setPhoneStepsEnabled(opts: { enabled: boolean }): Promise<void>;
   updateWidget(opts: WidgetSnapshot): Promise<void>;
   getAppUsage(): Promise<{ apps: AppUse[]; unlocks: number }>;
   setAppLimits(opts: { limits: AppLimit[] }): Promise<void>;
@@ -74,9 +89,9 @@ interface AuraNativePlugin {
   biometricDisable(): Promise<void>;
   clearWidget(): Promise<void>;
   widgetStatus(): Promise<{ supported: boolean; placed: number }>;
-  scheduleNativeReminders(opts: { items: { id: number; title: string; body: string; hour: number; minute: number; rid?: string; action?: string }[] }): Promise<{ ok: boolean; count: number; exact: boolean }>;
-  testNativeReminder(opts: { id: number; title: string; body: string; rid: string; action: string }): Promise<{ ok: boolean }>;
-  takeReminderActions(): Promise<{ actions: { action: string; rid?: string; ts: number }[] }>;
+  scheduleNativeReminders(opts: { items: NativeReminder[] }): Promise<{ ok: boolean; count: number; exact: boolean }>;
+  testNativeReminder(opts: NativeReminder): Promise<{ ok: boolean }>;
+  takeReminderActions(): Promise<{ actions: NativeAction[] }>;
   pinWidget(): Promise<{ supported: boolean; asked: boolean }>;
   setAlarm(opts: { hour: number; minute: number; label: string }): Promise<void>;
   addCalendarEvent(opts: { title: string; startMillis: number }): Promise<void>;
@@ -90,6 +105,35 @@ export type NativeResult = { ok: true; message: string } | { ok: false; message:
 
 export type Failure = { ok: false; reason: 'web' | 'permission' | 'unavailable' | 'error'; message: string };
 
+export interface AuraNotification extends Omit<LocalNotificationSchema, 'id' | 'title' | 'body'> {
+  id: number;
+  title: string;
+  body: string;
+  schedule: NonNullable<LocalNotificationSchema['schedule']>;
+  extra: { aura: true; kind?: string; [key: string]: unknown };
+}
+
+export async function addNotificationActionListener(
+  listener: (event: { actionId: string; notification: LocalNotificationSchema }) => void,
+): Promise<PluginListenerHandle> {
+  const { LocalNotifications } = await import('@capacitor/local-notifications');
+  return LocalNotifications.addListener('localNotificationActionPerformed', listener);
+}
+
+function nextWebNotificationDate(schedule: NonNullable<LocalNotificationSchema['schedule']>, now = new Date()): Date {
+  if (schedule.at) return schedule.at;
+  const on = schedule.on;
+  if (!on) throw new Error('A browser reminder needs a specific next notification time.');
+  const hasWeekday = on.weekday !== undefined;
+  const targetWeekday = hasWeekday ? on.weekday! - 1 : now.getDay();
+  const daysUntil = (targetWeekday - now.getDay() + 7) % 7;
+  const date = new Date(now);
+  date.setDate(now.getDate() + daysUntil);
+  date.setHours(on.hour ?? 0, on.minute ?? 0, on.second ?? 0, 0);
+  if (date.getTime() <= now.getTime()) date.setDate(date.getDate() + (hasWeekday ? 7 : 1));
+  return date;
+}
+
 export async function getUsageState(): Promise<UsageState> {
   if (!isNative()) return 'web';
   try {
@@ -101,6 +145,8 @@ export async function getUsageState(): Promise<UsageState> {
 
 /** Screen time. With `interactive`, opens Android's Usage access screen if permission is missing. */
 export async function getUsage(days = 7, interactive = true): Promise<{ ok: true; days: UsageDay[] } | Failure> {
+  if (!(await hasPermission('usage')))
+    return { ok: false, reason: 'unavailable', message: 'Enable Usage in Settings → Permissions first.' };
   if (!isNative())
     return { ok: false, reason: 'web', message: 'Real screen time needs the Android app. Using demo data or CSV import instead.' };
   try {
@@ -115,10 +161,10 @@ export async function getUsage(days = 7, interactive = true): Promise<{ ok: true
   }
 }
 
-export async function getHealthState(): Promise<HealthState> {
+export async function getHealthState(fields: HealthField[] = ['steps', 'sleep', 'heartRate', 'bloodPressure', 'exercise']): Promise<HealthState> {
   if (!isNative()) return 'web';
   try {
-    const { status, granted } = await Native.healthStatus();
+    const { status, granted } = await Native.healthStatus({ fields });
     if (status === 'unavailable') return 'unavailable';
     if (status === 'needs-update') return 'needs-update';
     return granted ? 'ready' : 'needs-permission';
@@ -128,16 +174,17 @@ export async function getHealthState(): Promise<HealthState> {
 }
 
 /** Opens Android's permission sheet for Health Connect (steps, sleep, heart rate, exercise: read only). */
-export async function connectHealth(): Promise<NativeResult> {
+export async function connectHealth(fields: HealthField[]): Promise<NativeResult> {
   if (!isNative()) return { ok: false, message: 'Fitness band data needs the Android app.' };
+  if (!fields.length) return { ok: false, message: 'Turn on a health data permission in Settings first.' };
   try {
-    const state = await getHealthState();
+    const state = await getHealthState(fields);
     if (state === 'unavailable' || state === 'needs-update') {
       await Native.openHealthConnect();
       return { ok: false, message: 'Install or update Health Connect, then come back and connect again.' };
     }
     if (state === 'ready') return { ok: true, message: 'Health Connect is already connected.' };
-    const { granted } = await Native.requestHealthPermissions();
+    const { granted } = await Native.requestHealthPermissions({ fields });
     return granted
       ? { ok: true, message: 'Health Connect connected.' }
       : { ok: false, message: 'Permission was not given. You can allow it from the Phone data screen any time.' };
@@ -173,6 +220,7 @@ export async function phoneSensorStatus(): Promise<PhoneSensors | null> {
 /** Asks for "Physical activity" so AURA can count steps with the phone's own sensor. */
 export async function allowPhoneSteps(): Promise<boolean> {
   if (!isNative()) return false;
+  if (!(await hasPermission('steps'))) return false;
   try {
     return (await Native.requestStepPermission()).granted;
   } catch {
@@ -183,22 +231,29 @@ export async function allowPhoneSteps(): Promise<boolean> {
 export async function getPhoneDays(days = 7): Promise<PhoneDay[]> {
   if (!isNative()) return [];
   try {
-    return (await Native.getPhoneData({ days })).days;
+    const steps = await hasPermission('steps');
+    const sleep = await hasPermission('sleep') && await hasPermission('usage');
+    if (!steps && !sleep) return [];
+    return (await Native.getPhoneData({ days, steps, sleep })).days;
   } catch {
     return [];
   }
 }
 
-export async function getHealth(days = 7): Promise<{ ok: true; days: HealthDay[] } | Failure> {
+export async function getHealth(days = 7, fields: HealthField[] = ['steps', 'sleep', 'heartRate', 'bloodPressure', 'exercise']): Promise<{ ok: true; days: HealthDay[] } | Failure> {
+  const allowedFields: HealthField[] = [];
+  for (const field of fields) if (await hasPermission(HEALTH_PERMISSION[field])) allowedFields.push(field);
+  if (!allowedFields.length)
+    return { ok: false, reason: 'unavailable', message: 'Turn on a health data permission in Settings first.' };
   if (!isNative())
     return { ok: false, reason: 'web', message: 'Fitness band data needs the Android app.' };
-  const state = await getHealthState();
+  const state = await getHealthState(allowedFields);
   if (state === 'unavailable' || state === 'needs-update')
     return { ok: false, reason: 'unavailable', message: 'Health Connect is not installed or needs an update.' };
   if (state === 'needs-permission')
     return { ok: false, reason: 'permission', message: 'Allow AURA to read Health Connect first.' };
   try {
-    return { ok: true, days: (await Native.getHealthData({ days })).days };
+    return { ok: true, days: (await Native.getHealthData({ days, fields: allowedFields })).days };
   } catch {
     return { ok: false, reason: 'error', message: 'Could not read Health Connect data.' };
   }
@@ -225,6 +280,8 @@ export async function runCommand(cmd: Command): Promise<NativeResult> {
 
 /** Local notification via @capacitor/local-notifications (loaded lazily so the web build stays light). */
 export async function notify(title: string, body: string, inSeconds = 5): Promise<NativeResult> {
+  if (!(await hasPermission('notifications')))
+    return { ok: false, message: 'Enable Notifications in Settings → Permissions first.' };
   if (!isNative()) {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, { body });
@@ -237,7 +294,13 @@ export async function notify(title: string, body: string, inSeconds = 5): Promis
     const perm = await LocalNotifications.requestPermissions();
     if (perm.display !== 'granted') return { ok: false, message: 'Notification permission was not granted.' };
     await LocalNotifications.schedule({
-      notifications: [{ id: Date.now() % 2147483000, title, body, schedule: { at: new Date(Date.now() + inSeconds * 1000) } }],
+      notifications: [{
+        id: Date.now() % 2147483000,
+        title,
+        body,
+        schedule: { at: new Date(Date.now() + inSeconds * 1000) },
+        extra: { aura: true },
+      }],
     });
     return { ok: true, message: `Notification scheduled in ${inSeconds} seconds.` };
   } catch {
@@ -347,49 +410,145 @@ export async function registerReminderActions(): Promise<void> {
   });
 }
 
-export async function scheduleReminders(
-  items: { id: number; title: string; body: string; hour: number; minute: number; rid?: string; action?: string }[],
-): Promise<{ ok: boolean; count: number; message: string }> {
-  if (!isNative()) return { ok: false, count: 0, message: 'Reminders on your screen work in the Android app.' };
+/** A reminder in the shape AURA's own Android alarms understand. */
+export interface NativeReminder {
+  id: number;
+  title: string;
+  body: string;
+  /** Daily or weekly time; ignored when `at` is set. */
+  hour: number;
+  minute: number;
+  /** 1 = Sunday … 7 = Saturday; 0 = every day. */
+  weekday: number;
+  /** One-off time in ms since 1970, or 0. */
+  at: number;
+  /** What "Done" means, e.g. 'water', 'goal:<id>', 'routine', 'done'. */
+  action: string;
+  kind: string;
+  rid: string;
+  doneLabel: string;
+  /** Second button: 'snooze' (10 minutes), 'notnow' (recorded), or '' for none. */
+  second: string;
+  /** No buttons at all (e.g. a goal date). */
+  plain: boolean;
+}
+
+/** Converts a notification from any AURA feature into a native reminder. */
+export function toNativeReminder(n: AuraNotification): NativeReminder {
+  const extra = n.extra as { kind?: string; action?: string; reminderId?: string; goalId?: string };
+  const kind = extra.kind ?? 'reminder';
+  const on = (n.schedule as { on?: { weekday?: number; hour?: number; minute?: number } }).on;
+  const atRaw = (n.schedule as { at?: Date | string }).at;
+  const at = atRaw ? new Date(atRaw).getTime() : 0;
+  const base = {
+    id: n.id,
+    title: n.title,
+    body: n.body,
+    hour: on?.hour ?? 9,
+    minute: on?.minute ?? 0,
+    weekday: on?.weekday ?? 0,
+    at,
+    kind,
+    rid: extra.reminderId ?? extra.goalId ?? '',
+  };
+  if (kind === 'water') return { ...base, action: 'water', doneLabel: 'Drank water', second: 'notnow', plain: false };
+  if (kind === 'routine') return { ...base, action: 'routine', doneLabel: 'Done', second: 'notnow', plain: false };
+  if (kind === 'goal-date') return { ...base, action: 'open', doneLabel: '', second: '', plain: true };
+  return { ...base, action: extra.action ?? 'done', doneLabel: extra.action === 'water' ? 'Drank water' : 'Done', second: 'snooze', plain: false };
+}
+
+/**
+ * Schedules every AURA reminder (general reminders, routines, water, goal dates).
+ * Android: AURA's own alarms, so "Done" / "Not now" / "Snooze" work in the
+ * background without opening the app. Browser: the next time of each reminder.
+ */
+export async function scheduleReminders(items: AuraNotification[]): Promise<{ ok: boolean; count: number; message: string }> {
+  if (!(await hasPermission('notifications'))) {
+    await clearAuraNotifications();
+    try {
+      if (isNative()) await Native.scheduleNativeReminders({ items: [] });
+    } catch {
+      // older app build
+    }
+    return { ok: false, count: 0, message: 'Enable Notifications in Settings → Permissions first.' };
+  }
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');
+    // Clear anything scheduled the old way, so nothing fires twice.
     const pending = await LocalNotifications.getPending();
     const ours = pending.notifications.filter((n) => (n.extra as { aura?: boolean } | undefined)?.aura);
     if (ours.length) await LocalNotifications.cancel({ notifications: ours.map((n) => ({ id: n.id })) });
+
     if (items.length) {
-      const perm = await LocalNotifications.requestPermissions();
-      if (perm.display !== 'granted')
-        return { ok: false, count: 0, message: 'Allow notifications for AURA in phone Settings → Apps → AURA → Notifications.' };
+      let permission = await LocalNotifications.checkPermissions();
+      if (permission.display === 'prompt') permission = await LocalNotifications.requestPermissions();
+      if (permission.display !== 'granted') {
+        return {
+          ok: false,
+          count: 0,
+          message: isNative()
+            ? 'Allow notifications for AURA in phone Settings → Apps → AURA → Notifications.'
+            : 'Allow notifications for this site in your browser settings, then try again.',
+        };
+      }
     }
-    // Preferred: AURA's own alarms. "Done" and "Snooze" then work in the background without opening the app.
-    try {
-      await Native.scheduleNativeReminders({ items });
-      return items.length
-        ? { ok: true, count: items.length, message: `${items.length} reminder time${items.length === 1 ? '' : 's'} set on this phone.` }
+
+    const done = (n: number) =>
+      n
+        ? { ok: true, count: n, message: `${n} reminder time${n === 1 ? '' : 's'} set on this phone.` }
         : { ok: true, count: 0, message: 'All reminders are off.' };
-    } catch {
-      // Older app build without native reminders: fall back to the notifications plugin.
+
+    if (isNative()) {
+      try {
+        await Native.scheduleNativeReminders({ items: items.map(toNativeReminder) });
+        return done(items.length);
+      } catch {
+        // Older app build without native reminders: use the notifications plugin below.
+      }
     }
-    if (!items.length) return { ok: true, count: 0, message: 'All reminders are off.' };
-    await registerReminderActions();
-    await LocalNotifications.schedule({
-      notifications: items.map((n) => ({
-        id: n.id,
-        title: n.title,
-        body: n.body,
-        schedule: { on: { hour: n.hour, minute: n.minute }, allowWhileIdle: true },
-        actionTypeId: REMINDER_ACTIONS,
-        extra: { aura: true, rid: n.rid, action: n.action },
-      })),
-    });
-    return { ok: true, count: items.length, message: `${items.length} reminder time${items.length === 1 ? '' : 's'} set on this phone.` };
-  } catch {
-    return { ok: false, count: 0, message: 'Could not set reminders on this phone.' };
+    if (!items.length) return done(0);
+
+    if (isNative()) {
+      await LocalNotifications.registerActionTypes({
+        types: [
+          { id: 'routine-response', actions: [{ id: 'routine-not-now', title: 'Not now' }, { id: 'routine-done', title: 'Done' }] },
+          { id: 'water-response', actions: [{ id: 'water-not-now', title: 'Not now' }, { id: 'water-drank', title: 'Drank water' }] },
+          { id: REMINDER_ACTIONS, actions: [{ id: 'done', title: 'Done' }, { id: 'snooze', title: 'Snooze 10 min' }] },
+        ],
+      });
+    }
+    const notifications = isNative()
+      ? items.map((n) => ((n.extra as { kind?: string }).kind === 'reminder' ? { ...n, actionTypeId: REMINDER_ACTIONS } : n))
+      : items.map((item) => ({ ...item, schedule: { at: nextWebNotificationDate(item.schedule) }, actionTypeId: undefined }));
+    await LocalNotifications.schedule({ notifications });
+    return isNative()
+      ? done(items.length)
+      : {
+          ok: true,
+          count: items.length,
+          message: `${items.length} next reminder time${items.length === 1 ? '' : 's'} set. Keep this browser tab open; browser action buttons are not supported.`,
+        };
+  } catch (error) {
+    return {
+      ok: false,
+      count: 0,
+      message: error instanceof Error ? `Could not set reminders: ${error.message}` : 'Could not set reminders on this device.',
+    };
   }
 }
 
 /** "Done" taps made on notifications while AURA was closed or locked. */
-export async function takeNativeReminderActions(): Promise<{ action: string; rid?: string; ts: number }[]> {
+/** A button tap recorded by Android while AURA was closed or locked. */
+export interface NativeAction {
+  action: string;
+  rid?: string;
+  kind?: string;
+  nid?: number;
+  status?: 'done' | 'not-now';
+  ts: number;
+}
+
+export async function takeNativeReminderActions(): Promise<NativeAction[]> {
   if (!isNative()) return [];
   try {
     return (await Native.takeReminderActions()).actions;
@@ -399,7 +558,7 @@ export async function takeNativeReminderActions(): Promise<{ action: string; rid
 }
 
 /** Shows a reminder in 5 seconds using AURA's own alarms. Returns false on older app builds. */
-export async function testNativeReminder(r: { id: number; title: string; body: string; rid: string; action: string }): Promise<boolean> {
+export async function testNativeReminder(r: NativeReminder): Promise<boolean> {
   if (!isNative()) return false;
   try {
     return (await Native.testNativeReminder(r)).ok;
@@ -409,6 +568,8 @@ export async function testNativeReminder(r: { id: number; title: string; body: s
 }
 
 export async function getAppUsage(): Promise<{ ok: true; apps: AppUse[]; unlocks: number } | Failure> {
+  if (!(await hasPermission('usage')))
+    return { ok: false, reason: 'unavailable', message: 'Enable Usage in Settings → Permissions first.' };
   if (!isNative()) return { ok: false, reason: 'web', message: 'Per-app usage needs the Android app.' };
   try {
     if (!(await Native.hasUsageAccess()).granted)
@@ -422,10 +583,25 @@ export async function getAppUsage(): Promise<{ ok: true; apps: AppUse[]; unlocks
 
 export async function pushAppLimits(limits: AppLimit[]): Promise<boolean> {
   if (!isNative()) return false;
+  if (limits.length && (!(await hasPermission('usage')) || !(await hasPermission('notifications')))) return false;
   try {
     await Native.setAppLimits({ limits });
     return true;
   } catch {
     return false;
   }
+}
+
+export async function setPhoneStepsEnabled(enabled: boolean): Promise<void> {
+  if (!isNative()) return;
+  if (enabled && !(await hasPermission('steps'))) return;
+  await Native.setPhoneStepsEnabled({ enabled });
+}
+
+export async function clearAuraNotifications(): Promise<void> {
+  const { LocalNotifications } = await import('@capacitor/local-notifications');
+  const pending = await LocalNotifications.getPending();
+  const ours = pending.notifications.filter((n) => (n.extra as { aura?: boolean } | undefined)?.aura);
+  if (ours.length) await LocalNotifications.cancel({ notifications: ours.map((n) => ({ id: n.id })) });
+  if (isNative()) await Native.setAppLimits({ limits: [] });
 }

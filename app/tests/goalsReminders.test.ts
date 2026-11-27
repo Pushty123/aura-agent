@@ -1,12 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/native/bridge', () => ({ scheduleReminders: vi.fn(async (items: unknown[]) => ({ ok: true, count: items.length, message: '' })) }));
+import type { AuraNotification } from '../src/native/bridge';
+
+vi.mock('../src/native/bridge', () => ({ scheduleReminders: vi.fn(async (items: AuraNotification[]) => ({ ok: true, count: items.length, message: '' })) }));
 
 import { db } from '../src/lib/db';
 import * as vault from '../src/lib/vault';
 import * as bridge from '../src/native/bridge';
 import { deleteGoal, loadGoals, newGoal, progressFor, saveGoal, streakFor, toggleHabit, validateGoal } from '../src/goals/goals';
 import { applyReminders, loadReminders, newReminder, notificationId, slotsFor, suggestFromData, TEMPLATES, validateReminder } from '../src/reminders/reminders';
+import { newRoutineItem, saveRoutineItems } from '../src/reminders/routine';
+import { DEFAULT_WATER_SETTINGS, saveWaterSettings } from '../src/reminders/water';
+import { newPersonalGoal, savePersonalGoals } from '../src/goals/personalGoals';
+import { addDays, today } from '../src/lib/dates';
 import type { DayRecord } from '../src/types';
 
 const day = (date: string, p: Partial<DayRecord>): DayRecord => ({ date, source: 'manual', ...p });
@@ -86,6 +92,35 @@ describe('reminders', () => {
     expect(items).toHaveLength(slotsFor(a).length);
     expect((await loadReminders()).length).toBe(2);
     expect(JSON.stringify(await db.records.toArray())).not.toContain('Drink water');
+  });
+
+  it('reschedules routine and water notifications alongside existing reminders', async () => {
+    const routine = newRoutineItem({ id: 'walk', title: 'Walk', time: '10:00', days: [1, 4] });
+    await saveRoutineItems([routine]);
+    await saveWaterSettings({ ...DEFAULT_WATER_SETTINGS, enabled: true, start: '11:00', end: '11:01' });
+
+    await applyReminders([]);
+
+    const scheduled = vi.mocked(bridge.scheduleReminders).mock.calls[0][0];
+    expect(scheduled).toHaveLength(2 + 7);
+    expect(scheduled.filter((item) => item.extra.kind === 'routine')).toHaveLength(2);
+    expect(scheduled.filter((item) => item.extra.kind === 'water')).toHaveLength(7);
+  });
+
+  it('includes optional future goal-date notifications in the existing local schedule', async () => {
+    const goal = newPersonalGoal({
+      id: 'walk-more',
+      title: 'Walk more',
+      targetDate: addDays(today(), 1),
+      reminderEnabled: true,
+    });
+    await savePersonalGoals([goal]);
+
+    await applyReminders([]);
+
+    const scheduled = vi.mocked(bridge.scheduleReminders).mock.calls[0][0];
+    expect(scheduled).toHaveLength(1);
+    expect(scheduled[0].extra).toMatchObject({ kind: 'goal-date', goalId: goal.id });
   });
 
   it('suggests reminders from patterns, without repeating existing ones', () => {

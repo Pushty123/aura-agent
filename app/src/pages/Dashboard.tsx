@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Check, ChevronRight, Droplet, Dumbbell, HeartPulse, LayoutGrid, SmilePlus, Smartphone, Target, UserRound, Utensils, X } from 'lucide-react';
+import { BarChart3, Check, ChevronRight, Dumbbell, HeartPulse, LayoutGrid, ListChecks, ShieldCheck, SmilePlus, Smartphone, Target, UserRound, Utensils, X } from 'lucide-react';
 import type { DayRecord } from '../types';
 import { runInsights } from '../insights/engine';
 import { balanceScore } from '../insights/balance';
@@ -24,6 +24,12 @@ import { today } from '../lib/dates';
 import { patchDay, saveDay } from '../lib/store';
 import { setConsent } from '../lib/vault';
 import type { AppTab } from '../components/AppShell';
+import { IconTile, RangeBar } from '../components/design-system';
+import { WaterCard } from '../components/WaterCard';
+import { addWaterGlass } from '../reminders/water';
+import { loadPersonalGoals, personalGoalProgress, type PersonalGoal } from '../goals/personalGoals';
+import { loadRoutineResponses, type RoutineResponse } from '../reminders/routine';
+import { getPermissions } from '../lib/permissions';
 
 function greetingForNow(name?: string): string {
   const hour = new Date().getHours();
@@ -44,10 +50,31 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   const [showCharacter, setShowCharacter] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const streakList = useMemo(() => streaks(days, today()), [days]);
+  const [personalGoals, setPersonalGoals] = useState<PersonalGoal[]>([]);
+  const [routineResponses, setRoutineResponses] = useState<RoutineResponse[]>([]);
+  const todayRecord = days.find((d) => d.date === today());
+  useEffect(() => {
+    void Promise.all([loadPersonalGoals(), loadRoutineResponses()])
+      .then(([g, r]) => {
+        setPersonalGoals(g);
+        setRoutineResponses(r);
+      })
+      .catch((error: unknown) => setMsg(error instanceof Error ? error.message : 'Could not load your goals.'));
+  }, []);
+  const nearestGoal = useMemo(
+    () =>
+      personalGoals
+        .filter((goal) => !goal.archivedAt && !goal.completedAt)
+        .sort((a, b) => (a.targetDate ?? '9999-12-31').localeCompare(b.targetDate ?? '9999-12-31'))[0],
+    [personalGoals],
+  );
   const [offerWidget, setOfferWidget] = useState(false);
   const [phoneMax, setPhoneMax] = useState<number | undefined>();
+  const [permsOff, setPermsOff] = useState(false);
   useEffect(() => {
     void (async () => {
+      const p = await getPermissions();
+      setPermsOff(!p.notifications && !p.steps && !p.usage);
       setPhoneMax(phoneLimit(await loadLimits()));
       const st = await widgetStatus();
       const hidden = (await db.meta.get('widget-offer'))?.value === 'hide';
@@ -84,6 +111,7 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
 
   if (!latest) {
     const steps = [
+      { done: !permsOff, icon: ShieldCheck, title: 'Choose what AURA can use', sub: 'Reminders, steps, sleep, screen time. All off until you allow them', tab: 'permissions' as const },
       { done: !!me.name, icon: UserRound, title: 'Set up your profile', sub: 'Name, height, weight and your character', tab: 'profile' as const },
       { done: false, icon: Smartphone, title: 'Connect your phone', sub: 'Steps, sleep and screen time, filled in automatically', tab: 'phone' as const },
       { done: false, icon: SmilePlus, title: 'Do your first check-in', sub: 'Mood, water and sleep in under a minute', tab: 'checkin' as const },
@@ -148,13 +176,59 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
   }
 
   async function addWater() {
-    await patchDay(today(), { waterGlasses: ((days.find((d) => d.date === today())?.waterGlasses) ?? 0) + 1 });
-    await onChange();
-    setMsg('+1 glass of water logged.');
+    try {
+      await patchDay(today(), addWaterGlass(todayRecord));
+      await onChange();
+      setMsg('A glass of water added to today.');
+    } catch (error) {
+      setMsg(error instanceof Error ? error.message : 'Could not save your water entry.');
+    }
   }
+
+  const waterCard = (
+    <WaterCard
+      day={todayRecord}
+      onAddGlass={() => void addWater()}
+      onManage={() => onNavigate?.('routine')}
+    />
+  );
+  const goalsCard = nearestGoal ? (() => {
+    const progress = personalGoalProgress(nearestGoal, routineResponses, today());
+    const overdue = !!nearestGoal.targetDate && nearestGoal.targetDate < today();
+    return (
+      <article className="plan-goal-card" data-category={nearestGoal.category}>
+        <div className="row gap center-v">
+          <IconTile kind={nearestGoal.category} size={20} />
+          <div className="stack-sm" style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <strong>On your way</strong>
+            <span className="small">{nearestGoal.title}</span>
+          </div>
+          <strong className="small">{progress.percent}%</strong>
+        </div>
+        <RangeBar min={0} max={100} value={progress.percent} label={`${nearestGoal.title} progress`} />
+        {overdue && <p className="xs muted" style={{ margin: 0 }}>Want to adjust the date?</p>}
+        <button type="button" className="btn sm ghost" onClick={() => onNavigate?.('plan-goals')}>View goals</button>
+      </article>
+    );
+  })() : (
+    <article className="card row between center-v gap">
+      <span className="small">Have a goal in mind? Start with one small step.</span>
+      <button type="button" className="btn sm" onClick={() => onNavigate?.('plan-goals')}>Add a goal</button>
+    </article>
+  );
 
   return (
     <section className="stack-lg">
+      {permsOff && (
+        <button type="button" className="card setup-item perm-nudge" onClick={() => onNavigate?.('permissions')}>
+          <span className="setup-icon" aria-hidden="true"><ShieldCheck size={20} /></span>
+          <span className="setup-text">
+            <strong>Reminders and phone data are off</strong>
+            <span className="small muted">Allow notifications, steps and screen time so AURA can fill these in.</span>
+          </span>
+          <ChevronRight size={18} aria-hidden="true" />
+        </button>
+      )}
       <AuraWidget
         name={me.name}
         sleepHours={latest.sleepHours}
@@ -220,10 +294,13 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
       )}
 
 
+      {waterCard}
+      {goalsCard}
+
       <StreakRow list={streakList} onOpen={() => onNavigate?.('report')} />
 
       <div className="quick-actions" role="group" aria-label="Quick actions">
-        <button type="button" className="quick-action" onClick={() => void addWater()}><span><Droplet size={20} /></span>+1 water</button>
+        <button type="button" className="quick-action" onClick={() => onNavigate?.('routine')}><span><ListChecks size={20} /></span>Routine</button>
         <button type="button" className="quick-action" onClick={() => onNavigate?.('food')}><span><Utensils size={20} /></span>Log food</button>
         <button type="button" className="quick-action" onClick={() => onNavigate?.('exercise')}><span><Dumbbell size={20} /></span>Exercise</button>
         <button type="button" className="quick-action" onClick={() => onNavigate?.('health')}><span><HeartPulse size={20} /></span>How I feel</button>

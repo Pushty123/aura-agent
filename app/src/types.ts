@@ -14,10 +14,15 @@ export interface DayRecord {
   /** 1 (low) – 5 (great). */
   mood?: 1 | 2 | 3 | 4 | 5;
   waterGlasses?: number;
+  /** Estimated water amount in ml; a manually added glass is treated as 250 ml. */
+  waterMl?: number;
   caffeineCups?: number;
   workout?: boolean;
   /** Average heart rate for the day (bpm), from a band via Health Connect. */
   avgHeartRate?: number;
+  /** Daily average blood pressure in mmHg, from Health Connect. */
+  bloodPressureSystolic?: number;
+  bloodPressureDiastolic?: number;
   /** Minutes of recorded exercise sessions. */
   exerciseMinutes?: number;
   /** Fields the person typed themselves; phone sync never overwrites these. */

@@ -22,10 +22,12 @@ import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.BloodPressureRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.AggregateRequest
+import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
@@ -176,6 +178,13 @@ class AuraNativePlugin : Plugin() {
         scope.launch { try { StepStore.sample(context) } catch (e: Exception) {} }
     }
 
+    @PluginMethod
+    fun setPhoneStepsEnabled(call: PluginCall) {
+        if (call.getBoolean("enabled", false) && activityAllowed()) startSteps()
+        else StepWorker.cancel(context)
+        call.resolve()
+    }
+
     /**
      * { days: [{ date, steps?, sleepMinutes?, sleepStart?, sleepEnd? }] }
      * Steps come from the phone's step counter (only from the day it was turned on);
@@ -186,14 +195,16 @@ class AuraNativePlugin : Plugin() {
         val n = (call.getInt("days") ?: 7).coerceIn(1, 30)
         scope.launch {
             try {
-                if (activityAllowed()) { StepWorker.schedule(context); StepStore.sample(context) }
+                val readSteps = call.getBoolean("steps", false)
+                val readSleep = call.getBoolean("sleep", false)
+                if (readSteps && activityAllowed()) { StepWorker.schedule(context); StepStore.sample(context) }
                 val today = LocalDate.now(zone)
                 val out = JSArray()
                 for (back in n - 1 downTo 0) {
                     val d = today.minusDays(back.toLong())
                     val o = JSObject().put("date", d.toString())
-                    StepStore.steps(context, d.toString())?.let { o.put("steps", it) }
-                    if (usageAllowed()) SleepEstimate.forDate(context, d, zone)?.let {
+                    if (readSteps) StepStore.steps(context, d.toString())?.let { o.put("steps", it) }
+                    if (readSleep && usageAllowed()) SleepEstimate.forDate(context, d, zone)?.let {
                         o.put("sleepMinutes", it.minutes).put("sleepStart", it.start).put("sleepEnd", it.end)
                     }
                     out.put(o)
@@ -207,12 +218,18 @@ class AuraNativePlugin : Plugin() {
 
     // ------------------------------------------------------------- Health Connect
 
-    private val healthPermissions: Set<String> = setOf(
-        HealthPermission.getReadPermission(StepsRecord::class),
-        HealthPermission.getReadPermission(SleepSessionRecord::class),
-        HealthPermission.getReadPermission(HeartRateRecord::class),
-        HealthPermission.getReadPermission(ExerciseSessionRecord::class),
-    )
+    private fun healthPermissions(fields: Set<String>): Set<String> = buildSet {
+        if ("steps" in fields) add(HealthPermission.getReadPermission(StepsRecord::class))
+        if ("sleep" in fields) add(HealthPermission.getReadPermission(SleepSessionRecord::class))
+        if ("heartRate" in fields) add(HealthPermission.getReadPermission(HeartRateRecord::class))
+        if ("bloodPressure" in fields) add(HealthPermission.getReadPermission(BloodPressureRecord::class))
+        if ("exercise" in fields) add(HealthPermission.getReadPermission(ExerciseSessionRecord::class))
+    }
+
+    private fun requestedHealthFields(call: PluginCall): Set<String> {
+        val fields = call.getArray("fields") ?: return emptySet()
+        return (0 until fields.length()).mapNotNull { fields.optString(it, null) }.toSet()
+    }
 
     private fun healthClient(): HealthConnectClient? =
         if (HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE)
@@ -221,6 +238,7 @@ class AuraNativePlugin : Plugin() {
     /** { status: "available" | "needs-update" | "unavailable", granted: boolean } */
     @PluginMethod
     fun healthStatus(call: PluginCall) {
+        val requested = healthPermissions(requestedHealthFields(call))
         val status = when (HealthConnectClient.getSdkStatus(context)) {
             HealthConnectClient.SDK_AVAILABLE -> "available"
             HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> "needs-update"
@@ -233,7 +251,7 @@ class AuraNativePlugin : Plugin() {
         }
         scope.launch {
             val granted = try {
-                client.permissionController.getGrantedPermissions().containsAll(healthPermissions)
+                client.permissionController.getGrantedPermissions().containsAll(requested)
             } catch (e: Exception) { false }
             call.resolve(JSObject().put("status", status).put("granted", granted))
         }
@@ -242,8 +260,10 @@ class AuraNativePlugin : Plugin() {
     @PluginMethod
     fun requestHealthPermissions(call: PluginCall) {
         if (healthClient() == null) { call.reject("Health Connect is not available"); return }
+        val requested = healthPermissions(requestedHealthFields(call))
+        if (requested.isEmpty()) { call.resolve(JSObject().put("granted", false)); return }
         val intent = PermissionController.createRequestPermissionResultContract()
-            .createIntent(context, healthPermissions)
+            .createIntent(context, requested)
         startActivityForResult(call, intent, "healthPermissionResult")
     }
 
@@ -252,9 +272,10 @@ class AuraNativePlugin : Plugin() {
         if (call == null) return
         val client = healthClient()
         if (client == null) { call.resolve(JSObject().put("granted", false)); return }
+        val requested = healthPermissions(requestedHealthFields(call))
         scope.launch {
             val granted = try {
-                client.permissionController.getGrantedPermissions().containsAll(healthPermissions)
+                client.permissionController.getGrantedPermissions().containsAll(requested)
             } catch (e: Exception) { false }
             call.resolve(JSObject().put("granted", granted))
         }
@@ -287,10 +308,12 @@ class AuraNativePlugin : Plugin() {
     fun getHealthData(call: PluginCall) {
         val client = healthClient()
         if (client == null) { call.reject("Health Connect is not available"); return }
+        val requested = requestedHealthFields(call)
+        val required = healthPermissions(requested)
         val n = (call.getInt("days") ?: 7).coerceIn(1, 30)
         scope.launch {
             try {
-                if (!client.permissionController.getGrantedPermissions().containsAll(healthPermissions)) {
+                if (!client.permissionController.getGrantedPermissions().containsAll(required)) {
                     call.reject("health permissions not granted"); return@launch
                 }
                 val today = LocalDate.now(zone)
@@ -305,29 +328,50 @@ class AuraNativePlugin : Plugin() {
                     val obj = JSObject().put("date", d.toString())
                     val origins = JSObject()
 
-                    val steps = client.aggregate(
-                        AggregateRequest(setOf(StepsRecord.COUNT_TOTAL), TimeRangeFilter.between(dayStart, dayEnd))
-                    )
-                    steps[StepsRecord.COUNT_TOTAL]?.let { obj.put("steps", it) }
-                    origins.put("steps", JSArray(steps.dataOrigins.map { it.packageName }))
+                    if ("steps" in requested) {
+                        val steps = client.aggregate(
+                            AggregateRequest(setOf(StepsRecord.COUNT_TOTAL), TimeRangeFilter.between(dayStart, dayEnd))
+                        )
+                        steps[StepsRecord.COUNT_TOTAL]?.let { obj.put("steps", it) }
+                        origins.put("steps", JSArray(steps.dataOrigins.map { it.packageName }))
+                    }
 
-                    val sleep = client.aggregate(
-                        AggregateRequest(setOf(SleepSessionRecord.SLEEP_DURATION_TOTAL), TimeRangeFilter.between(sleepStart, sleepEnd))
-                    )
-                    sleep[SleepSessionRecord.SLEEP_DURATION_TOTAL]?.let { obj.put("sleepMinutes", it.toMinutes()) }
-                    origins.put("sleep", JSArray(sleep.dataOrigins.map { it.packageName }))
+                    if ("sleep" in requested) {
+                        val sleep = client.aggregate(
+                            AggregateRequest(setOf(SleepSessionRecord.SLEEP_DURATION_TOTAL), TimeRangeFilter.between(sleepStart, sleepEnd))
+                        )
+                        sleep[SleepSessionRecord.SLEEP_DURATION_TOTAL]?.let { obj.put("sleepMinutes", it.toMinutes()) }
+                        origins.put("sleep", JSArray(sleep.dataOrigins.map { it.packageName }))
+                    }
 
-                    val hr = client.aggregate(
-                        AggregateRequest(setOf(HeartRateRecord.BPM_AVG), TimeRangeFilter.between(dayStart, dayEnd))
-                    )
-                    hr[HeartRateRecord.BPM_AVG]?.let { obj.put("avgHeartRate", it) }
-                    origins.put("heartRate", JSArray(hr.dataOrigins.map { it.packageName }))
+                    if ("heartRate" in requested) {
+                        val hr = client.aggregate(
+                            AggregateRequest(setOf(HeartRateRecord.BPM_AVG), TimeRangeFilter.between(dayStart, dayEnd))
+                        )
+                        hr[HeartRateRecord.BPM_AVG]?.let { obj.put("avgHeartRate", it) }
+                        origins.put("heartRate", JSArray(hr.dataOrigins.map { it.packageName }))
+                    }
 
-                    val ex = client.aggregate(
-                        AggregateRequest(setOf(ExerciseSessionRecord.EXERCISE_DURATION_TOTAL), TimeRangeFilter.between(dayStart, dayEnd))
-                    )
-                    ex[ExerciseSessionRecord.EXERCISE_DURATION_TOTAL]?.let { obj.put("exerciseMinutes", it.toMinutes()) }
-                    origins.put("exercise", JSArray(ex.dataOrigins.map { it.packageName }))
+                    if ("bloodPressure" in requested) {
+                        val bp = client.readRecords(
+                            ReadRecordsRequest(
+                                recordType = BloodPressureRecord::class,
+                                timeRangeFilter = TimeRangeFilter.between(dayStart, dayEnd),
+                            )
+                        ).records
+                        if (bp.isNotEmpty()) {
+                            obj.put("avgBloodPressureSystolic", bp.map { it.systolic.inMillimetersOfMercury }.average())
+                            obj.put("avgBloodPressureDiastolic", bp.map { it.diastolic.inMillimetersOfMercury }.average())
+                        }
+                    }
+
+                    if ("exercise" in requested) {
+                        val ex = client.aggregate(
+                            AggregateRequest(setOf(ExerciseSessionRecord.EXERCISE_DURATION_TOTAL), TimeRangeFilter.between(dayStart, dayEnd))
+                        )
+                        ex[ExerciseSessionRecord.EXERCISE_DURATION_TOTAL]?.let { obj.put("exerciseMinutes", it.toMinutes()) }
+                        origins.put("exercise", JSArray(ex.dataOrigins.map { it.packageName }))
+                    }
 
                     obj.put("origins", origins)
                     out.put(obj)
@@ -381,6 +425,7 @@ class AuraNativePlugin : Plugin() {
         context.getSharedPreferences(AppLimitWorker.PREFS, Context.MODE_PRIVATE).edit()
             .putString("limits", limits.toString()).apply()
         AppLimitWorker.schedule(context, limits.length() > 0)
+        if (limits.length() == 0) androidx.core.app.NotificationManagerCompat.from(context).cancelAll()
         call.resolve()
     }
 
@@ -417,10 +462,9 @@ class AuraNativePlugin : Plugin() {
     /** Shows one reminder in a few seconds, with its buttons, to try it out. */
     @PluginMethod
     fun testNativeReminder(call: PluginCall) {
-        val item = Reminders.Item(
-            (call.getInt("id") ?: 7) and 0x0FFFFFFF, call.getString("title") ?: "AURA", call.getString("body") ?: "",
-            9, 0, call.getString("rid") ?: "", call.getString("action") ?: "done"
-        )
+        val parsed = Reminders.parse(org.json.JSONArray().put(call.data)).firstOrNull()
+        if (parsed == null) { call.reject("bad reminder"); return }
+        val item = parsed.copy(id = parsed.id and 0x0FFFFFFF, at = 0L)
         Reminders.schedule(context, item, System.currentTimeMillis() + 5_000L, once = true)
         call.resolve(JSObject().put("ok", true))
     }

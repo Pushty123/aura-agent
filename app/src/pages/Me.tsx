@@ -5,10 +5,12 @@ import {
   Fingerprint,
   Hourglass,
   Info,
+  KeySquare,
   LayoutGrid,
   Lock,
   LogOut,
-  Moon,
+  Palette,
+  PartyPopper,
   ShieldCheck,
   User,
   Watch,
@@ -16,7 +18,9 @@ import {
 import { AuraAvatar } from '../avatar/AuraAvatar';
 import { useMe } from '../avatar/AvatarContext';
 import { getSession, logout } from '../lib/account';
-import type { AppTab, ThemeMode } from '../components/AppShell';
+import type { AppTab } from '../components/AppShell';
+import type { ThemePreference } from '../lib/theme';
+import { loadCelebrationsEnabled, saveCelebrationsEnabled } from '../goals/personalGoals';
 
 const VERSION = '1.0.0';
 
@@ -42,23 +46,43 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** Settings: grouped like standard apps (Account, Preferences, Privacy, About). */
+/** Settings: grouped like standard apps (Account, Preferences, Phone & data, About). */
 export function Me({
   onOpen,
   theme,
-  onToggleTheme,
+  onThemeChange,
   onLock,
 }: {
   onOpen: (tab: AppTab) => void;
-  theme: ThemeMode;
-  onToggleTheme: () => void;
+  theme: ThemePreference;
+  onThemeChange: (theme: ThemePreference) => void;
   onLock: () => void;
 }) {
   const me = useMe();
   const [email, setEmail] = useState<string | null>(null);
+  const [celebrations, setCelebrations] = useState<boolean | null>(null);
+  const [error, setError] = useState('');
+
   useEffect(() => {
-    void getSession().then((s) => setEmail(s?.email ?? null));
+    let active = true;
+    void getSession().then((s) => active && setEmail(s?.email ?? null));
+    void loadCelebrationsEnabled()
+      .then((on) => active && setCelebrations(on))
+      .catch((e: unknown) => active && setError(e instanceof Error ? e.message : 'Could not load celebration settings.'));
+    return () => {
+      active = false;
+    };
   }, []);
+
+  async function toggleCelebrations(on: boolean) {
+    try {
+      await saveCelebrationsEnabled(on);
+      setCelebrations(on);
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save this setting.');
+    }
+  }
 
   async function signOut() {
     if (!window.confirm('Log out of your AURA account? Your encrypted data stays on this phone, and AURA will lock.')) return;
@@ -83,22 +107,48 @@ export function Me({
       </Group>
 
       <Group title="Preferences">
-        <Row
-          icon={<Moon size={20} />}
-          title="Dark mode"
-          onClick={onToggleTheme}
-          right={
-            <span className="switch" aria-hidden="true">
-              <input type="checkbox" checked={theme === 'dark'} readOnly tabIndex={-1} />
-              <span />
-            </span>
-          }
-        />
+        <label className="list-row">
+          <span className="list-emoji" aria-hidden="true"><Palette size={20} /></span>
+          <span className="list-text">
+            <strong>Theme</strong>
+            <span className="xs muted">Light, dark, or follow your phone</span>
+          </span>
+          <select
+            className="input"
+            aria-label="Theme"
+            value={theme}
+            onChange={(e) => onThemeChange(e.target.value as ThemePreference)}
+            style={{ width: 'auto', minWidth: 104 }}
+          >
+            <option value="system">System</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+        <label className="list-row">
+          <span className="list-emoji" aria-hidden="true"><PartyPopper size={20} /></span>
+          <span className="list-text">
+            <strong>Celebrations</strong>
+            <span className="xs muted">A small moment when you reach a goal or dream</span>
+          </span>
+          <span className="switch">
+            <input
+              type="checkbox"
+              aria-label="Celebrations"
+              checked={celebrations ?? false}
+              disabled={celebrations === null}
+              onChange={(e) => void toggleCelebrations(e.target.checked)}
+            />
+            <span />
+          </span>
+        </label>
         <Row icon={<Bell size={20} />} title="Reminders & notifications" sub="Water, goals, study blocks" onClick={() => onOpen('goals')} />
         <Row icon={<LayoutGrid size={20} />} title="Home-screen widget" sub="Show your score on the home screen" onClick={() => onOpen('profile')} />
       </Group>
+      {error && <p className="status-banner error" role="alert">{error}</p>}
 
       <Group title="Phone & data">
+        <Row icon={<KeySquare size={20} />} title="Permissions" sub="Choose which data sources AURA can use" onClick={() => onOpen('permissions')} />
         <Row icon={<Hourglass size={20} />} title="App usage & limits" sub="Screen time, daily phone limit" onClick={() => onOpen('apps')} />
         <Row icon={<Watch size={20} />} title="Phone & band data" sub="Steps, sleep, Health Connect" onClick={() => onOpen('phone')} />
         <Row icon={<ShieldCheck size={20} />} title="My data & privacy" sub="Export, delete, what is shared" onClick={() => onOpen('vault')} />

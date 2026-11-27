@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Hourglass, Info, KeyRound, Lock, LogOut, Moon, Settings, ShieldCheck, Sun, User, Watch, type LucideIcon } from 'lucide-react';
+import { Hourglass, Info, KeyRound, Mountain, Sparkles, Lock, LogOut, Moon, Settings, ShieldCheck, Sun, User, Watch, type LucideIcon } from 'lucide-react';
 import { AuraAvatar } from '../avatar/AuraAvatar';
 import { useMe } from '../avatar/AvatarContext';
 import { getSession, logout } from '../lib/account';
@@ -14,6 +14,13 @@ interface Item {
 }
 
 const SECTIONS: { title: string; items: Item[] }[] = [
+  {
+    title: 'Plan & dreams',
+    items: [
+      { tab: 'plan-goals', icon: Mountain, label: 'Life goals', sub: 'Bigger goals with milestones and dates' },
+      { tab: 'bucket-list', icon: Sparkles, label: 'Bucket list', sub: 'Dreams and things you want to do' },
+    ],
+  },
   {
     title: 'Your phone',
     items: [

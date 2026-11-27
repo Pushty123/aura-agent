@@ -3,6 +3,8 @@ import { getRecord, putRecord } from '../lib/vault';
 import { patchDay, loadDays } from '../lib/store';
 import { today } from '../lib/dates';
 import { completeGoal, loadGoals } from '../goals/goals';
+import { loadRoutineItems, loadRoutineResponses, recordRoutineResponse, routineForNotificationId, routineOccurrenceDate, saveRoutineResponses } from './routine';
+import { addWaterGlass, loadWaterResponses, loadWaterSettings, recordWaterResponse, saveWaterResponses, waterSlotForNotificationId } from './water';
 import { isNative, REMINDER_ACTIONS, registerReminderActions, takeNativeReminderActions, testNativeReminder } from '../native/bridge';
 
 /**
@@ -13,6 +15,10 @@ import { isNative, REMINDER_ACTIONS, registerReminderActions, takeNativeReminder
 interface Queued {
   action: string;
   rid?: string;
+  /** Set for taps recorded by Android: which feature, which notification, and Done or Not now. */
+  kind?: string;
+  nid?: number;
+  status?: 'done' | 'not-now';
   ts: number;
 }
 
@@ -85,16 +91,42 @@ export async function applyQueuedActions(): Promise<string | null> {
   const log = (await getRecord<Record<string, Record<string, number>>>('settings', 'reminder-done')) ?? {};
   const day = { ...(log[date] ?? {}) };
   for (const q of list) {
+    // Routines and water reminders keep their own Done / Not now history.
+    if (q.kind === 'routine' && typeof q.nid === 'number') {
+      const scheduled = routineForNotificationId(await loadRoutineItems(), q.nid);
+      if (scheduled) {
+        const at = new Date(q.ts);
+        const when = routineOccurrenceDate(scheduled.weekday, scheduled.item.time, at);
+        await saveRoutineResponses(
+          recordRoutineResponse(await loadRoutineResponses(), scheduled.item.id, when, q.status === 'not-now' ? 'not-now' : 'done', at.toISOString()),
+        );
+        notes.push(q.status === 'not-now' ? `${scheduled.item.title}: not now` : `${scheduled.item.title} done`);
+      }
+      continue;
+    }
+    if (q.kind === 'water' && typeof q.nid === 'number') {
+      const slot = waterSlotForNotificationId(await loadWaterSettings(), q.nid);
+      const at = new Date(q.ts);
+      if (slot)
+        await saveWaterResponses(
+          recordWaterResponse(await loadWaterResponses(), `${slot.weekday}:${slot.hour}:${slot.minute}`, date, q.status === 'not-now' ? 'not-now' : 'drank-water', at.toISOString()),
+        );
+      if (q.status !== 'not-now') {
+        const current = (await loadDays()).find((d) => d.date === date);
+        await patchDay(date, addWaterGlass(current));
+        notes.push('+1 glass of water');
+      }
+      continue;
+    }
+    if (q.status === 'not-now') continue;
     if (q.rid) day[q.rid] = (day[q.rid] ?? 0) + 1;
     if (q.action === 'water') {
-      const cur = (await loadDays()).find((d) => d.date === date)?.waterGlasses ?? 0;
-      await patchDay(date, { waterGlasses: cur + 1 });
+      await patchDay(date, addWaterGlass((await loadDays()).find((d) => d.date === date)));
       notes.push('+1 glass of water');
     } else if (q.action.startsWith('goal:')) {
       const g = (await loadGoals()).find((x) => x.id === q.action.slice(5));
       if (g?.metric === 'waterGlasses') {
-        const cur = (await loadDays()).find((d) => d.date === date)?.waterGlasses ?? 0;
-        await patchDay(date, { waterGlasses: cur + 1 });
+        await patchDay(date, addWaterGlass((await loadDays()).find((d) => d.date === date)));
         notes.push('+1 glass of water');
       } else if (g) {
         await completeGoal(g, date);
@@ -107,6 +139,7 @@ export async function applyQueuedActions(): Promise<string | null> {
   const keep = Object.fromEntries(Object.entries({ ...log, [date]: day }).sort(([a], [b]) => b.localeCompare(a)).slice(0, 30));
   await putRecord('settings', 'reminder-done', keep);
   const uniq = [...new Set(notes)];
+  if (!uniq.length) return null;
   return `From your notification: ${uniq.join(', ')}${notes.length > uniq.length ? ` (${notes.length} taps)` : ''}.`;
 }
 
@@ -118,7 +151,12 @@ export async function sendTestReminder(title: string, body: string, rid: string,
     const perm = await LocalNotifications.requestPermissions();
     if (perm.display !== 'granted') return 'Allow notifications for AURA in phone Settings → Apps → AURA → Notifications.';
     const id = Math.floor(Math.random() * 100_000_000) + 1000;
-    if (await testNativeReminder({ id, title, body: body || title, rid, action }))
+    if (
+      await testNativeReminder({
+        id, title, body: body || title, hour: 9, minute: 0, weekday: 0, at: 0, action, kind: 'reminder', rid,
+        doneLabel: action === 'water' ? 'Drank water' : 'Done', second: 'snooze', plain: false,
+      })
+    )
       return 'Test reminder coming in 5 seconds. Tap "Done" on it: the app will not open.';
     await registerReminderActions();
     await LocalNotifications.schedule({

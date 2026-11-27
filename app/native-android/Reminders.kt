@@ -30,8 +30,17 @@ object Reminders {
     const val ACTION_FIRE = "in.phoenix.aura.REMINDER_FIRE"
     const val ACTION_DONE = "in.phoenix.aura.REMINDER_DONE"
     const val ACTION_SNOOZE = "in.phoenix.aura.REMINDER_SNOOZE"
+    const val ACTION_NOT_NOW = "in.phoenix.aura.REMINDER_NOT_NOW"
 
-    data class Item(val id: Int, val title: String, val body: String, val hour: Int, val minute: Int, val rid: String, val action: String)
+    /**
+     * weekday: 1 = Sunday … 7 = Saturday, 0 = every day. at: one-off time in ms (0 = repeating).
+     * second: "snooze", "notnow" or "". plain: no buttons.
+     */
+    data class Item(
+        val id: Int, val title: String, val body: String, val hour: Int, val minute: Int, val rid: String, val action: String,
+        val weekday: Int = 0, val at: Long = 0L, val kind: String = "reminder", val doneLabel: String = "Done",
+        val second: String = "snooze", val plain: Boolean = false
+    )
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -40,7 +49,9 @@ object Reminders {
         Item(
             o.optInt("id"), o.optString("title", "AURA"), o.optString("body", ""),
             o.optInt("hour").coerceIn(0, 23), o.optInt("minute").coerceIn(0, 59),
-            o.optString("rid", ""), o.optString("action", "done")
+            o.optString("rid", ""), o.optString("action", "done"),
+            o.optInt("weekday", 0).coerceIn(0, 7), o.optLong("at", 0L), o.optString("kind", "reminder"),
+            o.optString("doneLabel", "Done").ifBlank { "Done" }, o.optString("second", "snooze"), o.optBoolean("plain", false)
         )
     }
 
@@ -48,7 +59,9 @@ object Reminders {
         val a = JSONArray()
         items.forEach {
             a.put(JSONObject().put("id", it.id).put("title", it.title).put("body", it.body).put("hour", it.hour)
-                .put("minute", it.minute).put("rid", it.rid).put("action", it.action))
+                .put("minute", it.minute).put("rid", it.rid).put("action", it.action)
+                .put("weekday", it.weekday).put("at", it.at).put("kind", it.kind).put("doneLabel", it.doneLabel)
+                .put("second", it.second).put("plain", it.plain))
         }
         return a
     }
@@ -59,20 +72,33 @@ object Reminders {
         val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         old.forEach { am.cancel(firePending(ctx, it, once = false)) }
         prefs(ctx).edit().putString("items", toJson(items).toString()).apply()
-        items.forEach { schedule(ctx, it, nextTime(it.hour, it.minute), once = false) }
+        items.forEach { scheduleNext(ctx, it) }
         return exactAllowed(ctx)
     }
 
     /** After a restart or app update. */
     fun rescheduleSaved(ctx: Context) {
         val items = try { parse(JSONArray(prefs(ctx).getString("items", "[]"))) } catch (e: Exception) { emptyList() }
-        items.forEach { schedule(ctx, it, nextTime(it.hour, it.minute), once = false) }
+        items.forEach { scheduleNext(ctx, it) }
     }
 
-    fun nextTime(hour: Int, minute: Int): Long {
+    /** Next daily/weekly time, or the one-off time if it is still ahead. */
+    fun scheduleNext(ctx: Context, it: Item) {
+        if (it.at > 0L) {
+            if (it.at > System.currentTimeMillis()) schedule(ctx, it, it.at, once = false)
+            return
+        }
+        schedule(ctx, it, nextTime(it.hour, it.minute, it.weekday), once = false)
+    }
+
+    fun nextTime(hour: Int, minute: Int, weekday: Int = 0): Long {
         val c = Calendar.getInstance()
         c.set(Calendar.HOUR_OF_DAY, hour); c.set(Calendar.MINUTE, minute); c.set(Calendar.SECOND, 0); c.set(Calendar.MILLISECOND, 0)
         if (c.timeInMillis <= System.currentTimeMillis() + 1000) c.add(Calendar.DAY_OF_YEAR, 1)
+        if (weekday in 1..7) {
+            var guard = 0
+            while (c.get(Calendar.DAY_OF_WEEK) != weekday && guard < 8) { c.add(Calendar.DAY_OF_YEAR, 1); guard++ }
+        }
         return c.timeInMillis
     }
 
@@ -86,6 +112,8 @@ object Reminders {
             .putExtra("id", it.id).putExtra("title", it.title).putExtra("body", it.body)
             .putExtra("hour", it.hour).putExtra("minute", it.minute)
             .putExtra("rid", it.rid).putExtra("action", it.action).putExtra("once", once)
+            .putExtra("weekday", it.weekday).putExtra("at", it.at).putExtra("kind", it.kind)
+            .putExtra("doneLabel", it.doneLabel).putExtra("second", it.second).putExtra("plain", it.plain)
 
     private const val FLAGS = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
 
@@ -116,25 +144,32 @@ object Reminders {
         val open = ctx.packageManager.getLaunchIntentForPackage(ctx.packageName)
         val openPi = open?.let { o -> PendingIntent.getActivity(ctx, it.id * 31 + 4, o, FLAGS) }
         val done = PendingIntent.getBroadcast(ctx, it.id * 31 + 1, intentFor(ctx, ACTION_DONE, it, true), FLAGS)
-        val snooze = PendingIntent.getBroadcast(ctx, it.id * 31 + 2, intentFor(ctx, ACTION_SNOOZE, it, true), FLAGS)
-        val n = NotificationCompat.Builder(ctx, CHANNEL)
+        val secondAction = if (it.second == "notnow") ACTION_NOT_NOW else ACTION_SNOOZE
+        val second = PendingIntent.getBroadcast(ctx, it.id * 31 + 2, intentFor(ctx, secondAction, it, true), FLAGS)
+        val b = NotificationCompat.Builder(ctx, CHANNEL)
             .setSmallIcon(ctx.applicationInfo.icon)
             .setContentTitle(it.title)
             .setContentText(it.body.ifBlank { it.title })
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
-            .addAction(0, "Done", done)
-            .addAction(0, "Snooze 10 min", snooze)
             .apply { if (openPi != null) setContentIntent(openPi) }
-            .build()
+        if (!it.plain) {
+            b.addAction(0, it.doneLabel, done)
+            if (it.second == "notnow") b.addAction(0, "Not now", second)
+            else if (it.second == "snooze") b.addAction(0, "Snooze 10 min", second)
+        }
+        val n = b.build()
         try { nm.notify(it.id, n) } catch (e: SecurityException) { /* notifications not allowed */ }
     }
 
     @Synchronized
-    fun queueDone(ctx: Context, it: Item) {
+    fun queueDone(ctx: Context, it: Item, status: String = "done") {
         val q = try { JSONArray(prefs(ctx).getString("queue", "[]")) } catch (e: Exception) { JSONArray() }
-        q.put(JSONObject().put("action", it.action).put("rid", it.rid).put("ts", System.currentTimeMillis()))
+        q.put(
+            JSONObject().put("action", it.action).put("rid", it.rid).put("kind", it.kind).put("nid", it.id)
+                .put("status", status).put("ts", System.currentTimeMillis())
+        )
         val keep = JSONArray()
         val from = maxOf(0, q.length() - 50)
         for (i in from until q.length()) keep.put(q.get(i))
@@ -150,7 +185,9 @@ object Reminders {
 
     fun itemFrom(i: Intent) = Item(
         i.getIntExtra("id", 0), i.getStringExtra("title") ?: "AURA", i.getStringExtra("body") ?: "",
-        i.getIntExtra("hour", 9), i.getIntExtra("minute", 0), i.getStringExtra("rid") ?: "", i.getStringExtra("action") ?: "done"
+        i.getIntExtra("hour", 9), i.getIntExtra("minute", 0), i.getStringExtra("rid") ?: "", i.getStringExtra("action") ?: "done",
+        i.getIntExtra("weekday", 0), i.getLongExtra("at", 0L), i.getStringExtra("kind") ?: "reminder",
+        i.getStringExtra("doneLabel") ?: "Done", i.getStringExtra("second") ?: "snooze", i.getBooleanExtra("plain", false)
     )
 }
 
@@ -162,13 +199,17 @@ class ReminderReceiver : BroadcastReceiver() {
             Reminders.ACTION_FIRE -> {
                 Reminders.show(ctx, item)
                 // Daily reminders set their next alarm; snoozes and tests fire once.
-                if (!intent.getBooleanExtra("once", false)) Reminders.schedule(ctx, item, Reminders.nextTime(item.hour, item.minute), once = false)
+                if (!intent.getBooleanExtra("once", false) && item.at == 0L) Reminders.scheduleNext(ctx, item)
             }
             Reminders.ACTION_DONE -> {
                 Reminders.queueDone(ctx, item)
                 NotificationManagerCompat.from(ctx).cancel(item.id)
                 val what = if (item.action == "water") "+1 glass of water saved" else "Marked as done"
                 Toast.makeText(ctx, "$what. AURA will update when you open it.", Toast.LENGTH_SHORT).show()
+            }
+            Reminders.ACTION_NOT_NOW -> {
+                Reminders.queueDone(ctx, item, status = "not-now")
+                NotificationManagerCompat.from(ctx).cancel(item.id)
             }
             Reminders.ACTION_SNOOZE -> {
                 NotificationManagerCompat.from(ctx).cancel(item.id)

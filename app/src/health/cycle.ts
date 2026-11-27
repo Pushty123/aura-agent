@@ -1,5 +1,6 @@
 import { db } from '../lib/db';
 import { getAll, putRecord } from '../lib/vault';
+import { hasPermission } from '../lib/permissions';
 
 /**
  * Period calendar. Stored encrypted; never included in AI summaries.
@@ -80,6 +81,7 @@ export function newPeriod(start: string, end?: string, flow?: Period['flow']): P
 }
 
 export async function loadPeriods(): Promise<Period[]> {
+  if (!(await hasPermission('healthRecords'))) return [];
   return (await getAll<Period>('cycle')).sort((a, b) => a.start.localeCompare(b.start));
 }
 

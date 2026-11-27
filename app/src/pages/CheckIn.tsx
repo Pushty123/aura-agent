@@ -3,6 +3,7 @@ import { Coffee, Droplet, Dumbbell } from 'lucide-react';
 import type { DayRecord } from '../types';
 import { patchDay } from '../lib/store';
 import { today, friendlyDate } from '../lib/dates';
+import { addWaterGlass, removeWaterGlass } from '../reminders/water';
 
 const MOODS: { value: NonNullable<DayRecord['mood']>; emoji: string; label: string }[] = [
   { value: 1, emoji: '😞', label: 'Low' },
@@ -101,7 +102,7 @@ export function CheckIn({ days, onChange }: { days: DayRecord[]; onChange: () =>
                     disabled={busy}
                     aria-label="Decrease water count"
                     onClick={() =>
-                      void save({ waterGlasses: Math.max(0, (rec?.waterGlasses ?? 0) - 1) }, 'Water updated.')
+                      void save(removeWaterGlass(rec), 'Water updated.')
                     }
                   >
                     -1
@@ -112,7 +113,7 @@ export function CheckIn({ days, onChange }: { days: DayRecord[]; onChange: () =>
                   className="btn sm primary"
                   disabled={busy}
                   onClick={() =>
-                    void save({ waterGlasses: (rec?.waterGlasses ?? 0) + 1 }, 'Water +1 saved.')
+                    void save(addWaterGlass(rec), 'Water +1 saved.')
                   }
                 >
                   +1 glass

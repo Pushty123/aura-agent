@@ -20,8 +20,11 @@ export type AppTab =
   | 'dashboard'
   | 'report'
   | 'checkin'
+  | 'routine'
   | 'food'
   | 'goals'
+  | 'plan-goals'
+  | 'bucket-list'
   | 'ask'
   | 'exercise'
   | 'health'
@@ -29,11 +32,12 @@ export type AppTab =
   | 'apps'
   | 'vault'
   | 'profile'
+  | 'permissions'
   | 'about'
   | 'me';
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = 'dark' | 'light' | 'system';
 
-type GroupId = 'today' | 'track' | 'report' | 'goals' | 'usage' | 'ask' | 'me';
+type GroupId = 'today' | 'track' | 'report' | 'goals' | 'plan' | 'usage' | 'ask' | 'me';
 
 interface Group {
   id: GroupId;
@@ -45,7 +49,7 @@ interface Group {
 /** Five bottom tabs for daily use. Everything else lives in the left menu (☰). */
 export const GROUPS: Group[] = [
   { id: 'today', label: 'Home', icon: TodayIcon, tabs: ['dashboard'] },
-  { id: 'track', label: 'Track', icon: CheckInIcon, tabs: ['checkin', 'food', 'exercise', 'health'] },
+  { id: 'track', label: 'Track', icon: CheckInIcon, tabs: ['checkin', 'food', 'exercise', 'health', 'routine'] },
   { id: 'report', label: 'Report', icon: ReportIcon, tabs: ['report'] },
   { id: 'goals', label: 'Goals', icon: GoalsIcon, tabs: ['goals'] },
   { id: 'ask', label: 'Ask', icon: AskIcon, tabs: ['ask'] },
@@ -53,8 +57,9 @@ export const GROUPS: Group[] = [
 
 /** Screens opened from the left menu. */
 const MENU_GROUPS: Group[] = [
+  { id: 'plan', label: 'Plan', icon: GoalsIcon, tabs: ['plan-goals', 'bucket-list'] },
   { id: 'usage', label: 'Usage', icon: AppsIcon, tabs: ['apps', 'phone'] },
-  { id: 'me', label: 'Me', icon: ProfileIcon, tabs: ['me', 'profile', 'vault', 'about'] },
+  { id: 'me', label: 'Me', icon: ProfileIcon, tabs: ['me', 'profile', 'permissions', 'vault', 'about'] },
 ];
 
 function ReportIcon({ size = 22 }: { size?: number }) {
@@ -69,13 +74,17 @@ const TITLES: Record<AppTab, string> = {
   dashboard: 'Home',
   report: 'Weekly report',
   checkin: 'Track',
+  routine: 'Routine',
   food: 'Track',
   exercise: 'Track',
   health: 'Track',
   goals: 'Goals',
+  'plan-goals': 'Life goals',
+  'bucket-list': 'Bucket list',
   ask: 'Ask AURA',
   me: 'Settings',
   profile: 'Profile',
+  permissions: 'Permissions',
   phone: 'Phone & band data',
   apps: 'App usage',
   vault: 'My data & privacy',
@@ -88,6 +97,7 @@ const SUB_TABS: Partial<Record<GroupId, { id: AppTab; label: string }[]>> = {
     { id: 'food', label: 'Food' },
     { id: 'exercise', label: 'Exercise' },
     { id: 'health', label: 'Health' },
+    { id: 'routine', label: 'Routine' },
   ],
   usage: [
     { id: 'apps', label: 'Apps & limits' },
@@ -180,7 +190,7 @@ export function AppShell({ tab, onTabChange, theme, onToggleTheme, onLock, hasDe
                 <MenuIcon size={22} />
               </button>
             )}
-            <h1 className="aura-page-title">{TITLES[tab]}</h1>
+            {tab !== 'dashboard' && tab !== 'routine' && <h1 className="aura-page-title">{TITLES[tab]}</h1>}
           </div>
           <div className="aura-topbar-actions">
             <button type="button" className="btn ghost icon-only" onClick={() => setMenuOpen(true)} aria-label="Open menu and profile" title="Menu" style={{ padding: 2 }}>

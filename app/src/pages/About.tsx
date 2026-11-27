@@ -2,11 +2,11 @@ export function About() {
   return (
     <section className="stack-lg">
       <div className="card stack-sm">
-        <h2>About AURA &amp; Privacy</h2>
+        <h2>About AURA</h2>
         <p className="small muted">
           AURA turns your daily patterns (sleep, movement, screen time, food, and mood) into
           plain-language insights backed by transparent statistics—without sending your readable
-          health data to third-party servers.
+          health data to third-party servers by default.
         </p>
       </div>
 
@@ -14,18 +14,19 @@ export function About() {
         <article className="card stack-sm">
           <h3>Encrypted on your device</h3>
           <p className="small muted">
-            All day records, food logs, goals, and settings are encrypted locally using a key
-            derived from your passphrase before being saved to IndexedDB. Only consent flags and the
-            tamper-evident audit log are stored unencrypted, and neither contains health values.
+            Day records, food logs, goals, settings, and permission choices are encrypted locally
+            using a key derived from your passphrase before being saved to IndexedDB. A small legacy
+            source-consent record and the tamper-evident audit log remain unencrypted and contain no
+            health values.
           </p>
         </article>
 
         <article className="card stack-sm">
           <h3>You control every data source</h3>
           <p className="small muted">
-            In <strong>My Data</strong>, you decide which sources are enabled (Phone data, Check-ins,
-            CSV imports, or Demo data). Switching off a non-manual source removes its stored day
-            records from your vault.
+            In <strong>Settings → Permissions</strong>, you choose whether AURA can access usage,
+            sleep, steps, heart rate, camera, microphone, notifications, health records, and sharing.
+            Turning off a device-data permission removes the matching synced readings from your vault.
           </p>
         </article>
 
@@ -39,12 +40,11 @@ export function About() {
         </article>
 
         <article className="card stack-sm">
-          <h3>Smart replies are optional</h3>
+          <h3>Network features are opt-in</h3>
           <p className="small muted">
-            Off by default. If you turn them on in <strong>Ask AURA</strong>, a short summary of your patterns
-            (weekly averages, insight sentences, age band and goal) is sent through the AURA server to a language
-            model so you can chat in your own words. Your name, email, allergies, blood group, photos and raw
-            records are never sent, and you can preview the exact summary first.
+            Smart replies in <strong>Ask AURA</strong> require their separate opt-in. Voice input is processed
+            on the device unless smart replies are enabled. A report can only be shared after enabling
+            <strong> Family sharing</strong> in Permissions and then choosing the device share sheet.
           </p>
         </article>
 
