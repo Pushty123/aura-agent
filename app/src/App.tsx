@@ -19,6 +19,7 @@ import { Me } from './pages/Me';
 import { syncPhoneData } from './sync/phoneSync';
 import { applyQueuedActions, initNotificationActions } from './reminders/actions';
 import { Toast, toast } from './components/Toast';
+import { Onboarding } from './components/Onboarding';
 import { AvatarProvider } from './avatar/AvatarContext';
 import { syncWidget } from './widget/widget';
 import { loadDays } from './lib/store';
@@ -42,6 +43,13 @@ function readInitialTheme(): ThemeMode {
 export function App() {
   const [ready, setReady] = useState(false);
   const [exists, setExists] = useState(false);
+  const [introSeen, setIntroSeen] = useState(() => {
+    try {
+      return localStorage.getItem('aura-intro') === 'done';
+    } catch {
+      return true;
+    }
+  });
   const [unlocked, setUnlocked] = useState(false);
   const [idleLocked, setIdleLocked] = useState(false);
   const [tab, setTab] = useState<AppTab>('dashboard');
@@ -161,6 +169,21 @@ export function App() {
       <div className="unlock-screen">
         <p className="muted">Loading AURA…</p>
       </div>
+    );
+  }
+
+  if (!exists && !introSeen) {
+    return (
+      <Onboarding
+        onDone={() => {
+          try {
+            localStorage.setItem('aura-intro', 'done');
+          } catch {
+            // storage blocked: just continue
+          }
+          setIntroSeen(true);
+        }}
+      />
     );
   }
 

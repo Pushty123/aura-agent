@@ -3,10 +3,10 @@ import { getRecord, putRecord } from '../lib/vault';
 import { patchDay, loadDays } from '../lib/store';
 import { today } from '../lib/dates';
 import { completeGoal, loadGoals } from '../goals/goals';
-import { isNative, REMINDER_ACTIONS, registerReminderActions } from '../native/bridge';
+import { isNative, REMINDER_ACTIONS, registerReminderActions, takeNativeReminderActions, testNativeReminder } from '../native/bridge';
 
 /**
- * "✓ Done" and "⏰ 10 min" on reminder notifications.
+ * "Done" and "Snooze 10 min" on reminder notifications.
  * A tap can arrive while AURA is locked, so "Done" is queued (only the action
  * name, never health values) and applied right after unlock.
  */
@@ -77,7 +77,7 @@ export async function doneToday(): Promise<Record<string, number>> {
 
 /** Apply queued "Done" taps. Needs the vault to be unlocked. Returns a short message, or null. */
 export async function applyQueuedActions(): Promise<string | null> {
-  const list = await readQueue();
+  const list = [...(await readQueue()), ...(await takeNativeReminderActions())];
   if (!list.length) return null;
   await db.meta.delete(QUEUE);
   const date = today();
@@ -117,6 +117,9 @@ export async function sendTestReminder(title: string, body: string, rid: string,
     const { LocalNotifications } = await import('@capacitor/local-notifications');
     const perm = await LocalNotifications.requestPermissions();
     if (perm.display !== 'granted') return 'Allow notifications for AURA in phone Settings → Apps → AURA → Notifications.';
+    const id = Math.floor(Math.random() * 100_000_000) + 1000;
+    if (await testNativeReminder({ id, title, body: body || title, rid, action }))
+      return 'Test reminder coming in 5 seconds. Tap "Done" on it: the app will not open.';
     await registerReminderActions();
     await LocalNotifications.schedule({
       notifications: [

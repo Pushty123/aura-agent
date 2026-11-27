@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Coffee, Droplet, Dumbbell } from 'lucide-react';
 import type { DayRecord } from '../types';
 import { patchDay } from '../lib/store';
-import { today } from '../lib/dates';
+import { today, friendlyDate } from '../lib/dates';
 
 const MOODS: { value: NonNullable<DayRecord['mood']>; emoji: string; label: string }[] = [
   { value: 1, emoji: '😞', label: 'Low' },
@@ -46,7 +46,7 @@ export function CheckIn({ days, onChange }: { days: DayRecord[]; onChange: () =>
         <div className="row between wrap">
           <div>
             <h2>How is your mood today?</h2>
-            <p className="xs muted">Check-in date: {date}</p>
+            <p className="xs muted">{friendlyDate(date)}</p>
           </div>
           {rec?.mood !== undefined && (
             <span className="pill primary">Logged: {MOODS.find((m) => m.value === rec.mood)?.label}</span>

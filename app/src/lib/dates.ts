@@ -16,3 +16,10 @@ export function addDays(iso: string, n: number): string {
   const dt = new Date(Date.UTC(y, m - 1, d + n));
   return dt.toISOString().slice(0, 10);
 }
+
+/** "Today", "Yesterday", or a short readable date like "Mon, 24 Nov". */
+export function friendlyDate(iso: string): string {
+  if (iso === today()) return 'Today';
+  if (iso === addDays(today(), -1)) return 'Yesterday';
+  return new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+}

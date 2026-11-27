@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Droplet, Dumbbell, HeartPulse, LayoutGrid, Utensils, X } from 'lucide-react';
+import { BarChart3, Check, ChevronRight, Droplet, Dumbbell, HeartPulse, LayoutGrid, SmilePlus, Smartphone, Target, UserRound, Utensils, X } from 'lucide-react';
 import type { DayRecord } from '../types';
 import { runInsights } from '../insights/engine';
 import { balanceScore } from '../insights/balance';
@@ -23,7 +23,6 @@ import { generateDemoData } from '../lib/demoData';
 import { today } from '../lib/dates';
 import { patchDay, saveDay } from '../lib/store';
 import { setConsent } from '../lib/vault';
-import { syncPhoneData } from '../sync/phoneSync';
 import type { AppTab } from '../components/AppShell';
 
 function greetingForNow(name?: string): string {
@@ -83,55 +82,41 @@ export function Dashboard({ days, onChange, onNavigate }: DashboardProps) {
     }
   }
 
-  async function readPhone() {
-    setBusy(true);
-    try {
-      const r = await syncPhoneData({ interactive: true });
-      await onChange();
-      const parts: string[] = [];
-      if (r.screen.state === 'synced') parts.push(`${r.screen.days} days of screen time`);
-      if (r.health.state === 'synced') parts.push(`${r.health.days} days of band and health data`);
-      setMsg(
-        parts.length
-          ? `Read ${parts.join(' and ')} from this phone.`
-          : r.screen.message || r.health.message || 'Open the Phone data tab to allow a source.',
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-
   if (!latest) {
+    const steps = [
+      { done: !!me.name, icon: UserRound, title: 'Set up your profile', sub: 'Name, height, weight and your character', tab: 'profile' as const },
+      { done: false, icon: Smartphone, title: 'Connect your phone', sub: 'Steps, sleep and screen time, filled in automatically', tab: 'phone' as const },
+      { done: false, icon: SmilePlus, title: 'Do your first check-in', sub: 'Mood, water and sleep in under a minute', tab: 'checkin' as const },
+      { done: false, icon: Target, title: 'Add a goal', sub: 'Water, study, steps, or anything of your own', tab: 'goals' as const },
+    ];
     return (
       <section className="stack-lg">
         <div>
           <h2 style={{ margin: 0 }}>{greeting}</h2>
-          <p className="xs muted">Welcome to AURA · {today()}</p>
+          <p className="small muted" style={{ margin: '4px 0 0' }}>Let&apos;s get AURA ready for you. It takes about two minutes.</p>
         </div>
-        <div className="card stack-md">
-          <div>
-            <h2>Welcome to AURA</h2>
-            <p className="muted small">
-              Your vault is unlocked, and there is no wellness data yet. Start with clearly labelled
-              demo data, read Android screen time, or record a quick check-in.
-            </p>
-          </div>
-          <div className="row gap wrap">
-            <button type="button" className="btn primary" onClick={loadDemo} disabled={busy}>
-              Load DEMO data
+        <div className="card setup-list">
+          {steps.map((st, k) => (
+            <button key={st.title} type="button" className="setup-item" onClick={() => onNavigate?.(st.tab)}>
+              <span className={`setup-num ${st.done ? 'done' : ''}`} aria-hidden="true">
+                {st.done ? <Check size={16} /> : k + 1}
+              </span>
+              <span className="setup-icon" aria-hidden="true"><st.icon size={20} /></span>
+              <span className="setup-text">
+                <strong>{st.title}</strong>
+                <span className="xs muted">{st.sub}</span>
+              </span>
+              <ChevronRight size={18} className="muted" aria-hidden="true" />
             </button>
-            <button type="button" className="btn" onClick={readPhone} disabled={busy}>
-              Read my screen time (Android)
-            </button>
-            {onNavigate && (
-              <button type="button" className="btn" onClick={() => onNavigate('checkin')}>
-                Go to Check-in
-              </button>
-            )}
-          </div>
-          {msg && <p className="status-banner">{msg}</p>}
+          ))}
         </div>
+        <div className="row between center-v wrap gap">
+          <span className="small muted">Just looking around?</span>
+          <button type="button" className="btn" onClick={loadDemo} disabled={busy}>
+            Explore with sample data
+          </button>
+        </div>
+        {msg && <p className="status-banner">{msg}</p>}
       </section>
     );
   }

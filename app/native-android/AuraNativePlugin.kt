@@ -400,6 +400,38 @@ class AuraNativePlugin : Plugin() {
         call.resolve()
     }
 
+    // ------------------------------------------------------------- reminders
+
+    /** Replaces all daily reminders. items: [{ id, title, body, hour, minute, rid, action }] */
+    @PluginMethod
+    fun scheduleNativeReminders(call: PluginCall) {
+        try {
+            val items = Reminders.parse(call.getArray("items") ?: JSArray())
+            val exact = Reminders.replaceAll(context, items)
+            call.resolve(JSObject().put("ok", true).put("count", items.size).put("exact", exact))
+        } catch (e: Exception) {
+            call.reject("could not schedule reminders")
+        }
+    }
+
+    /** Shows one reminder in a few seconds, with its buttons, to try it out. */
+    @PluginMethod
+    fun testNativeReminder(call: PluginCall) {
+        val item = Reminders.Item(
+            (call.getInt("id") ?: 7) and 0x0FFFFFFF, call.getString("title") ?: "AURA", call.getString("body") ?: "",
+            9, 0, call.getString("rid") ?: "", call.getString("action") ?: "done"
+        )
+        Reminders.schedule(context, item, System.currentTimeMillis() + 5_000L, once = true)
+        call.resolve(JSObject().put("ok", true))
+    }
+
+    /** "Done" taps made from notifications since the last call. */
+    @PluginMethod
+    fun takeReminderActions(call: PluginCall) {
+        val q = Reminders.takeQueue(context)
+        call.resolve(JSObject().put("actions", JSArray(q.toString())))
+    }
+
     /** { supported, placed }: can this launcher add widgets from inside the app, and how many AURA widgets are on screen. */
     @PluginMethod
     fun widgetStatus(call: PluginCall) {

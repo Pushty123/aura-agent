@@ -1,7 +1,7 @@
 {
   "name": "aura-app",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "AURA – personal intelligence system (Track 3: Know Thyself). Web app + Capacitor Android shell.",
   "type": "module",
   "scripts": {

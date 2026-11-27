@@ -3,7 +3,7 @@ import { Camera, Image as ImageIcon, X } from 'lucide-react';
 import { parseFood, foodTip } from '../food/parse';
 import { deleteFood, loadFood, saveFood } from '../lib/store';
 import { downscale, getPhoto } from '../lib/camera';
-import { today } from '../lib/dates';
+import { today, friendlyDate } from '../lib/dates';
 import { computeTargets, loadProfile, validateProfile, type Targets } from '../profile/profile';
 import type { FoodEntry } from '../types';
 
@@ -154,7 +154,7 @@ export function Food() {
             <button type="submit" className="btn primary" disabled={busy || (!text.trim() && !photo)}>
               {busy ? 'Adding…' : 'Add to today'}
             </button>
-            <span className="xs muted">Date: {date}</span>
+            <span className="xs muted">{friendlyDate(date)}</span>
           </div>
 
           {status && (

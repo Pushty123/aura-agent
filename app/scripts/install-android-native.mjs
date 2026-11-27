@@ -32,7 +32,7 @@ function edit(file, fn, note) {
 // 1. Plugin source + MainActivity
 const pkgDir = join(android, 'app', 'src', 'main', 'java', 'in', 'phoenix', 'aura');
 mkdirSync(pkgDir, { recursive: true });
-for (const f of ['AuraNativePlugin.kt', 'AuraWidgetProvider.kt', 'AppLimits.kt', 'PhoneSensors.kt']) copyFileSync(join(root, 'native-android', f), join(pkgDir, f));
+for (const f of ['AuraNativePlugin.kt', 'AuraWidgetProvider.kt', 'AppLimits.kt', 'PhoneSensors.kt', 'Reminders.kt']) copyFileSync(join(root, 'native-android', f), join(pkgDir, f));
 cpSync(join(root, 'native-android', 'res'), join(android, 'app', 'src', 'main', 'res'), { recursive: true });
 log.push('copied AuraNativePlugin.kt, AuraWidgetProvider.kt, AppLimits.kt, PhoneSensors.kt and widget resources');
 const mainActivity = `package in.phoenix.aura;
@@ -103,6 +103,9 @@ edit(
       '<uses-permission android:name="android.permission.CAMERA" />',
       '<uses-permission android:name="android.permission.USE_BIOMETRIC" />',
       '<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />',
+      '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
+      '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />',
+      '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
       '<uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />',
       '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
       '<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />',
@@ -128,6 +131,19 @@ edit(
       x = x.replace('</manifest>', `    <queries>\n        <intent><action android:name="android.speech.RecognitionService" /></intent>\n        <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>\n    </queries>\n</manifest>`);
     if (!x.includes('com.google.android.apps.healthdata'))
       x = x.replace('</manifest>', `    <queries>\n        <package android:name="com.google.android.apps.healthdata" />\n    </queries>\n</manifest>`);
+    // Reminder alarms and notification buttons (handled in the background, like other apps).
+    x = x.replace(/\s*<receiver android:name="\.Reminder(Boot)?Receiver"[\s\S]*?<\/receiver>/g, '');
+    x = x.replace(
+      '</application>',
+      `    <receiver android:name=".ReminderReceiver" android:exported="false" />
+        <receiver android:name=".ReminderBootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>`,
+    );
     // Home-screen widget. Always rewritten so older installs get the fixed entry:
     // exported + label + preview image, which Xiaomi/HyperOS launchers need to list it.
     x = x.replace(/\s*<receiver android:name="\.AuraWidgetProvider"[\s\S]*?<\/receiver>/, '');
