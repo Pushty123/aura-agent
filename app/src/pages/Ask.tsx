@@ -1,6 +1,17 @@
 import { detectSymptom, GUIDES, loadHealth, newEntry, personalNotes, recentCounts, saveHealth, type SymptomId } from '../health/symptoms';
 import { Check, Mic, Plus, Square, Volume2 } from 'lucide-react';
-import { getAutoSpeak, listen, setAutoSpeak, speak, stopSpeaking, voiceIssue, type Listener } from '../voice/voice';
+import {
+  getAutoSpeak,
+  getVoiceChoice,
+  listen,
+  setAutoSpeak,
+  setVoiceChoice,
+  speak,
+  stopSpeaking,
+  VOICE_PRESETS,
+  voiceIssue,
+  type Listener,
+} from '../voice/voice';
 import { localReply } from '../ask/localBrain';
 import { useMe } from '../avatar/AvatarContext';
 import { loadFood } from '../lib/store';
@@ -38,6 +49,7 @@ export function Ask({ days }: { days: DayRecord[] }) {
   const [symptoms, setSymptoms] = useState<{ label: string; n: number }[]>([]);
   const [food, setFood] = useState<FoodEntry[]>([]);
   const [autoSpeak, setAuto] = useState(false);
+  const [voicePreset, setVoicePreset] = useState('smooth');
   const [listener, setListener] = useState<Listener | null>(null);
   const [speaking, setSpeaking] = useState<string | null>(null);
   const [voiceMsg, setVoiceMsg] = useState<string | null>(null);
@@ -63,6 +75,8 @@ export function Ask({ days }: { days: DayRecord[] }) {
       setWorkouts(await loadWorkouts());
       setFood(await loadFood());
       setAuto(await getAutoSpeak());
+      const vc = await getVoiceChoice();
+      setVoicePreset(vc.preset);
       setSymptoms(recentCounts(await loadHealth(), today()));
       setServerReady(await smartStatus());
     })();
@@ -413,7 +427,7 @@ export function Ask({ days }: { days: DayRecord[] }) {
           Send
         </button>
       </form>
-      <div className="row between center-v xs" style={{ padding: '0 4px' }}>
+      <div className="row between center-v wrap gap-sm xs" style={{ padding: '0 4px' }}>
         <label className="row gap center-v">
           <input
             type="checkbox"
@@ -426,8 +440,35 @@ export function Ask({ days }: { days: DayRecord[] }) {
           />
           Read replies aloud
         </label>
-        {voiceMsg && <span className="muted">{voiceMsg}</span>}
+        <div className="row gap-sm center-v">
+          <select
+            className="input"
+            aria-label="Choose AURA voice"
+            style={{ width: 'auto', padding: '4px 8px', fontSize: '0.78rem' }}
+            value={voicePreset}
+            onChange={(e) => {
+              const preset = e.target.value;
+              setVoicePreset(preset);
+              void setVoiceChoice(preset, undefined);
+            }}
+          >
+            {VOICE_PRESETS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn sm ghost"
+            onClick={() => void say('__preview__', "Hi, I'm AURA. Here is how I sound when reading your replies aloud.")}
+            aria-label={speaking === '__preview__' ? 'Stop voice preview' : 'Test selected voice'}
+          >
+            {speaking === '__preview__' ? <><Square size={12} /> Stop</> : <><Volume2 size={12} /> Test</>}
+          </button>
+        </div>
       </div>
+      {voiceMsg && <p className="xs muted" style={{ padding: '0 4px', margin: 0 }}>{voiceMsg}</p>}
     </section>
   );
 }
