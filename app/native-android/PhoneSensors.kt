@@ -146,7 +146,7 @@ object SleepEstimate {
 /** Samples the step counter every 15 minutes, even when AURA is closed. */
 class StepWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
     override fun doWork(): Result {
-        if (!applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("enabled", false))
+        if (!applicationContext.getSharedPreferences(StepStore.PREFS, Context.MODE_PRIVATE).getBoolean("enabled", false))
             return Result.success()
         try { StepStore.sample(applicationContext) } catch (e: Exception) { /* sensor busy or not allowed */ }
         return Result.success()
@@ -155,7 +155,7 @@ class StepWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
     companion object {
         private const val WORK = "aura-steps"
         fun schedule(ctx: Context) {
-            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("enabled", true).apply()
+            ctx.getSharedPreferences(StepStore.PREFS, Context.MODE_PRIVATE).edit().putBoolean("enabled", true).apply()
             WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(
                 WORK, ExistingPeriodicWorkPolicy.KEEP,
                 PeriodicWorkRequestBuilder<StepWorker>(15, TimeUnit.MINUTES).build()
@@ -163,7 +163,7 @@ class StepWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
         }
 
         fun cancel(ctx: Context) {
-            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("enabled", false).apply()
+            ctx.getSharedPreferences(StepStore.PREFS, Context.MODE_PRIVATE).edit().putBoolean("enabled", false).apply()
             WorkManager.getInstance(ctx).cancelUniqueWork(WORK)
             StepStore.clear(ctx)
         }

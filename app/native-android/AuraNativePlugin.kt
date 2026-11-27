@@ -180,7 +180,7 @@ class AuraNativePlugin : Plugin() {
 
     @PluginMethod
     fun setPhoneStepsEnabled(call: PluginCall) {
-        if (call.getBoolean("enabled", false) && activityAllowed()) startSteps()
+        if (call.getBoolean("enabled", false) == true && activityAllowed()) startSteps()
         else StepWorker.cancel(context)
         call.resolve()
     }
@@ -195,8 +195,8 @@ class AuraNativePlugin : Plugin() {
         val n = (call.getInt("days") ?: 7).coerceIn(1, 30)
         scope.launch {
             try {
-                val readSteps = call.getBoolean("steps", false)
-                val readSleep = call.getBoolean("sleep", false)
+                val readSteps = call.getBoolean("steps", false) == true
+                val readSleep = call.getBoolean("sleep", false) == true
                 if (readSteps && activityAllowed()) { StepWorker.schedule(context); StepStore.sample(context) }
                 val today = LocalDate.now(zone)
                 val out = JSArray()
